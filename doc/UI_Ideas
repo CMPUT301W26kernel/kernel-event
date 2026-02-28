@@ -1,0 +1,49 @@
+we can have users select their role once on first launch, then link that role to their device ID (or Firebase anonymous ID). After that, the app loads the correct UI based on the stored role without needing login.
+
+I think for UI we should cover the main flows and roles instead of designing the whole app. I’m planning to mock up:
+• First launch role selection (role linked to device ID, no login needed)
+ • Event list (main home screen)
+ • Event details (join waiting list)
+ • Waiting list / lottery result screen (accept/decline)
+ • Profile screen
+ • Organizer dashboard + create event
+ • Simple admin dashboard
+Then I’ll connect them with storyboard arrows to show user flow and reference user stories on each screen. This should cover multi-user interaction, lottery logic, and core requirements for Part 2.
+
+
+Event List
+   ↓ tap event
+Event Details
+   ↓ join waiting list
+Waiting Status
+   ↓ lottery result
+Accept / Decline
+
+
+
+Note:
+We are not using username/password login. We will use device-based identity (anonymous authentication or stored UUID) to uniquely identify users, per US 01.07.01. Roles (entrant/organizer/admin) are stored in the user profile in Firebase and determine which screens/actions are accessible. Organizers/admins will be assigned by an admin (or via an invite code) for demo/testing
+
+
+Storyboard snippet to include
+First launch → “Create Profile” (device ID silently created)
+
+
+User is entrant → sees Event List
+
+
+Admin upgrades user to organizer → next app open shows “Organizer Dashboard” tab appears
+
+
+Admin user → sees Admin Dashboard
+
+Questions
+Notifications:
+Lifespan of a notification? Does a notification last forever? Does it automatically get deleted after a day?
+Should there be a maximum number of notifications before old notifications are automatically deleted? (Like notifications in the sims once you reach 400)
+Should a user be able to delete a notification?
+Should notifications link to other fragments (be able to navigate to event pages)
+Events:
+Lifespan of an event? When the lottery of an event is over, how long should you still be able to access the event page? Forever? Is the event instantly deleted once the lotto closes?
+Can event page lotteries reopen?
+
