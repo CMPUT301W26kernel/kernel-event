@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:padding="16dp"
+    android:layout_marginBottom="8dp"
+    android:background="?android:attr/selectableItemBackground">
+
+    <!-- Notification Message -->
+    <TextView
+        android:id="@+id/notification_message"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:text="You won the lottery for the Event!"
+        android:textColor="@android:color/black"
+        android:textSize="16sp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent"/>
+
+    <!-- Timestamp -->
+    <TextView
+        android:id="@+id/notification_time"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="2 hours ago"
+        android:textSize="12sp"
+        android:layout_marginTop="4dp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/notification_message"/>
+
+    <!-- Status Badge -->
+    <TextView
+        android:id="@+id/txt_status_badge"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="ACCEPTED"
+        android:textStyle="bold"
+        android:visibility="gone"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/notification_time"/>
+
+    <!-- Button container for Invitations -->
+    <LinearLayout
+        android:id="@+id/layout_invite_actions"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:visibility="gone"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/txt_status_badge"
+        android:layout_marginTop="8dp">
+
+        <Button
+            android:id="@+id/btn_decline"
+            style="@style/Widget.MaterialComponents.Button.TextButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Decline"
+            android:textColor="@android:color/holo_red_dark" />
+
+        <Button
+            android:id="@+id/btn_accept"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:text="Accept" />
+
+    </LinearLayout>
+
+</androidx.constraintlayout.widget.ConstraintLayout>
