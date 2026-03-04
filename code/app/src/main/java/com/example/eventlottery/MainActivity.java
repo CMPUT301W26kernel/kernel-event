@@ -32,17 +32,74 @@ public class MainActivity extends AppCompatActivity {
             return insets;
         });
 
-        /*
-            TODO: Edit the initial fragment transaction to check if a user has a profile or not:
-                    - if the user doesn't have a profile -> load the Set Up fragment
-                    - else -> load the Home Page fragment
-         */
-        // Sets the view to the Home Page
+        // On first launch only: decides where the user should start.
+        //Not to be done when restoring state because FragmentManager will restore the last screen.
         if (savedInstanceState == null) {
-            getSupportFragmentManager()
-                    .beginTransaction()
-                    .replace(R.id.fragment_container, new HomePageFragment())
-                    .commit();
+            // This is the "routing" step: based on auth/profile state, chooses which screen to show.
+            StartDestination destination = StartDestinationResolver.resolve();
+
+            if (destination == StartDestination.SETUP) {
+                // No authenticated user yet -> show account + profile setup flow.
+                showSetUpFragment();
+            } else {
+                // Authenticated user exists -> send them to the main home page.
+                showHomePageFragment();
+            }
+        }
+    }
+
+    private void showSetUpFragment() {
+        // Replacing the single fragment container with the setup flow fragment.
+        getSupportFragmentManager()
+                .beginTransaction()
+                .replace(R.id.fragment_container, new SetUpFragment())
+                .commit();
+    }
+
+    private void showHomePageFragment() {
+        // Replacing the single fragment container with the app "home" fragment.
+        getSupportFragmentManager()
+                .beginTransaction()
+                .replace(R.id.fragment_container, new HomePageFragment())
+                .commit();
+    }
+
+    /**
+     * Represents where the app should route a user on launch.
+     */
+    public enum StartDestination {
+        SETUP,
+        HOME
+    }
+
+    /**
+     * Simple static helper for deciding the first screen based on authentication and profile state.
+     * Separated here to make it easier to test and extend later.
+     */
+    public static class StartDestinationResolver {
+
+        /**
+         * Resolves the starting destination.
+         *
+         * Current behaviour:
+         *  - If there is no authenticated Firebase user, the user must create an account and profile.
+         *  - If a user is authenticated, we optimistically route them to the home page.
+         *
+         * Future improvement
+         *  - Check the Firestore Users collection for a profile document and route based on its presence.
+         */
+        public static StartDestination resolve() {
+            // FirebaseAuth is the source of truth for "is the user signed in?"
+            com.google.firebase.auth.FirebaseAuth auth = com.google.firebase.auth.FirebaseAuth.getInstance();
+            com.google.firebase.auth.FirebaseUser currentUser = auth.getCurrentUser();
+
+            // If no user is signed in, we must show setup (create account + profile).
+            if (currentUser == null) {
+                return StartDestination.SETUP;
+            }
+
+            // If a user exists, we can proceed to the app.
+            return StartDestination.HOME;
         }
     }
 }
