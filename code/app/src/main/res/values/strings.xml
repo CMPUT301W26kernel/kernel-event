@@ -2,4 +2,12 @@
     <string name="app_name">Event Lottery</string>
     <!-- TODO: Remove or change this placeholder text -->
     <string name="hello_blank_fragment">Hello blank fragment</string>
+
+    <!-- Waiting List Dialog -->
+    <string name="waiting_list_dialog_title_join">Join The\nWaiting List?</string>
+    <string name="waiting_list_dialog_title_leave">Leave The\nWaiting List?</string>
+    <string name="waiting_list_dialog_desc_join">There are %1$d other entrants on the waiting list. Would you like to Join the waiting list for %2$s?</string>
+    <string name="waiting_list_dialog_desc_leave">You are currently on the waiting list for %1$s. Would you like to leave?</string>
+    <string name="waiting_list_dialog_action_join">Join</string>
+    <string name="waiting_list_dialog_action_leave">Leave</string>
 </resources>
