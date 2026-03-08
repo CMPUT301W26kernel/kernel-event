@@ -2,12 +2,10 @@
  * Create Event Fragment
  * Allows Admin and Organizers to create and edit events
  * Last Modified: 2026-02-28 by Grace MacKenzie
- *
  * Notes:
- *      - Had modes for creating and editing events
+ *      - Has modes for creating and editing events
  *
- * @author author1
- * @author author2
+ * @author Grace MacKenzie
  * @since 2026-02-28
  */
 package com.example.eventlottery;
@@ -37,8 +35,7 @@ public class CreateEventFragment extends Fragment {
     }
 
     @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container,
-                             Bundle savedInstanceState) {
+    public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         // Inflate the layout for this fragment
         return inflater.inflate(R.layout.fragment_create_event, container, false);
     }

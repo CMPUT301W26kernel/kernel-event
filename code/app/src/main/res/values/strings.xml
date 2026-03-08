@@ -10,4 +10,15 @@
     <string name="waiting_list_dialog_desc_leave">You are currently on the waiting list for %1$s. Would you like to leave?</string>
     <string name="waiting_list_dialog_action_join">Join</string>
     <string name="waiting_list_dialog_action_leave">Leave</string>
+
+    <string name="cancel">Cancel</string>
+    <string name="confirm">Confirm</string>
+
+    <string name="prompt_image_edit">Tap to edit image</string>
+    <string name="poster_image_content_description">Event poster image</string>
+    <string name="event_title">Event Title</string>
+    <string name="event_description">Event Description</string>
+
+    <string name="default_event_title">My Event</string>
+    <string name="default_event_description">Describe your event here…</string>
 </resources>
