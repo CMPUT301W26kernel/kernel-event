@@ -15,7 +15,7 @@ import java.util.Date;
  * A class representing an Event which stores event data
  */
 public class Event {
-    String eventId;
+    String eventId; // This is set inside the CreateEventFragment. Do not try to change or set it otherwise.
     String title;
     String description;
     String organizerId; // Read only.
@@ -42,6 +42,8 @@ public class Event {
         this.organizerId = organizerId;
         this.registrationOpen = registrationOpen;
         this.registrationClose = registrationClose;
+
+        // Check that waitingListCapacity is within acceptable range
         if (waitingListCapacity == null || waitingListCapacity > 0 ) {
             this.waitingListCapacity = waitingListCapacity;
         } else {
