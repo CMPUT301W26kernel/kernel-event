@@ -2,8 +2,6 @@
  * Create Event Fragment
  * Allows Admin and Organizers to create and edit events
  * Last Modified: 2026-03-08 by Grace MacKenzie
- * Notes:
- *      - Has modes for creating and editing events
  *
  * @author Grace MacKenzie
  * @since 2026-02-28
@@ -21,14 +19,33 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 
+import com.google.firebase.Firebase;
+import com.google.firebase.firestore.CollectionReference;
+import com.google.firebase.firestore.DocumentReference;
+import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.QueryDocumentSnapshot;
+
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+
 /**
- * A simple {@link Fragment} subclass.
+ * A Fragment which allows users to create and edit events.
  */
 public class CreateEventFragment extends Fragment {
+
+    // ATTRIBUTES
+
+    private FirebaseFirestore db;
+    private CollectionReference citiesRef;
+
+    // CONSTRUCTORS
 
     public CreateEventFragment() {
         // Required empty public constructor
     }
+
+    // FUNCTIONS
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -43,34 +60,33 @@ public class CreateEventFragment extends Fragment {
 
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
-        /*
-            TODO: Check for create/edit mode and change fragment accordingly
+        super.onViewCreated(view, savedInstanceState);
+        String eventId = getArguments() != null ? getArguments().getString("eventId") : null;
+        String organizerId = getArguments() != null ? getArguments().getString("organizerId") : null;
 
-            - I will need a bundle passed to me which includes the event data.
-            - If the bundle contains an Event -> I will load the data in edit mode.
-            - Else, the bundle is empty -> I know I'm in creation mode and will need to
-              create an event.
+        // TODO: Check for create/edit mode and change fragment accordingly
+
+        /*
+            See the following for time and date stuff
+            https://docs.oracle.com/javase/8/docs/api/java/text/DateFormat.html
+            https://docs.oracle.com/javase/8/docs/api/java/text/SimpleDateFormat.html
         */
+
+        // BUTTON LOGIC
 
         Button positiveButton = view.findViewById(R.id.confirm_button);
         positiveButton.setOnClickListener(v -> {
-            Bundle bundle = new Bundle();
 
-            // TODO: Check that user has filled in all required fields
-
-            if ( 1 == 1 ) {  // TODO: check if in creation mode
-                // TODO: Create new event object based on user input
-                Event newEvent = new Event();
-                bundle.putString("eventId", "placeholder Firestore Id");
-            } else {
-                // save edits to the loaded Event
-                // use the id of the existing Event
-                bundle.putString("eventId", "placeholder Firestore Id");
+            if ( eventId == null ) { // Creation mode
+                Date date = new Date();
+                Event newEvent = new Event("test title", "test description", "pretend organizer id", date, date, null); // TODO: create event using data entered by user
+                addEvent(newEvent);
+            } else { // Event mode
+                updateEvent();
             }
 
             // Navigate to EventOverviewFragment
-            EventOverviewFragment fragment = new EventOverviewFragment();
-            fragment.setArguments(bundle);
+            EventOverviewFragment fragment = new EventOverviewFragment(); // TODO: change to newInstance method if one is created
             requireActivity().getSupportFragmentManager()
                     .beginTransaction()
                     .replace(R.id.fragment_container, fragment)
@@ -79,20 +95,24 @@ public class CreateEventFragment extends Fragment {
 
         Button negativeButton = view.findViewById(R.id.cancel_button);
         negativeButton.setOnClickListener(v -> {
-            if ( 1 == 1 ) {  // TODO: check if in creation mode
-                // cancel event creation
-            } else {
-                // delete event. Will want a confirmation dialog fragment.
+            if ( eventId == null ) { // Creation mode
+                // TODO: cancel event creation
+                // TODO: navigate back to home page
+            } else { // Event mode
+                // TODO: delete event. Will want a confirmation dialog fragment.
+                // TODO: navigate back to event overview page
             }
         });
     }
+
+
 
     /**
      * Returns a new instance of the CreateEventFragment in create mode. To load
      * CreateEventFragment in edit mode, pass an eventId as an argument.
      * <p>
      * Usage:
-     * CreateEventFragment fragment = CreateEventFragment.newInstance();
+     * CreateEventFragment fragment = CreateEventFragment.newInstanceCreateMode();
      * <p>
      * // Then use the fragment in your fragment transaction
      * requireActivity().getSupportFragmentManager()
@@ -101,10 +121,15 @@ public class CreateEventFragment extends Fragment {
      *                     .addToBackStack(null)
      *                     .commit();
      *
+     * @param organizerId The Firestore organizer id used to reference the relevant organizer
      * @return A new CreateEventFragment which can be used in fragment transactions
      */
-    public static CreateEventFragment newInstance() {
-        return new CreateEventFragment();
+    public static CreateEventFragment newInstanceCreateMode(String organizerId) {
+        CreateEventFragment fragment = new CreateEventFragment();
+        Bundle bundle = new Bundle();
+        bundle.putString("organizerId", organizerId);
+        fragment.setArguments(bundle);
+        return fragment;
     }
 
     /**
@@ -112,7 +137,7 @@ public class CreateEventFragment extends Fragment {
      * CreateEventFragment in create mode, pass this function without an argument.
      * <p>
      * Usage:
-     * CreateEventFragment fragment = CreateEventFragment.newInstance(myEvent.eventId);
+     * CreateEventFragment fragment = CreateEventFragment.newInstanceEditMode(myEvent.eventId);
      * <p>
      * // Then use the fragment in your fragment transaction
      * requireActivity().getSupportFragmentManager()
@@ -124,11 +149,20 @@ public class CreateEventFragment extends Fragment {
      * @param eventId The Firestore event id used to load an event from Firestore
      * @return A new CreateEventFragment which can be used in fragment transactions
      */
-    public static CreateEventFragment newInstance(String eventId) {
+    public static CreateEventFragment newInstanceEditMode(String eventId) {
         CreateEventFragment fragment = new CreateEventFragment();
         Bundle bundle = new Bundle();
         bundle.putString("eventId", eventId);
         fragment.setArguments(bundle);
         return fragment;
+    }
+
+    // HELPER METHODS
+
+    private void addEvent(Event event) {
+    }
+
+    private void updateEvent() {
+        // TODO: edit event attributes according to what the user has entered
     }
 }
