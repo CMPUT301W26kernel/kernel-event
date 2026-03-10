@@ -3,49 +3,57 @@
  * Displays a user profile.
  * Last Modified: 2026-02-28 by Grace MacKenzie
  *
+ * Notes:
+ *      - This is intended to contain modes for both the admin view
+ *          and when the user is viewing their own profile.
+ *
  * @author author1
  * @author author2
  * @since 2026-02-28
  */
 package com.example.eventlottery;
 
-import android.app.Dialog;
-import android.graphics.Color;
-import android.graphics.drawable.ColorDrawable;
 import android.os.Bundle;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 
-import android.provider.Settings;
-import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.Window;
-import android.widget.Button;
-import android.widget.EditText;
+
 import android.widget.TextView;
-import android.widget.Toast;
+
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.FirebaseFirestore;
 
 /**
- * A simple {@link Fragment} subclass for managing user profiles.
+ * A simple {@link Fragment} subclass.
  */
 public class UserProfileFragment extends Fragment {
 
-    private EditText usernameEdit, emailEdit, phoneEdit;
-    private TextView roleText, deviceIdText;
-    private Button deleteButton, historyButton, doneButton;
+    // UI labels for displaying the current user's profile.
+    private TextView usernameView;
+    private TextView emailView;
+    private TextView phoneView;
+    private TextView roleView;
 
     public UserProfileFragment() {
         // Required empty public constructor
     }
 
     @Override
+    public void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+    }
+
+    @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
-        // Inflate the layout for this fragment
+        // Inflates the layout for this fragment
         return inflater.inflate(R.layout.fragment_user_profile, container, false);
     }
 
@@ -53,114 +61,67 @@ public class UserProfileFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
-        // Initialize Views
-        usernameEdit = view.findViewById(R.id.username_edit);
-        emailEdit = view.findViewById(R.id.email_edit);
-        phoneEdit = view.findViewById(R.id.phone_edit);
-        roleText = view.findViewById(R.id.role_text);
-        deviceIdText = view.findViewById(R.id.device_id_text);
-        deleteButton = view.findViewById(R.id.delete_button);
-        historyButton = view.findViewById(R.id.history_button);
-        doneButton = view.findViewById(R.id.done_button);
+        // Binds view references.
+        usernameView = view.findViewById(R.id.profile_username);
+        emailView = view.findViewById(R.id.profile_email);
+        phoneView = view.findViewById(R.id.profile_phone);
+        roleView = view.findViewById(R.id.profile_role);
 
-        // Fetch Device ID (Always stays the same)
-        String androidId = Settings.Secure.getString(getContext().getContentResolver(), Settings.Secure.ANDROID_ID);
-        deviceIdText.setText("Device ID: " + androidId);
-
-        // Load data - This is the part that will be replaced by Firebase later
-        fetchUserProfile();
-
-        // Button Listeners
-        deleteButton.setOnClickListener(v -> {
-            showDeleteConfirmation();
-        });
-
-        historyButton.setOnClickListener(v -> {
-            Toast.makeText(getContext(), "Opening Event History...", Toast.LENGTH_SHORT).show();
-        });
-
-        doneButton.setOnClickListener(v -> {
-            validateAndSave();
-        });
-    }
-
-    /**
-     * Shows a custom confirmation dialog for profile deletion.
-     */
-    private void showDeleteConfirmation() {
-        Dialog dialog = new Dialog(getContext());
-        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
-        dialog.setContentView(R.layout.fragment_user_profile_delete_confirmation);
-        dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
-
-        Button confirmDelete = dialog.findViewById(R.id.dialog_delete_button);
-        Button cancelDelete = dialog.findViewById(R.id.dialog_cancel_button);
-
-        confirmDelete.setOnClickListener(v -> {
-            // TODO: Add Firebase deletion logic here
-            // FirebaseFirestore.getInstance().collection("users").document(deviceId).delete()...
-            
-            Toast.makeText(getContext(), "Profile Deleted Successfully", Toast.LENGTH_LONG).show();
-            dialog.dismiss();
-            
-            // Logic to navigate back to "Set Up Account" would go here
-        });
-
-        cancelDelete.setOnClickListener(v -> dialog.dismiss());
-
-        dialog.show();
-    }
-
-    /**
-     * Validates input fields and proceeds to save if successful.
-     */
-    private void validateAndSave() {
-        String username = usernameEdit.getText().toString().trim();
-        String email = emailEdit.getText().toString().trim();
-        String phone = phoneEdit.getText().toString().trim();
-
-        // Validation: Username cannot be empty
-        if (TextUtils.isEmpty(username)) {
-            usernameEdit.setError("Username is required");
-            usernameEdit.requestFocus();
+        // Authentication check: if we don't have a signed-in user, we shouldn't attempt a profile lookup.
+        FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
+        if (currentUser == null) {
+            // If somehow we reach this screen without authentication, we cannot show a profile.
+            usernameView.setText("Not signed in");
+            emailView.setText("");
+            phoneView.setText("");
+            roleView.setText("");
             return;
         }
 
-        // Optional: Simple email validation
-        if (!TextUtils.isEmpty(email) && !android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
-            emailEdit.setError("Invalid email format");
-            emailEdit.requestFocus();
+        // Looks up the profile document in Firestore at `users/{uid}` and bind it to the screen.
+        FirebaseFirestore.getInstance()
+                .collection("users")
+                .document(currentUser.getUid())
+                .get()
+                .addOnSuccessListener(this::bindProfile)
+                .addOnFailureListener(e -> {
+                    // Shows a simple failure message; this keeps the UI resilient even if Firestore is unavailable.
+                    usernameView.setText("Failed to load profile");
+                    emailView.setText("");
+                    phoneView.setText("");
+                    roleView.setText("");
+                });
+    }
+
+    private void bindProfile(DocumentSnapshot snapshot) {
+        // If there is no profile document, there's nothing to display.
+        if (snapshot == null || !snapshot.exists()) {
+            usernameView.setText("Profile not found");
+            emailView.setText("");
+            phoneView.setText("");
+            roleView.setText("");
             return;
         }
 
-        // If validation passes, call save logic
-        saveUserProfile(username, email, phone);
+        // Converts the Firestore document into our User model.
+        User user = snapshot.toObject(User.class);
+        if (user == null) {
+            usernameView.setText("Profile not found");
+            emailView.setText("");
+            phoneView.setText("");
+            roleView.setText("");
+            return;
+        }
+
+        // Renders the data.
+        usernameView.setText("Username: " + valueOrEmpty(user.getUsername()));
+        emailView.setText("Email: " + valueOrEmpty(user.getEmail()));
+        phoneView.setText("Phone: " + valueOrEmpty(user.getPhoneNumber()));
+        roleView.setText("Role: " + valueOrEmpty(user.getRole()));
     }
 
-    /**
-     * Mock function to simulate fetching data from Firebase.
-     * Replace the hardcoded values with a Firestore query later.
-     */
-    private void fetchUserProfile() {
-        // MOCK DATA
-        String mockUsername = "JohnDoe2024";
-        String mockEmail = "john.doe@example.com";
-        String mockPhone = "(555) 123-4567";
-        String mockRole = "Entrant";
-
-        // Populate fields
-        usernameEdit.setText(mockUsername);
-        emailEdit.setText(mockEmail);
-        phoneEdit.setText(mockPhone);
-        roleText.setText(mockRole);
-    }
-
-    /**
-     * Mock function to simulate saving data to Firebase.
-     * Replace the Toast with a Firestore update/set call later.
-     */
-    private void saveUserProfile(String username, String email, String phone) {
-        // TODO: Add Firebase save logic here
-        Toast.makeText(getContext(), "Profile Saved Successfully!", Toast.LENGTH_SHORT).show();
+    private String valueOrEmpty(String value) {
+        // Guards against null values in Firestore.
+        return value == null ? "" : value;
     }
 }

@@ -1,15 +1,11 @@
 plugins {
     alias(libs.plugins.android.application)
-
-    // Add the Google services Gradle plugin
     id("com.google.gms.google-services")
 }
 
 android {
     namespace = "com.example.eventlottery"
-    compileSdk {
-        version = release(36)
-    }
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.example.eventlottery"
@@ -46,6 +42,7 @@ dependencies {
     androidTestImplementation(libs.espresso.core)
 
     implementation(platform("com.google.firebase:firebase-bom:34.10.0"))
-    implementation(libs.firebase.analytics)
-
+    implementation("com.google.firebase:firebase-analytics")
+    implementation("com.google.firebase:firebase-auth")
+    implementation("com.google.firebase:firebase-firestore")
 }
