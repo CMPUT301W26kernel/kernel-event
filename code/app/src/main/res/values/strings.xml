@@ -13,6 +13,7 @@
 
     <string name="cancel">Cancel</string>
     <string name="confirm">Confirm</string>
+    <string name="delete">Delete Event</string>
 
     <string name="prompt_image_edit">Tap to edit image</string>
     <string name="poster_image_content_description">Event poster image</string>

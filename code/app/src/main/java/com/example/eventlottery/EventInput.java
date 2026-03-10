@@ -1,7 +1,7 @@
 /**
  * Event Input
  * A small helper class to bundle Event Input and improve code readability.
- * Last Modified: 2026-03-010 by Grace MacKenzie
+ * Last Modified: 2026-03-10 by Grace MacKenzie
  *
  * @author Grace MacKenzie
  * @since 2026-03-10
