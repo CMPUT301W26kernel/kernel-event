@@ -1,7 +1,7 @@
 /**
  * Event
  * (description here)
- * Last Modified: 2026-03-09 by Grace MacKenzie
+ * Last Modified: 2026-03-10 by Grace MacKenzie
  *
  * @author Grace MacKenzie
  * @since 2026-03-02
@@ -98,7 +98,7 @@ public class Event {
         this.registrationClose = registrationClose;
     }
 
-    public int getWaitingListCapacity() {
+    public Integer getWaitingListCapacity() {
         return waitingListCapacity;
     }
 

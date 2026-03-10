@@ -91,6 +91,32 @@
 
             android:background="@color/white" />
 
+        <!-- Edit Waiting List Capacity -->
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="30dp"
+            android:layout_marginBottom="5dp"
+
+            android:text="@string/waiting_list_capacity"
+            android:textSize="20sp"
+            android:textColor="@color/primary_deep"/>
+
+        <EditText
+            android:id="@+id/edit_capacity"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:padding="10dp"
+            android:layout_marginHorizontal="30dp"
+
+            android:inputType="number"
+            android:importantForAutofill="no"
+            android:text=""
+            android:textSize="18sp"
+
+            android:background="@color/white" />
+
         <!-- Other fields to edit... -->
         <!-- see text input types for future EditText views. They're very useful -->
 
