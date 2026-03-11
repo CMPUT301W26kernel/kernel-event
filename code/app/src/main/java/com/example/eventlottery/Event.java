@@ -9,7 +9,7 @@
 package com.example.eventlottery;
 import androidx.annotation.Nullable;
 
-import java.util.Date;
+import java.time.ZonedDateTime;
 
 /**
  * A class representing an Event which stores event data
@@ -19,8 +19,8 @@ public class Event {
     String title;
     String description;
     String organizerId; // Read only.
-    Date registrationOpen;
-    Date registrationClose;
+    ZonedDateTime registrationOpen;
+    ZonedDateTime registrationClose;
     Integer waitingListCapacity; // maybe -1 if there is no limit
 
     // Not sure how to do the image, but a reference to it should go in here.
@@ -32,10 +32,10 @@ public class Event {
      * @param title The title of the event
      * @param description The description of the event
      * @param organizerId The Firestore id for the organizer of this event
-     * @param registrationOpen the date the registration opens
-     * @param registrationClose the date the registration closes
+     * @param registrationOpen the ZonedDateTime the registration opens
+     * @param registrationClose the ZonedDateTime the registration closes
      */
-    public Event(String title, String description, String organizerId, Date registrationOpen, Date registrationClose, @Nullable Integer waitingListCapacity) {
+    public Event(String title, String description, String organizerId, ZonedDateTime registrationOpen, ZonedDateTime registrationClose, @Nullable Integer waitingListCapacity) {
         // TODO: Generate a Firestore event ID
         this.title = title;
         this.description = description;
@@ -52,7 +52,7 @@ public class Event {
     }
 
     // GETTERS & SETTERS
-    // TODO: Set conditions on setters for some attributes (namely the date attributes)
+    // TODO: Set conditions on setters for some attributes (namely the ZonedDateTime attributes)
 
     public String getEventId() {
         return eventId;
@@ -82,19 +82,19 @@ public class Event {
         return organizerId;
     }
 
-    public Date getRegistrationOpen() {
+    public ZonedDateTime getRegistrationOpen() {
         return registrationOpen;
     }
 
-    public void setRegistrationOpen(Date registrationOpen) {
+    public void setRegistrationOpen(ZonedDateTime registrationOpen) {
         this.registrationOpen = registrationOpen;
     }
 
-    public Date getRegistrationClose() {
+    public ZonedDateTime getRegistrationClose() {
         return registrationClose;
     }
 
-    public void setRegistrationClose(Date registrationClose) {
+    public void setRegistrationClose(ZonedDateTime registrationClose) {
         this.registrationClose = registrationClose;
     }
 
