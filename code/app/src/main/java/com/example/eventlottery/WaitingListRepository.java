@@ -7,13 +7,10 @@ import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
-import com.google.firebase.firestore.SetOptions;
 import com.google.firebase.firestore.Transaction;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 /**
  * Repository class for managing the waiting list in Firestore.
@@ -24,10 +21,8 @@ public class WaitingListRepository {
 
     private static final String TAG = "WaitingListRepo";
     private final FirebaseFirestore db;
-
-    // Firestore collection names
     private static final String EVENTS_COLLECTION = "events";
-    private static final String WAITING_LIST_FIELD = "waitingList"; // Array of user IDs
+    private static final String WAITING_LIST_FIELD = "waitingList";
 
     public WaitingListRepository() {
         this.db = FirebaseFirestore.getInstance();
@@ -35,11 +30,11 @@ public class WaitingListRepository {
 
     /**
      * Attempts to add a user to the waiting list for an event.
-     * Checks if the user is already on the list, and if the list has reached its capacity limit.
+     * Checks if the user is already on the list and if the list has reached the optional limit.
      *
      * @param eventId The ID of the event
      * @param userId  The ID of the user joining
-     * @return A Task that resolves to true if successful, or an Exception if it failed.
+     * @return Task as true on success and an exception on failure.
      */
     public Task<Void> joinWaitingList(String eventId, String userId) {
         DocumentReference eventRef = db.collection(EVENTS_COLLECTION).document(eventId);
@@ -51,7 +46,6 @@ public class WaitingListRepository {
                 throw new RuntimeException("Event does not exist.");
             }
 
-            // 1. Check if the user is already on the waiting list
             List<String> currentList = (List<String>) snapshot.get(WAITING_LIST_FIELD);
             if (currentList == null) {
                 currentList = new ArrayList<>();
@@ -61,7 +55,6 @@ public class WaitingListRepository {
                 throw new RuntimeException("User is already on the waiting list.");
             }
 
-            // 2. Check Capacity (US 02.03.01 - Optional capacity limit)
             Long capacityLong = snapshot.getLong("waitingListCapacity");
             if (capacityLong != null && capacityLong > 0) {
                 if (currentList.size() >= capacityLong) {
@@ -69,14 +62,10 @@ public class WaitingListRepository {
                 }
             }
 
-            // 3. Add the user
             transaction.update(eventRef, WAITING_LIST_FIELD, FieldValue.arrayUnion(userId));
             return null;
-        }).addOnSuccessListener(aVoid -> {
-            Log.d(TAG, "Successfully joined waiting list for event: " + eventId);
-        }).addOnFailureListener(e -> {
-            Log.e(TAG, "Failed to join waiting list: ", e);
-        });
+        }).addOnSuccessListener(aVoid -> Log.d(TAG, "Successfully joined waiting list for event: " + eventId))
+          .addOnFailureListener(e -> Log.e(TAG, "Failed to join waiting list: ", e));
     }
 
     /**
@@ -84,7 +73,7 @@ public class WaitingListRepository {
      *
      * @param eventId The ID of the event
      * @param userId  The ID of the user leaving
-     * @return A Task representing the asynchronous operation
+     * @return Task of async operation
      */
     public Task<Void> leaveWaitingList(String eventId, String userId) {
         DocumentReference eventRef = db.collection(EVENTS_COLLECTION).document(eventId);
@@ -95,10 +84,10 @@ public class WaitingListRepository {
     }
 
     /**
-     * Fetches the current waiting list (a list of User IDs) for a specific event.
+     * Fetches the current waiting list for a specific event.
      *
      * @param eventId The ID of the event
-     * @return A Task containing the list of User IDs on the waiting list
+     * @return Task of the list of User IDs on the waiting list
      */
     public Task<List<String>> getWaitingList(String eventId) {
         DocumentReference eventRef = db.collection(EVENTS_COLLECTION).document(eventId);
