@@ -23,4 +23,6 @@
     <string name="default_event_title">My Event</string>
     <string name="default_event_description">Describe your event here…</string>
     <string name="waiting_list_capacity">Waiting List Capacity (Optional)</string>
+    <string name="registration_open">Registration Open\n(YYYY/MM/DD)</string>
+    <string name="registration_close">Registration Close\n(YYYY/MM/DD)</string>
 </resources>

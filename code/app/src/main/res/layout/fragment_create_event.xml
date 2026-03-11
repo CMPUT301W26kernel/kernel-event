@@ -9,118 +9,255 @@
     tools:context=".MainActivity">
 
     <!-- This contains event attribute fields that users can modify -->
-    <LinearLayout
-        android:id="@+id/fillable_fields"
+
+    <ScrollView
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:gravity="center"
+        android:layout_height="match_parent"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintBottom_toTopOf="@+id/bottom_bar"
         app:layout_constraintVertical_bias="0.0">
 
-        <!-- Edit Poster Image -->
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="20dp"
-            android:layout_margin="5dp"
-            android:text="@string/prompt_image_edit"
-            android:textSize="15sp"
-            android:textColor="@color/primary_dark"/>
-
-        <ImageView
-            android:id="@+id/poster_image"
-            android:layout_width="200dp"
-            android:layout_height="200dp"
-            android:background="@drawable/default_image"
-            android:contentDescription="@string/poster_image_content_description" />
-
-        <!-- Edit Event Title -->
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="30dp"
-            android:layout_marginBottom="5dp"
-
-            android:text="@string/event_title"
-            android:textSize="20sp"
-            android:textColor="@color/primary_deep"/>
-
-        <EditText
-            android:id="@+id/edit_event_title"
+        <LinearLayout
+            android:id="@+id/fillable_fields"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:padding="10dp"
-            android:layout_marginHorizontal="30dp"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:paddingBottom="100dp">
 
-            android:inputType="text"
-            android:importantForAutofill="no"
-            android:text="@string/default_event_title"
-            android:textSize="18sp"
+            <!-- Edit Poster Image -->
 
-            android:background="@color/white" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="20dp"
+                android:layout_margin="5dp"
+                android:text="@string/prompt_image_edit"
+                android:textSize="15sp"
+                android:textColor="@color/primary_dark"/>
 
-        <!-- Edit Event Description -->
+            <ImageView
+                android:id="@+id/poster_image"
+                android:layout_width="200dp"
+                android:layout_height="200dp"
+                android:background="@drawable/default_image"
+                android:contentDescription="@string/poster_image_content_description" />
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="30dp"
-            android:layout_marginBottom="5dp"
+            <!-- Edit Event Title -->
 
-            android:text="@string/event_description"
-            android:textSize="20sp"
-            android:textColor="@color/primary_deep"/>
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="30dp"
+                android:layout_marginBottom="5dp"
 
-        <EditText
-            android:id="@+id/edit_event_description"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:padding="10dp"
-            android:layout_marginHorizontal="30dp"
+                android:text="@string/event_title"
+                android:textSize="20sp"
+                android:textColor="@color/primary_deep"/>
 
-            android:inputType="textMultiLine"
-            android:importantForAutofill="no"
-            android:text="@string/default_event_description"
-            android:textSize="18sp"
+            <EditText
+                android:id="@+id/edit_event_title"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:padding="10dp"
+                android:layout_marginHorizontal="30dp"
 
-            android:background="@color/white" />
+                android:inputType="text"
+                android:importantForAutofill="no"
+                android:text="@string/default_event_title"
+                android:textSize="18sp"
 
-        <!-- Edit Waiting List Capacity -->
+                android:background="@color/white" />
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="30dp"
-            android:layout_marginBottom="5dp"
+            <!-- Edit Event Description -->
 
-            android:text="@string/waiting_list_capacity"
-            android:textSize="20sp"
-            android:textColor="@color/primary_deep"/>
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="30dp"
+                android:layout_marginBottom="5dp"
 
-        <EditText
-            android:id="@+id/edit_capacity"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:padding="10dp"
-            android:layout_marginHorizontal="30dp"
+                android:text="@string/event_description"
+                android:textSize="20sp"
+                android:textColor="@color/primary_deep"/>
 
-            android:inputType="number"
-            android:importantForAutofill="no"
-            android:text=""
-            android:textSize="18sp"
+            <EditText
+                android:id="@+id/edit_event_description"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:padding="10dp"
+                android:layout_marginHorizontal="30dp"
 
-            android:background="@color/white" />
+                android:inputType="textMultiLine"
+                android:importantForAutofill="no"
+                android:text="@string/default_event_description"
+                android:textSize="18sp"
 
-        <!-- Other fields to edit... -->
-        <!-- see text input types for future EditText views. They're very useful -->
+                android:background="@color/white" />
 
-    </LinearLayout>
+            <!-- Edit Registration Open -->
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="30dp"
+                android:layout_marginBottom="5dp"
+
+                android:text="@string/registration_open"
+                android:textAlignment="center"
+                android:textSize="20sp"
+                android:textColor="@color/primary_deep"/>
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content">
+
+                <EditText
+                    android:id="@+id/edit_reg_open_year"
+                    android:layout_width="60dp"
+                    android:layout_height="wrap_content"
+                    android:padding="10dp"
+                    android:layout_marginHorizontal="10dp"
+
+                    android:inputType="number"
+                    android:importantForAutofill="no"
+                    android:text=""
+                    android:textSize="18sp"
+                    android:maxLength="4"
+
+                    android:background="@color/white" />
+
+                <EditText
+                    android:id="@+id/edit_reg_open_month"
+                    android:layout_width="60dp"
+                    android:layout_height="wrap_content"
+                    android:padding="10dp"
+                    android:layout_marginHorizontal="10dp"
+
+                    android:inputType="number"
+                    android:importantForAutofill="no"
+                    android:text=""
+                    android:textSize="18sp"
+                    android:maxLength="2"
+
+                    android:background="@color/white" />
+
+                <EditText
+                    android:id="@+id/edit_reg_open_day"
+                    android:layout_width="60dp"
+                    android:layout_height="wrap_content"
+                    android:padding="10dp"
+                    android:layout_marginHorizontal="10dp"
+
+                    android:inputType="number"
+                    android:importantForAutofill="no"
+                    android:text=""
+                    android:textSize="18sp"
+                    android:maxLength="2"
+
+                    android:background="@color/white" />
+
+            </LinearLayout>
+
+
+            <!-- Edit Registration Close -->
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="30dp"
+                android:layout_marginBottom="5dp"
+
+                android:text="@string/registration_close"
+                android:textAlignment="center"
+                android:textSize="20sp"
+                android:textColor="@color/primary_deep"/>
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content">
+
+                <EditText
+                    android:id="@+id/edit_reg_close_year"
+                    android:layout_width="60dp"
+                    android:layout_height="wrap_content"
+                    android:padding="10dp"
+                    android:layout_marginHorizontal="10dp"
+
+                    android:inputType="number"
+                    android:importantForAutofill="no"
+                    android:text=""
+                    android:textSize="18sp"
+                    android:maxLength="4"
+
+                    android:background="@color/white" />
+
+                <EditText
+                    android:id="@+id/edit_reg_close_month"
+                    android:layout_width="60dp"
+                    android:layout_height="wrap_content"
+                    android:padding="10dp"
+                    android:layout_marginHorizontal="10dp"
+
+                    android:inputType="number"
+                    android:importantForAutofill="no"
+                    android:text=""
+                    android:textSize="18sp"
+                    android:maxLength="2"
+
+                    android:background="@color/white" />
+
+                <EditText
+                    android:id="@+id/edit_reg_close_day"
+                    android:layout_width="60dp"
+                    android:layout_height="wrap_content"
+                    android:padding="10dp"
+                    android:layout_marginHorizontal="10dp"
+
+                    android:inputType="number"
+                    android:importantForAutofill="no"
+                    android:text=""
+                    android:textSize="18sp"
+                    android:maxLength="2"
+
+                    android:background="@color/white" />
+
+            </LinearLayout>
+
+            <!-- Edit Waiting List Capacity -->
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="30dp"
+                android:layout_marginBottom="5dp"
+
+                android:text="@string/waiting_list_capacity"
+                android:textSize="20sp"
+                android:textColor="@color/primary_deep"/>
+
+            <EditText
+                android:id="@+id/edit_capacity"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:padding="10dp"
+                android:layout_marginHorizontal="30dp"
+
+                android:inputType="number"
+                android:importantForAutofill="no"
+                android:text=""
+                android:textSize="18sp"
+
+                android:background="@color/white" />
+
+            <!-- Other fields to edit... -->
+            <!-- see text input types for future EditText views. They're very useful -->
+
+        </LinearLayout>
+
+    </ScrollView>
 
     <!-- This contains the confirmation and cancellation buttons-->
     <LinearLayout
