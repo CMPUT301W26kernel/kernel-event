@@ -307,7 +307,7 @@ public class CreateEventFragment extends Fragment {
         int value = Integer.parseInt(inputCapacity);
 
         if (value <= 0) {
-            throw new IllegalArgumentException("Waiting List Capacity must be an integer above 0.\nLeave this field blank if there is no capacity.");
+            throw new IllegalArgumentException("Waiting List Capacity must be an integer above 0.");
         }
 
         return value;
@@ -367,11 +367,11 @@ public class CreateEventFragment extends Fragment {
         // Registration Open/Close Checks
 
         if(!ctx.input.registrationOpen.matches("\\d{4}-\\d{2}-\\d{2}")) {
-            return ValidationResult.invalid("Please enter a date with the form YYYY/MM/DD");
+            return ValidationResult.invalid("Please enter a date with the form YYYY-MM-DD");
         }
 
         if(!ctx.input.registrationClose.matches("\\d{4}-\\d{2}-\\d{2}")) {
-            return ValidationResult.invalid("Please enter a date with the form YYYY/MM/DD");
+            return ValidationResult.invalid("Please enter a date with the form YYYY-MM-DD");
         }
 
         try {
@@ -395,7 +395,7 @@ public class CreateEventFragment extends Fragment {
         } else if (registrationClose.isBefore(registrationOpen)) {
             return ValidationResult.invalid("registration cannot close before it opens");
         } else if (registrationOpen.isBefore(ZonedDateTime.now())) {
-            return ValidationResult.invalid("registration period must be outside of current time and date");
+            return ValidationResult.invalid("registration period must take place after the current time");
         }
 
         // Waiting List Capacity Check
