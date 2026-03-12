@@ -20,15 +20,15 @@ import java.util.List;
  */
 public class NotificationRepository {
 
-    // FIX: Just declare it, do not assign it here
+    
     private final FirebaseFirestore db;
 
-    // Production constructor
+    
     public NotificationRepository() {
         this(FirebaseFirestore.getInstance());
     }
 
-    // Test constructor
+    
     public NotificationRepository(FirebaseFirestore db) {
         this.db = db;
     }
