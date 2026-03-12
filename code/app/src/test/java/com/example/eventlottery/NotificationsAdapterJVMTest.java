@@ -79,7 +79,7 @@ public class NotificationsAdapterJVMTest {
 
         adapter.onBindViewHolder(holder, 0);
 
-        // Robolectric handles the click and listener execution
+        
         holder.btnAccept.performClick();
         holder.btnDecline.performClick();
 
