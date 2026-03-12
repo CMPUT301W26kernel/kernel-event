@@ -42,6 +42,12 @@ dependencies {
     implementation(libs.activity)
     implementation(libs.constraintlayout)
     testImplementation(libs.junit)
+    testImplementation("junit:junit:4.13.2")
+    testImplementation("org.mockito:mockito-core:5.5.0")
+    testImplementation("androidx.test:core:1.5.0")
+    val androidXTestVersion = ""
+    testImplementation("androidx.test:core:$androidXTestVersion")
+    testImplementation("org.robolectric:robolectric:4.10.3")
     androidTestImplementation(libs.ext.junit)
     androidTestImplementation(libs.espresso.core)
 
