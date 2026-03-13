@@ -16,6 +16,11 @@ import org.junit.Test;
 
 import java.util.Collections;
 
+/**
+ * Notification Repository Test
+ * Last Modified: 2026-03-12 by Radwa Sheikhdon
+ * Handles creation and response logic for notifications.
+ */
 public class NotificationRepositoryTest {
 
     private FirebaseFirestore mockDb;
@@ -25,6 +30,9 @@ public class NotificationRepositoryTest {
     private Task<Void> mockTransactionTask;
     private NotificationRepository repository;
 
+    /**
+     * Sets up the test environment before each test case.
+     */
     @Before
     public void setup() {
         mockDb = mock(FirebaseFirestore.class);
@@ -49,6 +57,9 @@ public class NotificationRepositoryTest {
         repository = new NotificationRepository(mockDb);
     }
 
+    /**
+     * Tests the createNotification method of the NotificationRepository.
+     */
     @Test
     public void testSendBulkNotification_callsCreateNotification() {
         NotificationRepository spyRepo = spy(repository);
@@ -56,6 +67,9 @@ public class NotificationRepositoryTest {
         verify(spyRepo, times(1)).createNotification(any(Notification.class));
     }
 
+    /**
+     * Tests the acceptInvitation method of the NotificationRepository.
+     */
     @Test
     public void testAcceptInvitation_callsRunTransaction() {
         Notification notification = new Notification();
@@ -68,6 +82,9 @@ public class NotificationRepositoryTest {
         verify(mockDb).runTransaction(any(Transaction.Function.class));
     }
 
+    /**
+     * Tests the declineInvitation method of the NotificationRepository.
+     */
     @Test
     public void testDeclineInvitation_callsRunTransaction() {
         Notification notification = new Notification();
