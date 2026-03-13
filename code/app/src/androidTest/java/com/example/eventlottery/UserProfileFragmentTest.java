@@ -8,9 +8,14 @@ import static androidx.test.espresso.matcher.ViewMatchers.isDisplayed;
 import static androidx.test.espresso.matcher.ViewMatchers.withId;
 import static androidx.test.espresso.matcher.ViewMatchers.withText;
 import static androidx.test.espresso.matcher.RootMatchers.isDialog;
+import static org.hamcrest.Matchers.not;
+
+import android.os.Bundle;
+import android.view.View;
 
 import androidx.fragment.app.testing.FragmentScenario;
 import androidx.lifecycle.Lifecycle;
+import androidx.test.espresso.matcher.ViewMatchers;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 
 import org.junit.Test;
@@ -60,5 +65,52 @@ public class UserProfileFragmentTest {
     public void testUI_DoneButtonIsDisplayed() {
         FragmentScenario.launchInContainer(UserProfileFragment.class, null, R.style.Theme_EventLottery, Lifecycle.State.RESUMED);
         onView(withId(R.id.done_button)).check(matches(isDisplayed()));
+    }
+
+    /**
+     * Verifies User mode UI state: "See Event History" visible, "Notification Logs" hidden.
+     */
+    @Test
+    public void testUI_UserModeInitialState() {
+        // Default launch should be User mode
+        FragmentScenario.launchInContainer(UserProfileFragment.class, null, R.style.Theme_EventLottery, Lifecycle.State.RESUMED);
+        
+        onView(withText("Your Profile")).check(matches(isDisplayed()));
+        onView(withId(R.id.history_button)).check(matches(isDisplayed()));
+        onView(withId(R.id.notification_logs_button)).check(matches(not(isDisplayed())));
+    }
+
+    /**
+     * Verifies Admin mode UI state: "See Event History" hidden.
+     */
+    @Test
+    public void testUI_AdminModeInitialState() {
+        // Launch in Admin Mode using arguments
+        Bundle args = new Bundle();
+        args.putString("user_id", "test_uid");
+        args.putBoolean("is_admin_mode", true);
+        
+        FragmentScenario.launchInContainer(UserProfileFragment.class, args, R.style.Theme_EventLottery, Lifecycle.State.RESUMED);
+        
+        onView(withText("Review Profile")).check(matches(isDisplayed()));
+        onView(withId(R.id.history_button)).check(matches(not(isDisplayed())));
+    }
+
+    /**
+     * Verifies that the Delete Confirmation dialog has the correct title in Admin mode.
+     */
+    @Test
+    public void testDeleteDialog_AdminModeTitle() {
+        Bundle args = new Bundle();
+        args.putString("user_id", "test_uid");
+        args.putBoolean("is_admin_mode", true);
+        
+        FragmentScenario.launchInContainer(UserProfileFragment.class, args, R.style.Theme_EventLottery, Lifecycle.State.RESUMED);
+
+        onView(withId(R.id.delete_button)).perform(click());
+
+        onView(withText("Are you sure you'd like to delete this profile?"))
+                .inRoot(isDialog())
+                .check(matches(isDisplayed()));
     }
 }

@@ -22,6 +22,8 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
+import android.provider.Settings;
+import android.util.Log;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
@@ -36,6 +38,7 @@ import androidx.fragment.app.FragmentTransaction;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
 
 import java.util.HashMap;
@@ -55,8 +58,31 @@ public class UserProfileFragment extends Fragment {
     private TextView roleView;
 
     //New variables for buttons and Device ID text.
-    private Button deleteButton, historyButton, doneButton;
-    private TextView deviceIdText;
+    private Button deleteButton, historyButton, doneButton, notificationLogsButton;
+    private TextView deviceIdText, profileTitle;
+
+    // Mode flags
+    private String targetUserId;
+    private boolean isAdminMode = false;
+
+    // Constants for arguments
+    private static final String ARG_USER_ID = "user_id";
+    private static final String ARG_IS_ADMIN_MODE = "is_admin_mode";
+
+    /**
+     * Creates a new instance of UserProfileFragment for a specific user.
+     * @param userId The ID of the user whose profile to display.
+     * @param isAdminMode Whether the fragment is in admin mode.
+     * @return A new instance of UserProfileFragment.
+     */
+    public static UserProfileFragment newInstance(String userId, boolean isAdminMode) {
+        UserProfileFragment fragment = new UserProfileFragment();
+        Bundle args = new Bundle();
+        args.putString(ARG_USER_ID, userId);
+        args.putBoolean(ARG_IS_ADMIN_MODE, isAdminMode);
+        fragment.setArguments(args);
+        return fragment;
+    }
 
     /**
      * Required empty public constructor for Fragment instantiation.
@@ -99,6 +125,7 @@ public class UserProfileFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
 
         // Binds view references.
+        profileTitle = view.findViewById(R.id.profile_title);
         usernameView = view.findViewById(R.id.profile_username);
         emailView = view.findViewById(R.id.profile_email);
         phoneView = view.findViewById(R.id.profile_phone);
@@ -107,20 +134,50 @@ public class UserProfileFragment extends Fragment {
         //Bindings for new UI elements.
         deleteButton = view.findViewById(R.id.delete_button);
         historyButton = view.findViewById(R.id.history_button);
+        notificationLogsButton = view.findViewById(R.id.notification_logs_button);
         doneButton = view.findViewById(R.id.done_button);
         deviceIdText = view.findViewById(R.id.device_id_text);
+
+        // Check for arguments to determine mode and target user.
+        if (getArguments() != null) {
+            targetUserId = getArguments().getString(ARG_USER_ID);
+            isAdminMode = getArguments().getBoolean(ARG_IS_ADMIN_MODE, false);
+        }
+
+        FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
+        if (targetUserId == null && currentUser != null) {
+            targetUserId = currentUser.getUid();
+        }
+
+        // Configure UI based on mode
+        if (isAdminMode) {
+            profileTitle.setText("Review Profile"); // Will be updated to username once loaded
+            historyButton.setVisibility(View.GONE);
+            // Notification logs button visibility will be set in bindProfile based on role
+        } else {
+            profileTitle.setText("Your Profile");
+            historyButton.setVisibility(View.VISIBLE);
+            notificationLogsButton.setVisibility(View.GONE);
+        }
 
         //Listeners for button clicks.
         doneButton.setOnClickListener(v -> validateAndSave());
         deleteButton.setOnClickListener(v -> showDeleteConfirmation());
-        historyButton.setOnClickListener(v ->
-                Toast.makeText(getContext(), "Opening Event History...", Toast.LENGTH_SHORT).show()
+        historyButton.setOnClickListener(v -> {
+            // Navigate to EventHistoryFragment
+            if (getActivity() != null) {
+                getParentFragmentManager().beginTransaction()
+                        .replace(R.id.fragment_container, new EventHistoryFragment())
+                        .addToBackStack(null)
+                        .commit();
+            }
+        });
+        notificationLogsButton.setOnClickListener(v ->
+                Toast.makeText(getContext(), "Opening Notification Logs...", Toast.LENGTH_SHORT).show()
         );
 
-        // Authentication check: if we don't have a signed-in user, we shouldn't attempt a profile lookup.
-        FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
-        if (currentUser == null) {
-            // If somehow we reach this screen without authentication, we cannot show a profile.
+        // Authentication check: if we don't have a signed-in user or target user, we shouldn't attempt a profile lookup.
+        if (targetUserId == null) {
             usernameView.setHint("Not signed in");
             emailView.setText("");
             phoneView.setText("");
@@ -129,12 +186,17 @@ public class UserProfileFragment extends Fragment {
         }
         
         //Set the Device ID text.
-        deviceIdText.setText("Device ID: " + currentUser.getUid());
+        if (getContext() != null) {
+            String androidId = Settings.Secure.getString(getContext().getContentResolver(), Settings.Secure.ANDROID_ID);
+            deviceIdText.setText("Device ID: " + (androidId != null ? androidId : "Unknown"));
+        } else {
+            deviceIdText.setText("Device ID: " + targetUserId);
+        }
 
         // Looks up the profile document in Firestore at `users/{uid}` and bind it to the screen.
         FirebaseFirestore.getInstance()
                 .collection("users")
-                .document(currentUser.getUid())
+                .document(targetUserId)
                 .get()
                 .addOnSuccessListener(this::bindProfile)
                 .addOnFailureListener(e -> {
@@ -174,7 +236,27 @@ public class UserProfileFragment extends Fragment {
         usernameView.setText(valueOrEmpty(user.getUsername()));
         emailView.setText(valueOrEmpty(user.getEmail()));
         phoneView.setText(valueOrEmpty(user.getPhoneNumber()));
-        roleView.setText(valueOrEmpty(user.getRole()));
+        roleView.setText(capitalize(user.getRole()));
+
+        if (isAdminMode) {
+            profileTitle.setText(valueOrEmpty(user.getUsername()));
+            // Show notification logs button ONLY for Organizers in Admin mode
+            if ("Organizer".equalsIgnoreCase(user.getRole())) {
+                notificationLogsButton.setVisibility(View.VISIBLE);
+            } else {
+                notificationLogsButton.setVisibility(View.GONE);
+            }
+        }
+    }
+
+    /**
+     * Capitalizes the first letter of a string.
+     * @param str The string to capitalize.
+     * @return The capitalized string.
+     */
+    private String capitalize(String str) {
+        if (str == null || str.isEmpty()) return "";
+        return str.substring(0, 1).toUpperCase() + str.substring(1).toLowerCase();
     }
 
     /**
@@ -211,27 +293,49 @@ public class UserProfileFragment extends Fragment {
      * @param phone The updated phone number.
      */
     private void saveUserProfile(String username, String email, String phone) {
-        FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
-        if (currentUser == null) return;
+        if (targetUserId == null) return;
 
         Map<String, Object> userData = new HashMap<>();
         userData.put("username", username);
         userData.put("email", email);
         userData.put("phoneNumber", phone);
         userData.put("role", roleView.getText().toString());
+        userData.put("userId", targetUserId); // Ensure userId is also saved/updated
 
-        FirebaseFirestore.getInstance().collection("users").document(currentUser.getUid())
+        FirebaseFirestore.getInstance().collection("users").document(targetUserId)
                 .set(userData)
-                .addOnSuccessListener(aVoid -> Toast.makeText(getContext(), "Profile Saved!", Toast.LENGTH_SHORT).show())
+                .addOnSuccessListener(aVoid -> {
+                    Toast.makeText(getContext(), "Profile Saved!", Toast.LENGTH_SHORT).show();
+                    navigateBack();
+                })
                 .addOnFailureListener(e -> Toast.makeText(getContext(), "Failed to save profile.", Toast.LENGTH_SHORT).show());
+    }
+
+    /**
+     * Navigates back to the previous screen (Home or Admin List).
+     */
+    private void navigateBack() {
+        if (getActivity() != null) {
+            getParentFragmentManager().popBackStack();
+        }
     }
 
     /**
      * Displays a confirmation dialog before deleting the user profile.
      */
     private void showDeleteConfirmation() {
+        if (getContext() == null) return;
+        
         final Dialog dialog = new Dialog(getContext());
         dialog.setContentView(R.layout.fragment_user_profile_delete_confirmation);
+        
+        // Adjust dialog text if in Admin mode
+        if (isAdminMode) {
+            TextView dialogTitle = dialog.findViewById(R.id.dialog_title); // I should add this ID
+            if (dialogTitle != null) {
+                dialogTitle.setText("Are you sure you'd like to delete this profile?");
+            }
+        }
 
         Button confirmDelete = dialog.findViewById(R.id.dialog_delete_button);
         Button cancelDelete = dialog.findViewById(R.id.dialog_cancel_button);
@@ -248,20 +352,42 @@ public class UserProfileFragment extends Fragment {
      * Deletes the user profile document from Firestore and navigates back to the setup screen.
      */
     private void deleteUserProfile() {
-        FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
-        if (currentUser == null) return;
+        if (targetUserId == null) return;
 
-        FirebaseFirestore.getInstance().collection("users").document(currentUser.getUid())
+        FirebaseFirestore.getInstance().collection("users").document(targetUserId)
                 .delete()
                 .addOnSuccessListener(aVoid -> {
+                    removeUserFromEvents(targetUserId);
                     Toast.makeText(getContext(), "Profile Deleted", Toast.LENGTH_LONG).show();
-                    usernameView.setText("");
-                    emailView.setText("");
-                    phoneView.setText("");
-                    roleView.setText("Entrant");
-                    navigateToSetUpFragment(); // ADDED
+                    if (isAdminMode) {
+                        navigateBack(); // Admin goes back to the list
+                    } else {
+                        // User goes back to setup since they deleted their own account
+                        usernameView.setText("");
+                        emailView.setText("");
+                        phoneView.setText("");
+                        roleView.setText("Entrant");
+                        navigateToSetUpFragment();
+                    }
                 })
                 .addOnFailureListener(e -> Toast.makeText(getContext(), "Failed to delete profile.", Toast.LENGTH_SHORT).show());
+    }
+
+    /**
+     * Removes the user from all events they are registered for (waiting list).
+     * @param userId The ID of the user to remove.
+     */
+    private void removeUserFromEvents(String userId) {
+        FirebaseFirestore db = FirebaseFirestore.getInstance();
+        db.collection("events")
+                .whereArrayContains("waitingList", userId)
+                .get()
+                .addOnSuccessListener(queryDocumentSnapshots -> {
+                    for (DocumentSnapshot doc : queryDocumentSnapshots) {
+                        doc.getReference().update("waitingList", FieldValue.arrayRemove(userId));
+                    }
+                })
+                .addOnFailureListener(e -> Log.e("UserProfileFragment", "Error removing user from events", e));
     }
 
     /**
