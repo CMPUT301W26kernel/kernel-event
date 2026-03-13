@@ -1,7 +1,7 @@
 /**
  * Create Event Fragment
  * Allows Admin and Organizers to create and edit events
- * Last Modified: 2026-03-10 by Grace MacKenzie
+ * Last Modified: 2026-03-12 by Grace MacKenzie
  *<p>
  *     Notes
  *      - This fragment has two modes: CREATE and EDIT
@@ -10,6 +10,10 @@
  *        be edited.
  *      - In CREATE mode, it is assumed that no such event is present and must be created.
  *        It is also assumed that an organizer id is present instead.
+ *      - TODO: Generate a QR code upon Event creation
+ *        see https://www.geeksforgeeks.org/android/how-to-generate-qr-code-in-android/
+ *        and https://reintech.io/blog/implementing-android-app-qr-code-scanner
+ *      - TODO: upload an optional image to firebase and store a reference to that image.
  *</p>
 
  *
@@ -31,6 +35,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageView;
 import android.widget.Toast;
 
 import com.google.firebase.firestore.CollectionReference;
@@ -56,18 +61,19 @@ public class CreateEventFragment extends Fragment {
     private FirebaseFirestore db;
     private CollectionReference eventsRef;
 
-    EditText editTitle;
-    EditText editDescription;
-    EditText editRegOpenYear;
-    EditText editRegOpenMonth;
-    EditText editRegOpenDay;
-    EditText editRegCloseYear;
-    EditText editRegCloseMonth;
-    EditText editRegCloseDay;
-    EditText editCapacity;
+    private ImageView editPosterImage; // TODO: optionally upload image to Firestore and store reference in Event
+    private EditText editTitle;
+    private EditText editDescription;
+    private EditText editRegOpenYear;
+    private EditText editRegOpenMonth;
+    private EditText editRegOpenDay;
+    private EditText editRegCloseYear;
+    private EditText editRegCloseMonth;
+    private EditText editRegCloseDay;
+    private EditText editCapacity;
 
-    Button negativeButton;
-    Button positiveButton;
+    private Button negativeButton;
+    private Button positiveButton;
 
     private Event currentEvent = null;
 
@@ -108,6 +114,7 @@ public class CreateEventFragment extends Fragment {
         negativeButton = view.findViewById(R.id.cancel_button);
         positiveButton = view.findViewById(R.id.confirm_button);
 
+        editPosterImage = view.findViewById(R.id.poster_image);
         editTitle = view.findViewById(R.id.edit_event_title);
         editDescription = view.findViewById(R.id.edit_event_description);
         editRegOpenYear = view.findViewById(R.id.edit_reg_open_year);
@@ -301,13 +308,13 @@ public class CreateEventFragment extends Fragment {
         }
 
         if (!inputCapacity.matches("\\d+")) {
-            throw new IllegalArgumentException("Waiting List Capacity must be an integer above 0");
+            throw new IllegalArgumentException(getString(R.string.error_invalid_capacity));
         }
 
         int value = Integer.parseInt(inputCapacity);
 
         if (value <= 0) {
-            throw new IllegalArgumentException("Waiting List Capacity must be an integer above 0.");
+            throw new IllegalArgumentException(getString(R.string.error_invalid_capacity));
         }
 
         return value;
@@ -356,22 +363,22 @@ public class CreateEventFragment extends Fragment {
 
         // Title Check
         if (ctx.input.title.isBlank()) {
-            return ValidationResult.invalid("Event title cannot be blank");
+            return ValidationResult.invalid(getString(R.string.error_empty_title));
         }
 
         // Description Check
         if (ctx.input.description.isBlank()) {
-            return ValidationResult.invalid("Event description cannot be blank");
+            return ValidationResult.invalid(getString(R.string.error_empty_description));
         }
 
         // Registration Open/Close Checks
 
         if(!ctx.input.registrationOpen.matches("\\d{4}-\\d{2}-\\d{2}")) {
-            return ValidationResult.invalid("Please enter a date with the form YYYY-MM-DD");
+            return ValidationResult.invalid(getString(R.string.error_invalid_date_format));
         }
 
         if(!ctx.input.registrationClose.matches("\\d{4}-\\d{2}-\\d{2}")) {
-            return ValidationResult.invalid("Please enter a date with the form YYYY-MM-DD");
+            return ValidationResult.invalid(getString(R.string.error_invalid_date_format));
         }
 
         try {
@@ -387,15 +394,20 @@ public class CreateEventFragment extends Fragment {
             registrationClose = ZonedDateTime.of(date, time, zone);
 
         } catch (DateTimeParseException e) {
-            return ValidationResult.invalid("Please enter a valid date");
+            return ValidationResult.invalid(getString(R.string.error_impossible_date));
         }
 
+        /*
+            TODO: fix event period check to let existing events have registration open dates
+             earlier than the current date. I may wish to hide the registration Open field from
+             editing users entirely if the registration period has already begun
+         */
         if (registrationOpen.equals(registrationClose)) {
-            return ValidationResult.invalid("registration open cannot be the same as registration close");
+            return ValidationResult.invalid(getString(R.string.error_open_date_equals_close_date));
         } else if (registrationClose.isBefore(registrationOpen)) {
-            return ValidationResult.invalid("registration cannot close before it opens");
+            return ValidationResult.invalid(getString(R.string.error_close_date_before_open_date));
         } else if (registrationOpen.isBefore(ZonedDateTime.now())) {
-            return ValidationResult.invalid("registration period must take place after the current time");
+            return ValidationResult.invalid(getString(R.string.error_registration_period));
         }
 
         // Waiting List Capacity Check
