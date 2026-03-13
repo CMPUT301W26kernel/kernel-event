@@ -1,0 +1,46 @@
+package com.example.eventlottery;
+
+import android.content.Context;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.ArrayAdapter;
+import android.widget.TextView;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+
+import java.util.ArrayList;
+
+/**
+ * Adapter used to display Event objects in the home page ListView.
+ */
+public class EventAdapter extends ArrayAdapter<Event> {
+
+    public EventAdapter(Context context, ArrayList<Event> events) {
+        super(context, 0, events);
+    }
+
+    @NonNull
+    @Override
+    public View getView(int position, @Nullable View convertView, @NonNull ViewGroup parent) {
+        Event event = getItem(position);
+
+        if (convertView == null) {
+            convertView = LayoutInflater.from(getContext()).inflate(R.layout.item_event, parent, false);
+        }
+
+        TextView titleText = convertView.findViewById(R.id.text_event_title);
+        TextView organizerText = convertView.findViewById(R.id.text_event_organizer);
+        TextView dateText = convertView.findViewById(R.id.text_event_date);
+
+        if (event != null) {
+            titleText.setText(event.getTitle());
+            organizerText.setText("Organizer: " + event.getOrganizerName());
+            dateText.setText("Start Date: " + event.getStartDate());
+        }
+
+        return convertView;
+    }
+}
+
