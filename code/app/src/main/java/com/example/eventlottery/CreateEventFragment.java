@@ -182,6 +182,9 @@ public class CreateEventFragment extends Fragment {
 
                 // Navigate to EventOverviewFragment
                 EventOverviewFragment fragment = new EventOverviewFragment(); // TODO: change to newInstance method if one is created
+                Bundle bundle = new Bundle();
+                bundle.putString("eventId", validationResult.event.getEventId());
+                fragment.setArguments(bundle);
                 requireActivity().getSupportFragmentManager()
                         .beginTransaction()
                         .replace(R.id.fragment_container, fragment)
