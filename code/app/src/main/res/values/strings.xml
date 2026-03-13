@@ -33,4 +33,14 @@
     <string name="draw_btn">Draw</string>
     <string name="success_draw_toast">Drew %1$d entrants successfully!</string>
     <string name="fail_draw_toast">Failed to run lottery</string>
+
+    <!-- possible error messages for event validation -->
+    <string name="error_empty_title">Event title cannot be blank</string>
+    <string name="error_empty_description">Event description cannot be blank</string>
+    <string name="error_invalid_date_format">Please enter a date with the form YYYY-MM-DD</string>
+    <string name="error_impossible_date">Please enter a valid date</string>
+    <string name="error_open_date_equals_close_date">registration open cannot be the same as registration close</string>
+    <string name="error_close_date_before_open_date">registration cannot close before it opens</string>
+    <string name="error_registration_period">registration period must take place after the current time</string>
+    <string name="error_invalid_capacity">Waiting List Capacity must be an integer above 0</string>
 </resources>
