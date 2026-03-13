@@ -16,3 +16,7 @@ local.properties
 
 # Firebase Secrets
 google-services.json
+
+# Local Icons (not to be pushed)
+ic_home.xml
+ic_notifications.xml

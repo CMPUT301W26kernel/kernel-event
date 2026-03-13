@@ -121,11 +121,12 @@
         <com.google.android.material.button.MaterialButton
             android:id="@+id/history_button"
             android:layout_width="260dp"
-            android:layout_height="64dp"
-            android:layout_marginTop="40dp"
+            android:layout_height="wrap_content"
+            android:minHeight="64dp"
+            android:layout_marginTop="32dp"
             android:text="See Event History"
             android:textAllCaps="false"
-            android:textSize="22sp"
+            android:textSize="18sp"
             app:backgroundTint="#3F7E8A"
             app:cornerRadius="8dp"
             app:layout_constraintEnd_toEndOf="parent"
@@ -133,18 +134,37 @@
             app:layout_constraintTop_toBottomOf="@id/profile_phone" />
 
         <com.google.android.material.button.MaterialButton
-            android:id="@+id/done_button"
+            android:id="@+id/notification_logs_button"
             android:layout_width="260dp"
-            android:layout_height="64dp"
+            android:layout_height="wrap_content"
+            android:minHeight="64dp"
             android:layout_marginTop="16dp"
-            android:text="Done"
+            android:text="See Notification Logs"
             android:textAllCaps="false"
-            android:textSize="22sp"
+            android:textSize="18sp"
+            android:visibility="gone"
             app:backgroundTint="#3F7E8A"
             app:cornerRadius="8dp"
+            app:layout_goneMarginTop="32dp"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@id/history_button" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/done_button"
+            android:layout_width="260dp"
+            android:layout_height="wrap_content"
+            android:minHeight="64dp"
+            android:layout_marginTop="16dp"
+            android:text="Done"
+            android:textAllCaps="false"
+            android:textSize="18sp"
+            app:backgroundTint="#3F7E8A"
+            app:cornerRadius="8dp"
+            app:layout_goneMarginTop="32dp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/notification_logs_button" />
 
         <TextView
             android:id="@+id/device_id_text"
