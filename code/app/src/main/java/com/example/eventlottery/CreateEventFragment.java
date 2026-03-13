@@ -14,6 +14,14 @@
  *        see https://www.geeksforgeeks.org/android/how-to-generate-qr-code-in-android/
  *        and https://reintech.io/blog/implementing-android-app-qr-code-scanner
  *      - TODO: upload an optional image to firebase and store a reference to that image.
+ *      - TODO: Find a way to allow Firestore to deserialize ZonedDateTime.
+ *              See the toInstant() method from ZonedDateTime. It should be compatible with Firestore.
+ *              This will make Firestore hold a Timestamp which it *can* Deserialize.
+ *              Will also need to add String timeZone to Events though.
+ *      - TODO: add a "loading screen" to edit mode to hide default Create Mode stuff.
+ *              Just overlay a loading image on top of everything and hide it at the end
+ *              of the .onSuccess block when loading the event from eventId
+ *              or in an else block after the if where all the UI changes are held.
  *</p>
 
  *
@@ -137,31 +145,28 @@ public class CreateEventFragment extends Fragment {
             db.collection("events")
                     .document(Objects.requireNonNull(eventId)) // not possible for event id to be null, but android studio is android studio
                     .get()
-                    .addOnSuccessListener(doc -> currentEvent = doc.toObject(Event.class));
+                    .addOnSuccessListener(doc -> {
+                        currentEvent = doc.toObject(Event.class);
 
-            // Set fields to contain the data of currentEvent
-            editTitle.setText(currentEvent.title);
-            editDescription.setText(currentEvent.description);
-            editRegOpenYear.setText(currentEvent.getRegistrationOpen().getYear());
-            editRegOpenMonth.setText(currentEvent.getRegistrationOpen().getMonthValue());
-            editRegOpenDay.setText(currentEvent.getRegistrationOpen().getDayOfMonth());
-            editRegCloseYear.setText(currentEvent.getRegistrationClose().getYear());
-            editRegCloseMonth.setText(currentEvent.getRegistrationClose().getMonthValue());
-            editRegCloseDay.setText(currentEvent.getRegistrationClose().getDayOfMonth());
-            if (currentEvent.getWaitingListCapacity() != null) {
-                editCapacity.setText(currentEvent.getWaitingListCapacity());
-            }
+                        // Set fields to contain the data of currentEvent
+                        assert currentEvent != null; // still not possible.
+                        editTitle.setText(currentEvent.title);
+                        editDescription.setText(currentEvent.description);
+                        editRegOpenYear.setText(currentEvent.getRegistrationOpen().getYear());
+                        editRegOpenMonth.setText(currentEvent.getRegistrationOpen().getMonthValue());
+                        editRegOpenDay.setText(currentEvent.getRegistrationOpen().getDayOfMonth());
+                        editRegCloseYear.setText(currentEvent.getRegistrationClose().getYear());
+                        editRegCloseMonth.setText(currentEvent.getRegistrationClose().getMonthValue());
+                        editRegCloseDay.setText(currentEvent.getRegistrationClose().getDayOfMonth());
+                        if (currentEvent.getWaitingListCapacity() != null) {
+                            editCapacity.setText(currentEvent.getWaitingListCapacity());
+                        }
 
-            /*
-            See the following for time and ZonedDateTime stuff
-            https://docs.oracle.com/javase/8/docs/api/java/text/ZonedDateTimeFormat.html
-            https://docs.oracle.com/javase/8/docs/api/java/text/SimpleZonedDateTimeFormat.html
-            */
-
-            // Change negative button appearance
-            negativeButton.setText(R.string.delete);
-            negativeButton.setTextColor(ContextCompat.getColor(requireContext(), R.color.secondary_light));
-            negativeButton.setBackgroundColor(ContextCompat.getColor(requireContext(), R.color.secondary_dark));
+                        // Change negative button appearance
+                        negativeButton.setText(R.string.delete);
+                        negativeButton.setTextColor(ContextCompat.getColor(requireContext(), R.color.secondary_light));
+                        negativeButton.setBackgroundColor(ContextCompat.getColor(requireContext(), R.color.secondary_dark));
+                    });
         }
 
         // BUTTON LISTENERS

@@ -1,7 +1,13 @@
 /**
  * Create Event Fragment Test
  * Contains UI tests for the CreateEventFragment
- * Last Modified: 2026-03-12 by Grace MacKenzie
+ * Last Modified: 2026-03-13 by Grace MacKenzie
+ *<p>
+ *     Notes:
+ *     - TODO: Fix the tests. They currently cannot see the toasts.
+ *          -> Option 1. Use Espresso Toast Matcher
+ *          -> Option 2.Stop using Toasts for validation and use something easier to test instead.
+ *</p>
  *
  * @author Grace MacKenzie
  * @since 2026-03-12
@@ -20,10 +26,12 @@ import android.util.Log;
 
 import androidx.fragment.app.FragmentFactory;
 import androidx.fragment.app.testing.FragmentScenario;
+import androidx.lifecycle.Lifecycle;
 import androidx.test.espresso.action.ViewActions;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.LargeTest;
 
+import com.google.android.gms.tasks.Tasks;
 import com.google.firebase.firestore.CollectionReference;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.FirebaseFirestore;
@@ -33,6 +41,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import java.time.ZonedDateTime;
+import java.util.concurrent.ExecutionException;
 
 @RunWith(AndroidJUnit4.class)
 @LargeTest
@@ -301,7 +310,7 @@ public class CreateEventFragmentTest {
                 CreateEventFragment.class,
                 args,
                 R.style.Theme_EventLottery,
-                (FragmentFactory) null // fragment factory, usually null
+                Lifecycle.State.RESUMED
         );
     }
 
@@ -319,7 +328,7 @@ public class CreateEventFragmentTest {
                 CreateEventFragment.class,
                 args,
                 R.style.Theme_EventLottery,
-                (FragmentFactory) null // fragment factory, usually null
+                Lifecycle.State.RESUMED
         );
     }
 
@@ -346,8 +355,15 @@ public class CreateEventFragmentTest {
         DocumentReference docRef = eventsRef.document("TestEventId");
         String generatedId = docRef.getId();
         event.setEventId(generatedId);
-        docRef.set(event);
+
+        try {
+            // This blocks until Firestore has actually written the document
+            Tasks.await(docRef.set(event));
+        } catch (ExecutionException | InterruptedException e) {
+            throw new RuntimeException(e);
+        }
     }
+
 
     /**
      * Deletes a test Event from Firestore
