@@ -25,7 +25,11 @@ public class WaitingListRepository {
     private static final String WAITING_LIST_FIELD = "waitingList";
 
     public WaitingListRepository() {
-        this.db = FirebaseFirestore.getInstance();
+        this(FirebaseFirestore.getInstance());
+    }
+
+    WaitingListRepository(FirebaseFirestore db) {
+        this.db = db;
     }
 
     /**
@@ -39,13 +43,14 @@ public class WaitingListRepository {
     public Task<Void> joinWaitingList(String eventId, String userId) {
         DocumentReference eventRef = db.collection(EVENTS_COLLECTION).document(eventId);
 
-        return db.runTransaction((Transaction.Function<Void>) transaction -> {
+        return db.<Void>runTransaction(transaction -> {
             DocumentSnapshot snapshot = transaction.get(eventRef);
 
             if (!snapshot.exists()) {
                 throw new RuntimeException("Event does not exist.");
             }
 
+            @SuppressWarnings("unchecked")
             List<String> currentList = (List<String>) snapshot.get(WAITING_LIST_FIELD);
             if (currentList == null) {
                 currentList = new ArrayList<>();
@@ -96,6 +101,7 @@ public class WaitingListRepository {
             if (task.isSuccessful()) {
                 DocumentSnapshot snapshot = task.getResult();
                 if (snapshot.exists()) {
+                    @SuppressWarnings("unchecked")
                     List<String> list = (List<String>) snapshot.get(WAITING_LIST_FIELD);
                     return list != null ? list : new ArrayList<>();
                 }
