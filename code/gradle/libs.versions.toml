@@ -8,6 +8,10 @@ material = "1.13.0"
 activity = "1.12.4"
 constraintlayout = "2.2.1"
 firebaseFirestore = "26.1.1"
+fragmentTesting = "1.8.9"
+testRunner = "1.7.0"
+testRules = "1.7.0"
+testMonitor = "1.8.0"
 
 [libraries]
 firebase-analytics = { module = "com.google.firebase:firebase-analytics" }
@@ -19,6 +23,10 @@ material = { group = "com.google.android.material", name = "material", version.r
 activity = { group = "androidx.activity", name = "activity", version.ref = "activity" }
 constraintlayout = { group = "androidx.constraintlayout", name = "constraintlayout", version.ref = "constraintlayout" }
 firebase-firestore = { group = "com.google.firebase", name = "firebase-firestore", version.ref = "firebaseFirestore" }
+fragment-testing = { group = "androidx.fragment", name = "fragment-testing", version.ref = "fragmentTesting" }
+test-runner = { group = "androidx.test", name = "runner", version.ref = "testRunner" }
+test-rules = { group = "androidx.test", name = "rules", version.ref = "testRules" }
+test-monitor = { group = "androidx.test", name = "monitor", version.ref = "testMonitor" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
