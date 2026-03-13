@@ -34,6 +34,9 @@
     <string name="success_draw_toast">Drew %1$d entrants successfully!</string>
     <string name="fail_draw_toast">Failed to run lottery</string>
 
+    <string name="btn_join_leave_waitlist">Join / Leave Waitlist</string>
+    <string name="btn_manage_waitlist">Manage Waitlist</string>
+
     <!-- possible error messages for event validation -->
     <string name="error_empty_title">Event title cannot be blank</string>
     <string name="error_empty_description">Event description cannot be blank</string>
