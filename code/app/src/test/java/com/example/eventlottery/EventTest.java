@@ -4,43 +4,55 @@ import static org.junit.Assert.assertEquals;
 
 import org.junit.Test;
 
+import java.time.ZonedDateTime;
+
 public class EventTest {
 
     @Test
     public void testEventConstructorStoresValuesCorrectly() {
+        ZonedDateTime regOpen = ZonedDateTime.now().plusDays(3);
+        ZonedDateTime regClose = ZonedDateTime.now().plusDays(10);
+
         Event event = new Event(
                 "Paint Night",
                 "Fun painting event",
                 "Tas",
-                "March 20, 2026",
-                "March 18, 2026",
+                regOpen,
+                regClose,
                 25
         );
 
         assertEquals("Paint Night", event.getTitle());
         assertEquals("Fun painting event", event.getDescription());
-        assertEquals("Tas", event.getOrganizerName());
-        assertEquals("March 20, 2026", event.getStartDate());
-        assertEquals("March 18, 2026", event.getRegistrationDeadline());
-        assertEquals(25, event.getMaxParticipants());
+        assertEquals("Tas", event.getOrganizerId());
+        assertEquals(regOpen, event.getRegistrationOpen());
+        assertEquals(regClose, event.getRegistrationClose());
+        assert(25 == event.getWaitingListCapacity());
     }
 
     @Test
     public void testEventSettersWorkCorrectly() {
-        Event event = new Event();
+        ZonedDateTime regOpen = ZonedDateTime.now().plusDays(3);
+        ZonedDateTime regClose = ZonedDateTime.now().plusDays(10);
+        Event event = new Event(
+                "Paint Night",
+                "Fun painting event",
+                "Tas",
+                regOpen,
+                regClose,
+                25
+        );
 
         event.setTitle("Badminton Social");
         event.setDescription("Casual badminton games");
-        event.setOrganizerName("Sports Lead");
-        event.setStartDate("March 22, 2026");
-        event.setRegistrationDeadline("March 20, 2026");
-        event.setMaxParticipants(16);
+        event.setRegistrationOpen(regOpen);
+        event.setRegistrationClose(regClose);
+        event.setWaitingListCapacity(16);
 
         assertEquals("Badminton Social", event.getTitle());
         assertEquals("Casual badminton games", event.getDescription());
-        assertEquals("Sports Lead", event.getOrganizerName());
-        assertEquals("March 22, 2026", event.getStartDate());
-        assertEquals("March 20, 2026", event.getRegistrationDeadline());
-        assertEquals(16, event.getMaxParticipants());
+        assertEquals(regOpen, event.getRegistrationOpen());
+        assertEquals(regClose, event.getRegistrationClose());
+        assert(16 == event.getWaitingListCapacity());
     }
 }

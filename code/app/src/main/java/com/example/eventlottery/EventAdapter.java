@@ -36,8 +36,11 @@ public class EventAdapter extends ArrayAdapter<Event> {
 
         if (event != null) {
             titleText.setText(event.getTitle());
-            organizerText.setText("Organizer: " + event.getOrganizerName());
-            dateText.setText("Start Date: " + event.getStartDate());
+            organizerText.setText(String.format("Organizer:\t%s", event.getOrganizerId()));
+            dateText.setText(String.format("Start Date:\t%s/%s/%s",
+                    event.getRegistrationOpen().getYear(),
+                    event.getRegistrationOpen().getMonthValue(),
+                    event.getRegistrationOpen().getDayOfMonth()));
         }
 
         return convertView;
