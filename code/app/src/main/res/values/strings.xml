@@ -28,6 +28,7 @@
     <string name="waitlist_management_title">Waiting List</string>
     <string name="run_lottery_btn">Run Lottery</string>
     <string name="close_btn_desc">Close Dialog</string>
+    <string name="back_btn_desc">Back</string>
     <string name="draw_lottery_prompt">How many entrants would you like to randomly invite from the waiting list?</string>
     <string name="draw_btn">Draw</string>
     <string name="success_draw_toast">Drew %1$d entrants successfully!</string>

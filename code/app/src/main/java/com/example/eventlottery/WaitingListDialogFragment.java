@@ -19,6 +19,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
 import android.widget.Button;
+import android.widget.ImageButton;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -93,8 +94,11 @@ public class WaitingListDialogFragment extends DialogFragment {
 
         TextView titleText = view.findViewById(R.id.dialog_title);
         TextView descText = view.findViewById(R.id.dialog_description);
+        ImageButton backButton = view.findViewById(R.id.btn_back);
         Button actionButton = view.findViewById(R.id.btn_action);
         Button viewListButton = view.findViewById(R.id.btn_view_list);
+
+        backButton.setOnClickListener(v -> dismiss());
         
         if (finalInWaitingList) {
             titleText.setText(R.string.waiting_list_dialog_title_leave);

@@ -68,7 +68,10 @@ public class EventOverviewFragment extends Fragment implements WaitingListDialog
          */
 
         if (eventId == null) {
-            Toast.makeText(getContext(), getString(R.string.error_no_event_id), Toast.LENGTH_SHORT).show();
+            if (getContext() != null) {
+                Toast.makeText(getContext(), getString(R.string.error_no_event_id), Toast.LENGTH_SHORT).show();
+            }
+            navigateToFallbackScreen();
             return;
         }
         
@@ -129,6 +132,22 @@ public class EventOverviewFragment extends Fragment implements WaitingListDialog
                     Toast.makeText(getContext(), getString(R.string.error_load_event_failed), Toast.LENGTH_SHORT).show();
                 }
             });
+    }
+
+    private void navigateToFallbackScreen() {
+        if (!isAdded()) {
+            return;
+        }
+
+        if (getParentFragmentManager().getBackStackEntryCount() > 0) {
+            getParentFragmentManager().popBackStack();
+            return;
+        }
+
+        getParentFragmentManager()
+                .beginTransaction()
+                .replace(R.id.fragment_container, new HomePageFragment())
+                .commit();
     }
 
     private void showJoinWaitlistButton(
