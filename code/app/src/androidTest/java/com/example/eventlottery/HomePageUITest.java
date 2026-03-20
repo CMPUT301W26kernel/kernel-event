@@ -1,10 +1,9 @@
 package com.example.eventlottery;
 
-import androidx.test.ext.junit.rules.ActivityScenarioRule;
+import androidx.fragment.app.testing.FragmentScenario;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.LargeTest;
 
-import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -20,14 +19,12 @@ import static androidx.test.espresso.matcher.ViewMatchers.withId;
 @LargeTest
 public class HomePageUITest {
 
-    @Rule
-    public ActivityScenarioRule<MainActivity> activityRule =
-            new ActivityScenarioRule<>(MainActivity.class);
-
     @Test
     public void testHomePageIsDisplayed() {
-        // This test ensures that the Home Page (with the ListView) is correctly displayed
-        // within the main activity.
+        // Use FragmentScenario to launch HomePageFragment directly, 
+        // bypassing MainActivity's authentication routing.
+        FragmentScenario.launchInContainer(HomePageFragment.class);
+
         onView(withId(R.id.list_view)).check(matches(isDisplayed()));
     }
 }

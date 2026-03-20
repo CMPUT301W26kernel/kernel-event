@@ -50,4 +50,6 @@
     <string name="join_success">Joined waitlist successfully!</string>
     <string name="leave_success">Left waitlist successfully!</string>
     <string name="action_failed">Operation failed</string>
+    <string name="failed_to_load_events">Failed to load events</string>
+    <string name="error_must_be_signed_in">You must be signed in to perform this action.</string>
 </resources>

@@ -76,8 +76,9 @@ public class HomePageFragment extends Fragment {
                         
                         Object openObj = document.get("registrationOpen");
                         if (openObj instanceof com.google.firebase.Timestamp) {
+                            com.google.firebase.Timestamp ts = (com.google.firebase.Timestamp) openObj;
                             openDate = ZonedDateTime.ofInstant(
-                                Instant.ofEpochSecond(((com.google.firebase.Timestamp) openObj).getSeconds()), 
+                                Instant.ofEpochSecond(ts.getSeconds(), ts.getNanoseconds()), 
                                 ZoneId.systemDefault()
                             );
                         } else if (openObj instanceof String) {
@@ -86,8 +87,9 @@ public class HomePageFragment extends Fragment {
 
                         Object closeObj = document.get("registrationClose");
                         if (closeObj instanceof com.google.firebase.Timestamp) {
+                            com.google.firebase.Timestamp ts = (com.google.firebase.Timestamp) closeObj;
                             closeDate = ZonedDateTime.ofInstant(
-                                Instant.ofEpochSecond(((com.google.firebase.Timestamp) closeObj).getSeconds()), 
+                                Instant.ofEpochSecond(ts.getSeconds(), ts.getNanoseconds()), 
                                 ZoneId.systemDefault()
                             );
                         } else if (closeObj instanceof String) {
@@ -115,7 +117,7 @@ public class HomePageFragment extends Fragment {
             })
             .addOnFailureListener(e -> {
                 if (getContext() != null) {
-                    Toast.makeText(getContext(), "Failed to load events", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(getContext(), getString(R.string.failed_to_load_events), Toast.LENGTH_SHORT).show();
                 }
             });
 

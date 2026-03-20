@@ -1,43 +1,37 @@
 package com.example.eventlottery;
 
-import org.junit.Before;
+import static org.junit.Assert.assertNotNull;
+
+import android.view.View;
+import android.widget.FrameLayout;
+
+import androidx.fragment.app.FragmentActivity;
+
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
-
-import com.google.android.gms.tasks.Task;
-import com.google.firebase.firestore.CollectionReference;
-import com.google.firebase.firestore.FirebaseFirestore;
-import com.google.firebase.firestore.QuerySnapshot;
-
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.*;
+import org.robolectric.Robolectric;
+import org.robolectric.RobolectricTestRunner;
+import org.robolectric.annotation.Config;
 
 /**
- * Unit test for HomePageFragment data loading.
+ * Test for HomePageFragment basic view inflation.
  */
-@RunWith(MockitoJUnitRunner.class)
+@RunWith(RobolectricTestRunner.class)
+@Config(manifest = Config.NONE, sdk = 28)
 public class HomePageFragmentTest {
 
-    @Mock
-    private FirebaseFirestore mockDb;
-    @Mock
-    private CollectionReference mockCollection;
-    @Mock
-    private Task<QuerySnapshot> mockTask;
-
-    @Before
-    public void setUp() {
-        when(mockDb.collection(anyString())).thenReturn(mockCollection);
-        when(mockCollection.get()).thenReturn(mockTask);
-    }
-
     @Test
-    public void testHomePageLoadsEventsFromFirestore() {
-        mockDb.collection("events").get();
+    public void testHomePageFragmentInflatesListViewLayout() {
+        FragmentActivity activity = Robolectric.buildActivity(FragmentActivity.class).setup().get();
+        HomePageFragment fragment = new HomePageFragment();
 
-        verify(mockDb).collection("events");
-        verify(mockCollection).get();
+        View view = fragment.onCreateView(
+                activity.getLayoutInflater(),
+                new FrameLayout(activity),
+                null
+        );
+
+        assertNotNull("Fragment should inflate a view", view);
+        assertNotNull("List view should be present in the inflated layout", view.findViewById(R.id.list_view));
     }
 }
