@@ -68,7 +68,10 @@ public class EventOverviewFragment extends Fragment implements WaitingListDialog
          */
 
         if (eventId == null) {
-            Toast.makeText(getContext(), "Error: No Event ID provided", Toast.LENGTH_SHORT).show();
+            if (getContext() != null) {
+                Toast.makeText(getContext(), getString(R.string.error_no_event_id), Toast.LENGTH_SHORT).show();
+            }
+            navigateToFallbackScreen();
             return;
         }
         
@@ -96,60 +99,127 @@ public class EventOverviewFragment extends Fragment implements WaitingListDialog
                     final String currentUserId = getCurrentUserId();
                     final boolean inWaitingList = waitlist.contains(currentUserId);
                     
-                    // Permission Check: Is the current user the organizer of this event?
+                    // Check: Is the current user the organizer of this event?
                     String organizerId = documentSnapshot.getString("organizerId");
                     boolean isOrganizer = (organizerId != null && organizerId.equals(currentUserId));
                     
-                    if (isOrganizer) {
-                        // Organizers see the Manage button
-                        btnManageWaitlist.setVisibility(View.VISIBLE);
-                        btnManageWaitlist.setOnClickListener(v -> {
-                            WaitlistManagementFragment dialog = WaitlistManagementFragment.newInstance(eventId);
-                            dialog.show(getChildFragmentManager(), "WaitlistManagementDialog");
-                        });
-                    } else {
-                        // Entrants see the Join/Leave button
-                        btnJoinWaitlist.setVisibility(View.VISIBLE);
-                        btnJoinWaitlist.setOnClickListener(v -> {
-                            WaitingListDialogFragment dialog = WaitingListDialogFragment.newInstance(eventId, eventName, count, inWaitingList);
-                            dialog.show(getChildFragmentManager(), "WaitingListDialog");
-                        });
+                    if (currentUserId == null) {
+                        showJoinWaitlistButton(btnJoinWaitlist, btnManageWaitlist, eventName, count, inWaitingList);
+                        return;
                     }
+
+                    // Also, fetch the current user's profile to see if they are an admin
+                    FirebaseFirestore.getInstance().collection("users").document(currentUserId).get()
+                        .addOnSuccessListener(userDoc -> {
+                            String role = userDoc.exists() ? userDoc.getString("role") : null;
+                            boolean isAdmin = "admin".equals(role);
+
+                            if (isOrganizer || isAdmin) {
+                                showManageWaitlistButton(btnJoinWaitlist, btnManageWaitlist);
+                            } else {
+                                showJoinWaitlistButton(btnJoinWaitlist, btnManageWaitlist, eventName, count, inWaitingList);
+                            }
+                        })
+                        .addOnFailureListener(e ->
+                            showJoinWaitlistButton(btnJoinWaitlist, btnManageWaitlist, eventName, count, inWaitingList)
+                        );
+                } else if (getContext() != null) {
+                    Toast.makeText(getContext(), getString(R.string.error_load_event_failed), Toast.LENGTH_SHORT).show();
                 }
             })
             .addOnFailureListener(e -> {
                 if (getContext() != null) {
-                    Toast.makeText(getContext(), "Failed to load event data", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(getContext(), getString(R.string.error_load_event_failed), Toast.LENGTH_SHORT).show();
                 }
             });
     }
 
+    private void navigateToFallbackScreen() {
+        if (!isAdded()) {
+            return;
+        }
+
+        if (getParentFragmentManager().getBackStackEntryCount() > 0) {
+            getParentFragmentManager().popBackStack();
+            return;
+        }
+
+        getParentFragmentManager()
+                .beginTransaction()
+                .replace(R.id.fragment_container, new HomePageFragment())
+                .commit();
+    }
+
+    private void showJoinWaitlistButton(
+            Button btnJoinWaitlist,
+            Button btnManageWaitlist,
+            String eventName,
+            int count,
+            boolean inWaitingList
+    ) {
+        btnManageWaitlist.setVisibility(View.GONE);
+        btnJoinWaitlist.setVisibility(View.VISIBLE);
+        btnJoinWaitlist.setOnClickListener(v -> {
+            WaitingListDialogFragment dialog =
+                    WaitingListDialogFragment.newInstance(eventId, eventName, count, inWaitingList);
+            dialog.show(getChildFragmentManager(), "WaitingListDialog");
+        });
+    }
+
+    private void showManageWaitlistButton(Button btnJoinWaitlist, Button btnManageWaitlist) {
+        btnJoinWaitlist.setVisibility(View.GONE);
+        btnManageWaitlist.setVisibility(View.VISIBLE);
+        btnManageWaitlist.setOnClickListener(v -> {
+            WaitlistManagementFragment dialog = WaitlistManagementFragment.newInstance(eventId);
+            dialog.show(getChildFragmentManager(), "WaitlistManagementDialog");
+        });
+    }
+
     /**
      * Helper method to get the current authenticated user's ID.
-     * @return The ID of the current user, or "unauthenticated_user" if not authenticated.
+     * @return The ID of the current user, or null if not authenticated.
      */
     private String getCurrentUserId() {
         if (FirebaseAuth.getInstance().getCurrentUser() != null) {
             return FirebaseAuth.getInstance().getCurrentUser().getUid();
         }
-        return "unauthenticated_user";
+        return null;
     }
 
     @Override
     public void onJoinWaitingList(String eventId) {
-        waitlistRepo.joinWaitingList(eventId, getCurrentUserId()).addOnSuccessListener(aVoid -> {
+        String userId = getCurrentUserId();
+        if (userId == null) {
+            Toast.makeText(getContext(), getString(R.string.error_must_be_signed_in), Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        waitlistRepo.joinWaitingList(eventId, userId).addOnSuccessListener(aVoid -> {
             if (getContext() != null) {
-                Toast.makeText(getContext(), "Joined waitlist successfully!", Toast.LENGTH_SHORT).show();
-                // TODO: Refresh data by recreating the view or relying on a SnapshotListener in a final implementation
+                Toast.makeText(getContext(), getString(R.string.join_success), Toast.LENGTH_SHORT).show();
+            }
+        }).addOnFailureListener(e -> {
+            if (getContext() != null) {
+                Toast.makeText(getContext(), getString(R.string.action_failed), Toast.LENGTH_SHORT).show();
             }
         });
     }
 
     @Override
     public void onLeaveWaitingList(String eventId) {
-        waitlistRepo.leaveWaitingList(eventId, getCurrentUserId()).addOnSuccessListener(aVoid -> {
+        String userId = getCurrentUserId();
+        if (userId == null) {
+            Toast.makeText(getContext(), getString(R.string.error_must_be_signed_in), Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        waitlistRepo.leaveWaitingList(eventId, userId).addOnSuccessListener(aVoid -> {
             if (getContext() != null) {
-                Toast.makeText(getContext(), "Left waitlist successfully!", Toast.LENGTH_SHORT).show();
+                Toast.makeText(getContext(), getString(R.string.leave_success), Toast.LENGTH_SHORT).show();
+            }
+        }).addOnFailureListener(e -> {
+            if (getContext() != null) {
+                Toast.makeText(getContext(), getString(R.string.action_failed), Toast.LENGTH_SHORT).show();
             }
         });
     }
