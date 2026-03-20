@@ -100,20 +100,29 @@ public class EventOverviewFragment extends Fragment implements WaitingListDialog
                     String organizerId = documentSnapshot.getString("organizerId");
                     boolean isOrganizer = (organizerId != null && organizerId.equals(currentUserId));
                     
-                    if (isOrganizer) {
-                        // Organizers see the Manage button
-                        btnManageWaitlist.setVisibility(View.VISIBLE);
-                        btnManageWaitlist.setOnClickListener(v -> {
-                            WaitlistManagementFragment dialog = WaitlistManagementFragment.newInstance(eventId);
-                            dialog.show(getChildFragmentManager(), "WaitlistManagementDialog");
-                        });
-                    } else {
-                        // Entrants see the Join/Leave button
-                        btnJoinWaitlist.setVisibility(View.VISIBLE);
-                        btnJoinWaitlist.setOnClickListener(v -> {
-                            WaitingListDialogFragment dialog = WaitingListDialogFragment.newInstance(eventId, eventName, count, inWaitingList);
-                            dialog.show(getChildFragmentManager(), "WaitingListDialog");
-                        });
+                    // Additionally, fetch the current user's profile to see if they are an "admin"
+                    if (currentUserId != null) {
+                        FirebaseFirestore.getInstance().collection("users").document(currentUserId).get()
+                            .addOnSuccessListener(userDoc -> {
+                                String role = userDoc.getString("role");
+                                boolean isAdmin = (role != null && role.equals("admin"));
+                                
+                                // Admin or Organizer can see the Manage button
+                                if (isOrganizer || isAdmin) {
+                                    btnManageWaitlist.setVisibility(View.VISIBLE);
+                                    btnManageWaitlist.setOnClickListener(v -> {
+                                        WaitlistManagementFragment dialog = WaitlistManagementFragment.newInstance(eventId);
+                                        dialog.show(getChildFragmentManager(), "WaitlistManagementDialog");
+                                    });
+                                } else {
+                                    // Regular Entrants see the Join/Leave button
+                                    btnJoinWaitlist.setVisibility(View.VISIBLE);
+                                    btnJoinWaitlist.setOnClickListener(v -> {
+                                        WaitingListDialogFragment dialog = WaitingListDialogFragment.newInstance(eventId, eventName, count, inWaitingList);
+                                        dialog.show(getChildFragmentManager(), "WaitingListDialog");
+                                    });
+                                }
+                            });
                     }
                 }
             })
@@ -126,28 +135,39 @@ public class EventOverviewFragment extends Fragment implements WaitingListDialog
 
     /**
      * Helper method to get the current authenticated user's ID.
-     * @return The ID of the current user, or "unauthenticated_user" if not authenticated.
+     * @return The ID of the current user, or null if not authenticated.
      */
     private String getCurrentUserId() {
         if (FirebaseAuth.getInstance().getCurrentUser() != null) {
             return FirebaseAuth.getInstance().getCurrentUser().getUid();
         }
-        return "unauthenticated_user";
+        return null;
     }
 
     @Override
     public void onJoinWaitingList(String eventId) {
-        waitlistRepo.joinWaitingList(eventId, getCurrentUserId()).addOnSuccessListener(aVoid -> {
+        String userId = getCurrentUserId();
+        if (userId == null) {
+            Toast.makeText(getContext(), "You must be signed in to join the waitlist.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        waitlistRepo.joinWaitingList(eventId, userId).addOnSuccessListener(aVoid -> {
             if (getContext() != null) {
                 Toast.makeText(getContext(), "Joined waitlist successfully!", Toast.LENGTH_SHORT).show();
-                // TODO: Refresh data by recreating the view or relying on a SnapshotListener in a final implementation
             }
         });
     }
 
     @Override
     public void onLeaveWaitingList(String eventId) {
-        waitlistRepo.leaveWaitingList(eventId, getCurrentUserId()).addOnSuccessListener(aVoid -> {
+        String userId = getCurrentUserId();
+        if (userId == null) {
+            Toast.makeText(getContext(), "You must be signed in to leave the waitlist.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        waitlistRepo.leaveWaitingList(eventId, userId).addOnSuccessListener(aVoid -> {
             if (getContext() != null) {
                 Toast.makeText(getContext(), "Left waitlist successfully!", Toast.LENGTH_SHORT).show();
             }
