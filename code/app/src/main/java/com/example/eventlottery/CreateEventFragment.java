@@ -1,7 +1,7 @@
 /**
  * Create Event Fragment
  * Allows Admin and Organizers to create and edit events
- * Last Modified: 2026-03-12 by Grace MacKenzie
+ * Last Modified: 2026-03-21 by Grace MacKenzie
  *<p>
  *     Notes
  *      - This fragment has two modes: CREATE and EDIT
@@ -14,16 +14,11 @@
  *        see https://www.geeksforgeeks.org/android/how-to-generate-qr-code-in-android/
  *        and https://reintech.io/blog/implementing-android-app-qr-code-scanner
  *      - TODO: upload an optional image to firebase and store a reference to that image.
- *      - TODO: Find a way to allow Firestore to deserialize ZonedDateTime.
- *              See the toInstant() method from ZonedDateTime. It should be compatible with Firestore.
- *              This will make Firestore hold a Timestamp which it *can* Deserialize.
- *              Will also need to add String timeZone to Events though.
  *      - TODO: add a "loading screen" to edit mode to hide default Create Mode stuff.
  *              Just overlay a loading image on top of everything and hide it at the end
  *              of the .onSuccess block when loading the event from eventId
  *              or in an else block after the if where all the UI changes are held.
  *</p>
-
  *
  * @author Grace MacKenzie
  * @since 2026-02-28
@@ -50,6 +45,7 @@ import com.google.firebase.firestore.CollectionReference;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.FirebaseFirestore;
 
+import java.lang.reflect.Field;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZoneId;
@@ -119,9 +115,11 @@ public class CreateEventFragment extends Fragment {
 
         mode = (eventId == null) ? EventCreationMode.CREATE : EventCreationMode.EDIT ;
 
+        // Find Buttons
         negativeButton = view.findViewById(R.id.cancel_button);
         positiveButton = view.findViewById(R.id.confirm_button);
 
+        // Find EditText views
         editPosterImage = view.findViewById(R.id.poster_image);
         editTitle = view.findViewById(R.id.edit_event_title);
         editDescription = view.findViewById(R.id.edit_event_description);
@@ -133,7 +131,7 @@ public class CreateEventFragment extends Fragment {
         editRegCloseDay = view.findViewById(R.id.edit_reg_close_day);
         editCapacity = view.findViewById(R.id.edit_capacity);
 
-        // FIRESTORE STUFF
+        // GET FIRESTORE COLLECTION
 
         db = FirebaseFirestore.getInstance();
         eventsRef = db.collection("events");
@@ -143,15 +141,15 @@ public class CreateEventFragment extends Fragment {
         if (mode == EventCreationMode.EDIT) {
             // Set currentEvent to the Event whose id was in the bundle
             db.collection("events")
-                    .document(Objects.requireNonNull(eventId)) // not possible for event id to be null, but android studio is android studio
+                    .document(Objects.requireNonNull(eventId))
                     .get()
                     .addOnSuccessListener(doc -> {
                         currentEvent = doc.toObject(Event.class);
 
                         // Set fields to contain the data of currentEvent
                         assert currentEvent != null; // still not possible.
-                        editTitle.setText(currentEvent.title);
-                        editDescription.setText(currentEvent.description);
+                        editTitle.setText(currentEvent.getTitle());
+                        editDescription.setText(currentEvent.getDescription());
                         editRegOpenYear.setText(currentEvent.getRegistrationOpen().getYear());
                         editRegOpenMonth.setText(currentEvent.getRegistrationOpen().getMonthValue());
                         editRegOpenDay.setText(currentEvent.getRegistrationOpen().getDayOfMonth());
@@ -182,7 +180,7 @@ public class CreateEventFragment extends Fragment {
                     addEvent(Objects.requireNonNull(validationResult.event));
                 } else { // Event mode
                     // validationResult.event just points to currentEvent
-                    upZonedDateTimeEvent(Objects.requireNonNull(validationResult.event));
+                    updateEvent(Objects.requireNonNull(validationResult.event));
                 }
 
                 // Navigate to EventOverviewFragment
@@ -279,17 +277,22 @@ public class CreateEventFragment extends Fragment {
         DocumentReference docRef = eventsRef.document();
         String generatedId = docRef.getId();
         event.setEventId(generatedId);
+        // DEBUG
+        for (Field f : event.getClass().getDeclaredFields()) {
+            Log.d("EVENT_DEBUG", "Field: " + f.getName());
+        }
+        // DEBUG
         docRef.set(event);
     }
 
     /**
-     * Saves upZonedDateTimed Event to Firestore
-     * @param upZonedDateTimedEvent The Event with upZonedDateTimes made to it
+     * Saves updated Event to Firestore
+     * @param updatedEvent The Event with updates made to it
      */
-    private void upZonedDateTimeEvent(Event upZonedDateTimedEvent) {
+    private void updateEvent(Event updatedEvent) {
         db.collection("events")
-                .document(upZonedDateTimedEvent.getEventId())
-                .set(upZonedDateTimedEvent);
+                .document(updatedEvent.getEventId())
+                .set(updatedEvent);
     }
 
     /**
@@ -351,12 +354,6 @@ public class CreateEventFragment extends Fragment {
                 editCapacity.getText().toString()
         );
     }
-
-    /*
-     I'm considering making this validation process its own dedicated class.
-     I already have 2 helper classes for it after all. 3 if you count EventInput
-     as part of the validation pipeline. which it pretty much is.
-     */
 
     /**
      * A helper function which valiZonedDateTimes data and returns a non-null event if and only if all
