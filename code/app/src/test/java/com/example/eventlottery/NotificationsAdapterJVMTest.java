@@ -22,18 +22,30 @@ import java.util.Collections;
 
 @RunWith(RobolectricTestRunner.class)
 @Config(manifest=Config.NONE)
+
+/**
+ * Notifications Adapter JVM Test
+ * Last Modified: 2026-03-12 by Radwa Sheikhdon
+ * Handles creation and response logic for notifications.
+ */
 public class NotificationsAdapterJVMTest {
 
     private NotificationRepository mockRepo;
     private NotificationsAdapter adapter;
     private Context context;
 
+    /**
+     * Sets up the test environment before each test case.
+     */
     @Before
     public void setup() {
         context = ApplicationProvider.getApplicationContext();
         mockRepo = mock(NotificationRepository.class);
     }
 
+    /**
+     * Tests the bindMessageAndTimestamp method of the NotificationsAdapter.
+     */
     @Test
     public void testBindMessageAndTimestamp() {
         Notification notification = new Notification();
@@ -59,6 +71,9 @@ public class NotificationsAdapterJVMTest {
         assertEquals("You won!", holder.message.getText().toString());
     }
 
+    /**
+     * Tests the bindInviteClick method of the NotificationsAdapter.
+     */
     @Test
     public void testBindInviteClickCallsRepository() {
         Notification notification = new Notification();
@@ -79,7 +94,7 @@ public class NotificationsAdapterJVMTest {
 
         adapter.onBindViewHolder(holder, 0);
 
-        
+        // Robolectric handles the click and listener execution
         holder.btnAccept.performClick();
         holder.btnDecline.performClick();
 

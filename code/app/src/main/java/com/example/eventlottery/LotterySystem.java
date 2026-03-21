@@ -7,7 +7,6 @@ import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
-import com.google.firebase.firestore.Transaction;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -29,7 +28,12 @@ public class LotterySystem {
     private static final String CANCELLED_LIST_FIELD = "cancelledList";
 
     public LotterySystem() {
-        this(FirebaseFirestore.getInstance(), new NotificationRepository(FirebaseFirestore.getInstance()));
+        this(FirebaseFirestore.getInstance());
+    }
+
+    private LotterySystem(FirebaseFirestore db) {
+        this.db = db;
+        this.notificationRepository = new NotificationRepository(this.db);
     }
 
     LotterySystem(FirebaseFirestore db, NotificationRepository notificationRepository) {
@@ -37,10 +41,6 @@ public class LotterySystem {
         this.notificationRepository = notificationRepository;
     }
 
-    /**
-     * Helper to safely extract a list of strings from a Firestore snapshot 
-     * without triggering unchecked cast warnings.
-     */
     private List<String> getListSafely(DocumentSnapshot snapshot, String field) {
         List<String> result = new ArrayList<>();
         Object obj = snapshot.get(field);
@@ -54,14 +54,6 @@ public class LotterySystem {
         return result;
     }
 
-    /**
-     * Draws a specified number of entrants from the waiting list.
-     * The drawn users are moved from the 'waitingList' to the 'invitedList' in Firestore.
-     *
-     * @param eventId The ID of the event
-     * @param count   The number of entrants to draw (pass 1 to draw a replacement applicant)
-     * @return Task with the list of User IDs that were selected.
-     */
     public Task<List<String>> drawEntrants(String eventId, int count) {
         DocumentReference eventRef = db.collection(EVENTS_COLLECTION).document(eventId);
 
@@ -104,6 +96,7 @@ public class LotterySystem {
             Log.d(TAG, "Successfully drew " + selectedUsers.size() + " entrants for event: " + eventId);
             
             if (!selectedUsers.isEmpty()) {
+                // TODO: Replace TYPE_INFO with Notification.TYPE_INVITE once Notification class supports it
                 notificationRepository.sendBulkNotification(
                     selectedUsers, 
                     eventId, 
@@ -113,10 +106,6 @@ public class LotterySystem {
         }).addOnFailureListener(e -> Log.e(TAG, "Failed to execute lottery draw: ", e));
     }
 
-    /**
-     * An invited entrant accepts their invitation.
-     * Moves them from 'invitedList' to 'acceptedList'.
-     */
     public Task<Void> acceptInvitation(String eventId, String userId) {
         DocumentReference eventRef = db.collection(EVENTS_COLLECTION).document(eventId);
         
@@ -131,10 +120,6 @@ public class LotterySystem {
           .addOnFailureListener(e -> Log.e(TAG, "Failed to accept invitation", e));
     }
 
-    /**
-     * An invited entrant declines their invitation OR an Organizer cancels them.
-     * Moves them from 'invitedList' to 'cancelledList'.
-     */
     public Task<Void> declineOrCancelInvitation(String eventId, String userId) {
         DocumentReference eventRef = db.collection(EVENTS_COLLECTION).document(eventId);
         

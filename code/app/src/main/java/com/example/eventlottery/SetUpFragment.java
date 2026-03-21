@@ -1,10 +1,10 @@
 /**
  * Set Up Fragment
  * Sets up a new user with a profile.
- * Last Modified: 2026-02-28 by Grace MacKenzie
+ * Last Modified: 2026-03-13 by Pierce Hampton
  *
- * @author author1
- * @author author2
+ * @author Pierce Hampton
+ * @author Grace MacKenzie
  * @since 2026-02-28
  */
 package com.example.eventlottery;
@@ -35,17 +35,14 @@ import android.text.TextUtils;
 import android.util.Patterns;
 
 /**
- * A simple {@link Fragment} subclass.
+ * A simple {@link Fragment} subclass for user setup.
  */
 public class SetUpFragment extends Fragment {
-
-    // UI references (TextInputLayouts let us show validation errors inline).
     private TextInputLayout usernameLayout;
     private TextInputLayout emailLayout;
     private TextInputLayout phoneLayout;
     private TextInputLayout passwordLayout;
 
-    // UI references (TextInputEditTexts hold the user's typed values).
     private TextInputEditText usernameInput;
     private TextInputEditText emailInput;
     private TextInputEditText phoneInput;
@@ -53,11 +50,6 @@ public class SetUpFragment extends Fragment {
 
     // Role selection UI (must choose exactly one of Entrant / Organizer / Admin).
     private RadioGroup roleGroup;
-    private RadioButton roleEntrant;
-    private RadioButton roleOrganizer;
-    private RadioButton roleAdmin;
-
-    // Inline error text + loading UI so the user can see what's happening.
     private TextView errorText;
     private ProgressBar progressBar;
     private Button createAccountButton;
@@ -70,11 +62,6 @@ public class SetUpFragment extends Fragment {
 
     public SetUpFragment() {
         // Required empty public constructor
-    }
-
-    @Override
-    public void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
     }
 
     @Override
@@ -104,10 +91,6 @@ public class SetUpFragment extends Fragment {
         passwordInput = view.findViewById(R.id.input_password);
 
         roleGroup = view.findViewById(R.id.role_group);
-        roleEntrant = view.findViewById(R.id.role_entrant);
-        roleOrganizer = view.findViewById(R.id.role_organizer);
-        roleAdmin = view.findViewById(R.id.role_admin);
-
         errorText = view.findViewById(R.id.setup_error);
         progressBar = view.findViewById(R.id.setup_progress);
         createAccountButton = view.findViewById(R.id.button_create_account);
@@ -210,16 +193,13 @@ public class SetUpFragment extends Fragment {
     }
 
     private void navigateToHome() {
-        if (getActivity() == null) {
-            return;
+        // Fix: Added check for isAdded() and getActivity() to prevent crashes if fragment is detached.
+        if (isAdded() && getActivity() != null) {
+            getActivity().getSupportFragmentManager()
+                    .beginTransaction()
+                    .replace(R.id.fragment_container, new HomePageFragment())
+                    .commit();
         }
-
-        // Role-based routing expanded here later.
-        // For now, all roles go to the same HomePageFragment (which can render role-specific UI).
-        getActivity().getSupportFragmentManager()
-                .beginTransaction()
-                .replace(R.id.fragment_container, new HomePageFragment())
-                .commit();
     }
 
     private String resolveSelectedRole() {
