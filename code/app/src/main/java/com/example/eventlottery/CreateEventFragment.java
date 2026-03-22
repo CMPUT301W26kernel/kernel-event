@@ -1,7 +1,7 @@
 /**
  * Create Event Fragment
  * Allows Admin and Organizers to create and edit events
- * Last Modified: 2026-03-21 by Grace MacKenzie
+ * Last Modified: 2026-03-22 by Grace MacKenzie
  *<p>
  *     Notes
  *      - This fragment has two modes: CREATE and EDIT
@@ -10,9 +10,6 @@
  *        be edited.
  *      - In CREATE mode, it is assumed that no such event is present and must be created.
  *        It is also assumed that an organizer id is present instead.
- *      - TODO: Generate a QR code upon Event creation
- *        see https://www.geeksforgeeks.org/android/how-to-generate-qr-code-in-android/
- *        and https://reintech.io/blog/implementing-android-app-qr-code-scanner
  *      - TODO: upload an optional image to firebase and store a reference to that image.
  *      - TODO: add a "loading screen" to edit mode to hide default Create Mode stuff.
  *              Just overlay a loading image on top of everything and hide it at the end
@@ -28,6 +25,7 @@
  */
 package com.example.eventlottery;
 
+import android.graphics.Bitmap;
 import android.os.Bundle;
 
 import androidx.annotation.NonNull;
@@ -48,7 +46,6 @@ import com.google.firebase.firestore.CollectionReference;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.FirebaseFirestore;
 
-import java.lang.reflect.Field;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZoneId;
@@ -302,6 +299,8 @@ public class CreateEventFragment extends Fragment {
                 .addOnFailureListener(e -> Log.e("DELETE", "Error deleting city", e));
     }
 
+    // HELPER METHODS FOR PARSING AND VALIDATION
+
     /**
      * A helper function to parse the user input waitingListCapacity.
      * This function uses a partial result from Microsoft, Copilot, "java toIntOrNull"
@@ -351,6 +350,11 @@ public class CreateEventFragment extends Fragment {
         );
     }
 
+    /**
+     * A helper function which generates a ZonedDateTime object from a raw ISO string
+     * @param rawIsoDate An ISO string in the form Y-M-D with no specified number of digits for any entry
+     * @return Returns a ZonedDateTime object using the date from the raw ISO string
+     */
     private ZonedDateTime parseRegistrationDate(String rawIsoDate) {
         // Get timezone
         ZoneId zone = ZoneId.systemDefault();

@@ -39,7 +39,6 @@ public class Event {
 
 
     // Not sure how to do the image, but a reference to it should go in here.
-    // Not sure how to do the QR code, but a reference should also go in here.
     // geological requirement thingy also goes somewhere in here. see US 02.02.03
 
     /**

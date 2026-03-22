@@ -58,6 +58,7 @@ dependencies {
     implementation("com.google.firebase:firebase-analytics")
     implementation("com.google.firebase:firebase-auth")
     implementation("com.google.firebase:firebase-firestore")
+    implementation ("com.journeyapps:zxing-android-embedded:4.3.0") // Used for QR code generation
 
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")
 
