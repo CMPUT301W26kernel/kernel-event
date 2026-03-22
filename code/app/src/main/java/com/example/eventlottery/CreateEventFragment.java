@@ -18,6 +18,9 @@
  *              Just overlay a loading image on top of everything and hide it at the end
  *              of the .onSuccess block when loading the event from eventId
  *              or in an else block after the if where all the UI changes are held.
+ *      - TODO: fix event period check to let existing events have registration open dates
+ *              earlier than the current date. I may wish to hide/lock the registration Open
+ *              field from editing users entirely if the registration period has already begun.
  *</p>
  *
  * @author Grace MacKenzie
@@ -150,12 +153,12 @@ public class CreateEventFragment extends Fragment {
                         assert currentEvent != null; // still not possible.
                         editTitle.setText(currentEvent.getTitle());
                         editDescription.setText(currentEvent.getDescription());
-                        editRegOpenYear.setText(currentEvent.getRegistrationOpen().getYear());
-                        editRegOpenMonth.setText(currentEvent.getRegistrationOpen().getMonthValue());
-                        editRegOpenDay.setText(currentEvent.getRegistrationOpen().getDayOfMonth());
-                        editRegCloseYear.setText(currentEvent.getRegistrationClose().getYear());
-                        editRegCloseMonth.setText(currentEvent.getRegistrationClose().getMonthValue());
-                        editRegCloseDay.setText(currentEvent.getRegistrationClose().getDayOfMonth());
+                        editRegOpenYear.setText(String.valueOf(currentEvent.getRegistrationOpen().getYear()));
+                        editRegOpenMonth.setText(String.valueOf(currentEvent.getRegistrationOpen().getMonthValue()));
+                        editRegOpenDay.setText(String.valueOf(currentEvent.getRegistrationOpen().getDayOfMonth()));
+                        editRegCloseYear.setText(String.valueOf(currentEvent.getRegistrationClose().getYear()));
+                        editRegCloseMonth.setText(String.valueOf(currentEvent.getRegistrationClose().getMonthValue()));
+                        editRegCloseDay.setText(String.valueOf(currentEvent.getRegistrationClose().getDayOfMonth()));
                         if (currentEvent.getWaitingListCapacity() != null) {
                             editCapacity.setText(currentEvent.getWaitingListCapacity());
                         }
@@ -184,7 +187,7 @@ public class CreateEventFragment extends Fragment {
                 }
 
                 // Navigate to EventOverviewFragment
-                EventOverviewFragment fragment = new EventOverviewFragment(); // TODO: change to newInstance method if one is created
+                EventOverviewFragment fragment = new EventOverviewFragment();
                 Bundle bundle = new Bundle();
                 bundle.putString("eventId", validationResult.event.getEventId());
                 fragment.setArguments(bundle);
@@ -204,7 +207,7 @@ public class CreateEventFragment extends Fragment {
                 // TODO: Set up confirmation dialog fragment
             }
 
-            HomePageFragment fragment = new HomePageFragment(); // TODO: change to newInstance method if one is created
+            HomePageFragment fragment = new HomePageFragment();
             requireActivity().getSupportFragmentManager()
                     .beginTransaction()
                     .replace(R.id.fragment_container, fragment)
@@ -277,11 +280,6 @@ public class CreateEventFragment extends Fragment {
         DocumentReference docRef = eventsRef.document();
         String generatedId = docRef.getId();
         event.setEventId(generatedId);
-        // DEBUG
-        for (Field f : event.getClass().getDeclaredFields()) {
-            Log.d("EVENT_DEBUG", "Field: " + f.getName());
-        }
-        // DEBUG
         docRef.set(event);
     }
 
@@ -355,10 +353,26 @@ public class CreateEventFragment extends Fragment {
         );
     }
 
+    private ZonedDateTime parseRegistrationDate(String rawIsoDate) {
+        // Get timezone
+        ZoneId zone = ZoneId.systemDefault();
+
+        // Normalize rawIsoDate
+        String[] parts = rawIsoDate.split("-");
+        int year = Integer.parseInt(parts[0]);
+        int month = Integer.parseInt(parts[1]);
+        int day = Integer.parseInt(parts[2]);
+        String normalizedIsoDate = String.format("%04d-%02d-%02d", year, month, day);
+
+        LocalDate date = LocalDate.parse(normalizedIsoDate);
+        LocalTime time = LocalTime.of(12, 0); // TODO: change from default to user input time
+        return ZonedDateTime.of(date, time, zone);
+    }
+
     /**
-     * A helper function which valiZonedDateTimes data and returns a non-null event if and only if all
+     * A helper function which validates data and returns a non-null event if and only if all
      * validation checks pass, or an error message if and only if at least one validation check fails.
-     * @param ctx context of this validation including the mode, the set of inputs to valiZonedDateTime etc
+     * @param ctx context of this validation including the mode, the set of inputs to validate etc
      * @return A ValidationResult containing a true or false value
      */
     private ValidationResult validateInput(ValidationContext ctx) {
@@ -378,35 +392,22 @@ public class CreateEventFragment extends Fragment {
 
         // Registration Open/Close Checks
 
-        if(!ctx.input.registrationOpen.matches("\\d{4}-\\d{2}-\\d{2}")) {
+        if(!ctx.input.registrationOpen.matches("\\d{1,4}-\\d{1,2}-\\d{1,2}")) {
             return ValidationResult.invalid(getString(R.string.error_invalid_date_format));
         }
 
-        if(!ctx.input.registrationClose.matches("\\d{4}-\\d{2}-\\d{2}")) {
+        if(!ctx.input.registrationClose.matches("\\d{1,4}-\\d{1,2}-\\d{1,2}")) {
             return ValidationResult.invalid(getString(R.string.error_invalid_date_format));
         }
 
         try {
             // Generate registration open/close ZonedDateTimes
-            ZoneId zone = ZoneId.systemDefault();
-
-            LocalDate date = LocalDate.parse(ctx.input.registrationOpen);
-            LocalTime time = LocalTime.of(12, 0); // TODO: change from default to user input time
-            registrationOpen = ZonedDateTime.of(date, time, zone);
-
-            date = LocalDate.parse(ctx.input.registrationClose);
-            time = LocalTime.of(12, 0); // TODO: change from default to user input time
-            registrationClose = ZonedDateTime.of(date, time, zone);
-
+            registrationOpen = parseRegistrationDate(ctx.input.registrationOpen);
+            registrationClose = parseRegistrationDate(ctx.input.registrationClose);
         } catch (DateTimeParseException e) {
             return ValidationResult.invalid(getString(R.string.error_impossible_date));
         }
 
-        /*
-            TODO: fix event period check to let existing events have registration open dates
-             earlier than the current date. I may wish to hide the registration Open field from
-             editing users entirely if the registration period has already begun
-         */
         if (registrationOpen.equals(registrationClose)) {
             return ValidationResult.invalid(getString(R.string.error_open_date_equals_close_date));
         } else if (registrationClose.isBefore(registrationOpen)) {
