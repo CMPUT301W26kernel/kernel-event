@@ -160,7 +160,7 @@ public class CreateEventFragment extends Fragment {
                         editRegCloseMonth.setText(String.valueOf(currentEvent.getRegistrationClose().getMonthValue()));
                         editRegCloseDay.setText(String.valueOf(currentEvent.getRegistrationClose().getDayOfMonth()));
                         if (currentEvent.getWaitingListCapacity() != null) {
-                            editCapacity.setText(currentEvent.getWaitingListCapacity());
+                            editCapacity.setText(String.valueOf(currentEvent.getWaitingListCapacity()));
                         }
 
                         // Change negative button appearance
@@ -194,7 +194,6 @@ public class CreateEventFragment extends Fragment {
                 requireActivity().getSupportFragmentManager()
                         .beginTransaction()
                         .replace(R.id.fragment_container, fragment)
-                        .addToBackStack(null)
                         .commit();
             } else {
                 Toast.makeText(requireContext(), validationResult.errorMessage, Toast.LENGTH_SHORT).show();
@@ -211,7 +210,6 @@ public class CreateEventFragment extends Fragment {
             requireActivity().getSupportFragmentManager()
                     .beginTransaction()
                     .replace(R.id.fragment_container, fragment)
-                    .addToBackStack(null)
                     .commit();
         });
     }
