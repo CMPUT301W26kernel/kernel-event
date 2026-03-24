@@ -26,7 +26,24 @@ public class UserProfileFragmentUnitTest {
         assertEquals("TestUser", mockValueOrEmpty(validValue));
     }
 
+    /**
+     * Tests the capitalize logic used for the user role.
+     */
+    @Test
+    public void testCapitalize() {
+        assertEquals("Entrant", mockCapitalize("entrant"));
+        assertEquals("Organizer", mockCapitalize("ORGANIZER"));
+        assertEquals("Admin", mockCapitalize("aDmiN"));
+        assertEquals("", mockCapitalize(null));
+        assertEquals("", mockCapitalize(""));
+    }
+
     private String mockValueOrEmpty(String value) {
         return value == null ? "" : value;
+    }
+
+    private String mockCapitalize(String str) {
+        if (str == null || str.isEmpty()) return "";
+        return str.substring(0, 1).toUpperCase() + str.substring(1).toLowerCase();
     }
 }

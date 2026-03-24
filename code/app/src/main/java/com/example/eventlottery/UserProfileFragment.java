@@ -374,20 +374,24 @@ public class UserProfileFragment extends Fragment {
     }
 
     /**
-     * Removes the user from all events they are registered for (waiting list).
+     * Removes the user from all events they are registered for (all lottery lists).
      * @param userId The ID of the user to remove.
      */
     private void removeUserFromEvents(String userId) {
         FirebaseFirestore db = FirebaseFirestore.getInstance();
-        db.collection("events")
-                .whereArrayContains("waitingList", userId)
-                .get()
-                .addOnSuccessListener(queryDocumentSnapshots -> {
-                    for (DocumentSnapshot doc : queryDocumentSnapshots) {
-                        doc.getReference().update("waitingList", FieldValue.arrayRemove(userId));
-                    }
-                })
-                .addOnFailureListener(e -> Log.e("UserProfileFragment", "Error removing user from events", e));
+        String[] lists = {"waitingList", "invitedList", "acceptedList", "cancelledList"};
+
+        for (String listName : lists) {
+            db.collection("events")
+                    .whereArrayContains(listName, userId)
+                    .get()
+                    .addOnSuccessListener(queryDocumentSnapshots -> {
+                        for (DocumentSnapshot doc : queryDocumentSnapshots) {
+                            doc.getReference().update(listName, FieldValue.arrayRemove(userId));
+                        }
+                    })
+                    .addOnFailureListener(e -> Log.e("UserProfileFragment", "Error removing user from " + listName, e));
+        }
     }
 
     /**
