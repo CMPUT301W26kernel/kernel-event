@@ -4,31 +4,145 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:gravity="center"
-    android:padding="24dp"
+    android:padding="16dp"
     tools:context=".EventOverviewFragment">
 
-    <!-- TODO: Update blank fragment layout -->
-    <TextView
+    <Button
+        android:id="@+id/btn_back_to_events"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="@string/hello_blank_fragment"
-        android:textSize="20sp"
-        android:layout_marginBottom="48dp" />
+        android:text="@string/back"
+        android:contentDescription="@string/back_btn_desc" />
+
+    <TextView
+        android:id="@+id/text_event_title"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:text="@string/default_event_title"
+        android:textColor="@color/primary_deep"
+        android:textSize="24sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:id="@+id/text_event_organizer"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:textColor="@color/primary_dark"
+        android:textSize="14sp"
+        tools:text="Organizer: demo-organizer" />
+
+    <TextView
+        android:id="@+id/text_event_date"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:textColor="@android:color/darker_gray"
+        android:textSize="14sp"
+        tools:text="Registration: Apr 1, 2026 - Apr 9, 2026" />
+
+    <TextView
+        android:id="@+id/text_event_waitlist"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="2dp"
+        android:textColor="@android:color/darker_gray"
+        android:textSize="14sp"
+        tools:text="Waitlist entrants: 4" />
+
+    <TextView
+        android:id="@+id/text_event_description"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:text="@string/default_event_description"
+        android:textColor="@color/black"
+        android:textSize="16sp" />
 
     <Button
         android:id="@+id/btn_join_waitlist"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
         android:text="@string/btn_join_leave_waitlist"
-        android:layout_marginBottom="16dp"
         android:visibility="gone" />
 
     <Button
         android:id="@+id/btn_manage_waitlist"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
         android:text="@string/btn_manage_waitlist"
         android:visibility="gone" />
+
+    <TextView
+        android:id="@+id/text_comments_header"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="20dp"
+        android:text="@string/comments_header"
+        android:textColor="@color/primary_deep"
+        android:textSize="18sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:id="@+id/text_comment_permissions"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:textColor="@android:color/darker_gray"
+        android:textSize="14sp"
+        android:visibility="gone"
+        tools:text="Sign in to post a comment." />
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rv_event_comments"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_marginTop="12dp"
+        android:layout_weight="1"
+        tools:listitem="@layout/item_event_comment" />
+
+    <TextView
+        android:id="@+id/text_comments_empty"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:paddingTop="16dp"
+        android:paddingBottom="16dp"
+        android:text="@string/comments_empty"
+        android:textColor="@android:color/darker_gray"
+        android:visibility="gone" />
+
+    <LinearLayout
+        android:id="@+id/comment_composer_container"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:visibility="gone">
+
+        <EditText
+            android:id="@+id/edit_comment_input"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:backgroundTint="@color/primary_dark"
+            android:gravity="top|start"
+            android:hint="@string/comment_hint"
+            android:inputType="textCapSentences|textMultiLine"
+            android:maxLines="4"
+            android:minHeight="48dp"
+            android:padding="12dp" />
+
+        <Button
+            android:id="@+id/btn_post_comment"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="12dp"
+            android:text="@string/comment_post_action" />
+    </LinearLayout>
 
 </LinearLayout>
