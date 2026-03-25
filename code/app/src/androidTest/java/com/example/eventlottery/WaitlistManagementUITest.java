@@ -15,6 +15,9 @@ import static androidx.test.espresso.matcher.ViewMatchers.withId;
 import static androidx.test.espresso.matcher.ViewMatchers.withEffectiveVisibility;
 import static androidx.test.espresso.matcher.ViewMatchers.Visibility;
 
+import com.example.eventlottery.core.MainActivity;
+import com.example.eventlottery.waitinglist.WaitlistManagementFragment;
+
 /**
  * Android Instrumented intent tests for the WaitlistManagementFragment UI.
  */

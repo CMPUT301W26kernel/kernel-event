@@ -2,6 +2,8 @@ package com.example.eventlottery;
 
 import static org.junit.Assert.assertEquals;
 
+import com.example.eventlottery.event.Event;
+
 import org.junit.Test;
 
 import java.time.ZonedDateTime;

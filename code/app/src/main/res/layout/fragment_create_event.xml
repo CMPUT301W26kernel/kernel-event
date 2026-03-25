@@ -6,7 +6,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/primary_pale"
-    tools:context=".MainActivity">
+    tools:context=".core.MainActivity">
 
     <!-- This contains event attribute fields that users can modify -->
 

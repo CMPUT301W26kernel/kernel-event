@@ -3,6 +3,9 @@ package com.example.eventlottery;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 
+import com.example.eventlottery.event.Event;
+import com.example.eventlottery.event.MockEventData;
+
 import org.junit.Test;
 
 import java.util.ArrayList;

@@ -6,6 +6,9 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 
+import com.example.eventlottery.core.MainActivity;
+import com.example.eventlottery.profile.User;
+
 /**
  * Example local unit test, which will execute on the development machine (host).
  *

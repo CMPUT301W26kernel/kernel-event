@@ -11,12 +11,12 @@ import static androidx.test.espresso.matcher.RootMatchers.isDialog;
 import static org.hamcrest.Matchers.not;
 
 import android.os.Bundle;
-import android.view.View;
 
 import androidx.fragment.app.testing.FragmentScenario;
 import androidx.lifecycle.Lifecycle;
-import androidx.test.espresso.matcher.ViewMatchers;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
+
+import com.example.eventlottery.profile.UserProfileFragment;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;

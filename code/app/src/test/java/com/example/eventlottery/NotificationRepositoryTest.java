@@ -3,6 +3,8 @@ package com.example.eventlottery;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
+import com.example.eventlottery.notifications.Notification;
+import com.example.eventlottery.notifications.NotificationRepository;
 import com.google.android.gms.tasks.Task;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.OnFailureListener;

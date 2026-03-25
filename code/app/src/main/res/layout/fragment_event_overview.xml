@@ -6,7 +6,7 @@
     android:orientation="vertical"
     android:gravity="center"
     android:padding="24dp"
-    tools:context=".EventOverviewFragment">
+    tools:context=".event.overview.EventOverviewFragment">
 
     <!-- TODO: Update blank fragment layout -->
     <TextView

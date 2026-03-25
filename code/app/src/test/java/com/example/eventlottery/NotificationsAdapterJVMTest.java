@@ -4,13 +4,16 @@ import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.*;
 
 import android.content.Context;
-import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import androidx.test.core.app.ApplicationProvider;
+
+import com.example.eventlottery.notifications.Notification;
+import com.example.eventlottery.notifications.NotificationRepository;
+import com.example.eventlottery.notifications.NotificationsAdapter;
 
 import org.junit.Before;
 import org.junit.Test;

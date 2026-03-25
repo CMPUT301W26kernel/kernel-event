@@ -7,6 +7,8 @@ import android.widget.FrameLayout;
 
 import androidx.fragment.app.FragmentActivity;
 
+import com.example.eventlottery.homepage.HomePageFragment;
+
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.Robolectric;
