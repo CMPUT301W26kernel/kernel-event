@@ -1,7 +1,7 @@
 /**
  * Create Event Fragment
  * Allows Admin and Organizers to create and edit events
- * Last Modified: 2026-03-10 by Grace MacKenzie
+ * Last Modified: 2026-03-21 by Grace MacKenzie
  *<p>
  *     Notes
  *      - This fragment has two modes: CREATE and EDIT
@@ -10,8 +10,18 @@
  *        be edited.
  *      - In CREATE mode, it is assumed that no such event is present and must be created.
  *        It is also assumed that an organizer id is present instead.
+ *      - TODO: Generate a QR code upon Event creation
+ *        see https://www.geeksforgeeks.org/android/how-to-generate-qr-code-in-android/
+ *        and https://reintech.io/blog/implementing-android-app-qr-code-scanner
+ *      - TODO: upload an optional image to firebase and store a reference to that image.
+ *      - TODO: add a "loading screen" to edit mode to hide default Create Mode stuff.
+ *              Just overlay a loading image on top of everything and hide it at the end
+ *              of the .onSuccess block when loading the event from eventId
+ *              or in an else block after the if where all the UI changes are held.
+ *      - TODO: fix event period check to let existing events have registration open dates
+ *              earlier than the current date. I may wish to hide/lock the registration Open
+ *              field from editing users entirely if the registration period has already begun.
  *</p>
-
  *
  * @author Grace MacKenzie
  * @since 2026-02-28
@@ -31,12 +41,14 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageView;
 import android.widget.Toast;
 
 import com.google.firebase.firestore.CollectionReference;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.FirebaseFirestore;
 
+import java.lang.reflect.Field;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZoneId;
@@ -56,18 +68,19 @@ public class CreateEventFragment extends Fragment {
     private FirebaseFirestore db;
     private CollectionReference eventsRef;
 
-    EditText editTitle;
-    EditText editDescription;
-    EditText editRegOpenYear;
-    EditText editRegOpenMonth;
-    EditText editRegOpenDay;
-    EditText editRegCloseYear;
-    EditText editRegCloseMonth;
-    EditText editRegCloseDay;
-    EditText editCapacity;
+    private ImageView editPosterImage; // TODO: optionally upload image to Firestore and store reference in Event
+    private EditText editTitle;
+    private EditText editDescription;
+    private EditText editRegOpenYear;
+    private EditText editRegOpenMonth;
+    private EditText editRegOpenDay;
+    private EditText editRegCloseYear;
+    private EditText editRegCloseMonth;
+    private EditText editRegCloseDay;
+    private EditText editCapacity;
 
-    Button negativeButton;
-    Button positiveButton;
+    private Button negativeButton;
+    private Button positiveButton;
 
     private Event currentEvent = null;
 
@@ -105,9 +118,12 @@ public class CreateEventFragment extends Fragment {
 
         mode = (eventId == null) ? EventCreationMode.CREATE : EventCreationMode.EDIT ;
 
+        // Find Buttons
         negativeButton = view.findViewById(R.id.cancel_button);
         positiveButton = view.findViewById(R.id.confirm_button);
 
+        // Find EditText views
+        editPosterImage = view.findViewById(R.id.poster_image);
         editTitle = view.findViewById(R.id.edit_event_title);
         editDescription = view.findViewById(R.id.edit_event_description);
         editRegOpenYear = view.findViewById(R.id.edit_reg_open_year);
@@ -118,7 +134,7 @@ public class CreateEventFragment extends Fragment {
         editRegCloseDay = view.findViewById(R.id.edit_reg_close_day);
         editCapacity = view.findViewById(R.id.edit_capacity);
 
-        // FIRESTORE STUFF
+        // GET FIRESTORE COLLECTION
 
         db = FirebaseFirestore.getInstance();
         eventsRef = db.collection("events");
@@ -128,33 +144,30 @@ public class CreateEventFragment extends Fragment {
         if (mode == EventCreationMode.EDIT) {
             // Set currentEvent to the Event whose id was in the bundle
             db.collection("events")
-                    .document(Objects.requireNonNull(eventId)) // not possible for event id to be null, but android studio is android studio
+                    .document(Objects.requireNonNull(eventId))
                     .get()
-                    .addOnSuccessListener(doc -> currentEvent = doc.toObject(Event.class));
+                    .addOnSuccessListener(doc -> {
+                        currentEvent = doc.toObject(Event.class);
 
-            // Set fields to contain the data of currentEvent
-            editTitle.setText(currentEvent.title);
-            editDescription.setText(currentEvent.description);
-            editRegOpenYear.setText(currentEvent.getRegistrationOpen().getYear());
-            editRegOpenMonth.setText(currentEvent.getRegistrationOpen().getMonthValue());
-            editRegOpenDay.setText(currentEvent.getRegistrationOpen().getDayOfMonth());
-            editRegCloseYear.setText(currentEvent.getRegistrationClose().getYear());
-            editRegCloseMonth.setText(currentEvent.getRegistrationClose().getMonthValue());
-            editRegCloseDay.setText(currentEvent.getRegistrationClose().getDayOfMonth());
-            if (currentEvent.getWaitingListCapacity() != null) {
-                editCapacity.setText(currentEvent.getWaitingListCapacity());
-            }
+                        // Set fields to contain the data of currentEvent
+                        assert currentEvent != null; // still not possible.
+                        editTitle.setText(currentEvent.getTitle());
+                        editDescription.setText(currentEvent.getDescription());
+                        editRegOpenYear.setText(String.valueOf(currentEvent.getRegistrationOpen().getYear()));
+                        editRegOpenMonth.setText(String.valueOf(currentEvent.getRegistrationOpen().getMonthValue()));
+                        editRegOpenDay.setText(String.valueOf(currentEvent.getRegistrationOpen().getDayOfMonth()));
+                        editRegCloseYear.setText(String.valueOf(currentEvent.getRegistrationClose().getYear()));
+                        editRegCloseMonth.setText(String.valueOf(currentEvent.getRegistrationClose().getMonthValue()));
+                        editRegCloseDay.setText(String.valueOf(currentEvent.getRegistrationClose().getDayOfMonth()));
+                        if (currentEvent.getWaitingListCapacity() != null) {
+                            editCapacity.setText(String.valueOf(currentEvent.getWaitingListCapacity()));
+                        }
 
-            /*
-            See the following for time and ZonedDateTime stuff
-            https://docs.oracle.com/javase/8/docs/api/java/text/ZonedDateTimeFormat.html
-            https://docs.oracle.com/javase/8/docs/api/java/text/SimpleZonedDateTimeFormat.html
-            */
-
-            // Change negative button appearance
-            negativeButton.setText(R.string.delete);
-            negativeButton.setTextColor(ContextCompat.getColor(requireContext(), R.color.secondary_light));
-            negativeButton.setBackgroundColor(ContextCompat.getColor(requireContext(), R.color.secondary_dark));
+                        // Change negative button appearance
+                        negativeButton.setText(R.string.delete);
+                        negativeButton.setTextColor(ContextCompat.getColor(requireContext(), R.color.secondary_light));
+                        negativeButton.setBackgroundColor(ContextCompat.getColor(requireContext(), R.color.secondary_dark));
+                    });
         }
 
         // BUTTON LISTENERS
@@ -170,15 +183,17 @@ public class CreateEventFragment extends Fragment {
                     addEvent(Objects.requireNonNull(validationResult.event));
                 } else { // Event mode
                     // validationResult.event just points to currentEvent
-                    upZonedDateTimeEvent(Objects.requireNonNull(validationResult.event));
+                    updateEvent(Objects.requireNonNull(validationResult.event));
                 }
 
                 // Navigate to EventOverviewFragment
-                EventOverviewFragment fragment = new EventOverviewFragment(); // TODO: change to newInstance method if one is created
+                EventOverviewFragment fragment = new EventOverviewFragment();
+                Bundle bundle = new Bundle();
+                bundle.putString("eventId", validationResult.event.getEventId());
+                fragment.setArguments(bundle);
                 requireActivity().getSupportFragmentManager()
                         .beginTransaction()
                         .replace(R.id.fragment_container, fragment)
-                        .addToBackStack(null)
                         .commit();
             } else {
                 Toast.makeText(requireContext(), validationResult.errorMessage, Toast.LENGTH_SHORT).show();
@@ -191,11 +206,10 @@ public class CreateEventFragment extends Fragment {
                 // TODO: Set up confirmation dialog fragment
             }
 
-            HomePageFragment fragment = new HomePageFragment(); // TODO: change to newInstance method if one is created
+            HomePageFragment fragment = new HomePageFragment();
             requireActivity().getSupportFragmentManager()
                     .beginTransaction()
                     .replace(R.id.fragment_container, fragment)
-                    .addToBackStack(null)
                     .commit();
         });
     }
@@ -268,13 +282,13 @@ public class CreateEventFragment extends Fragment {
     }
 
     /**
-     * Saves upZonedDateTimed Event to Firestore
-     * @param upZonedDateTimedEvent The Event with upZonedDateTimes made to it
+     * Saves updated Event to Firestore
+     * @param updatedEvent The Event with updates made to it
      */
-    private void upZonedDateTimeEvent(Event upZonedDateTimedEvent) {
+    private void updateEvent(Event updatedEvent) {
         db.collection("events")
-                .document(upZonedDateTimedEvent.getEventId())
-                .set(upZonedDateTimedEvent);
+                .document(updatedEvent.getEventId())
+                .set(updatedEvent);
     }
 
     /**
@@ -301,13 +315,13 @@ public class CreateEventFragment extends Fragment {
         }
 
         if (!inputCapacity.matches("\\d+")) {
-            throw new IllegalArgumentException("Waiting List Capacity must be an integer above 0");
+            throw new IllegalArgumentException(getString(R.string.error_invalid_capacity));
         }
 
         int value = Integer.parseInt(inputCapacity);
 
         if (value <= 0) {
-            throw new IllegalArgumentException("Waiting List Capacity must be an integer above 0.");
+            throw new IllegalArgumentException(getString(R.string.error_invalid_capacity));
         }
 
         return value;
@@ -337,16 +351,26 @@ public class CreateEventFragment extends Fragment {
         );
     }
 
-    /*
-     I'm considering making this validation process its own dedicated class.
-     I already have 2 helper classes for it after all. 3 if you count EventInput
-     as part of the validation pipeline. which it pretty much is.
-     */
+    private ZonedDateTime parseRegistrationDate(String rawIsoDate) {
+        // Get timezone
+        ZoneId zone = ZoneId.systemDefault();
+
+        // Normalize rawIsoDate
+        String[] parts = rawIsoDate.split("-");
+        int year = Integer.parseInt(parts[0]);
+        int month = Integer.parseInt(parts[1]);
+        int day = Integer.parseInt(parts[2]);
+        String normalizedIsoDate = String.format("%04d-%02d-%02d", year, month, day);
+
+        LocalDate date = LocalDate.parse(normalizedIsoDate);
+        LocalTime time = LocalTime.of(12, 0); // TODO: change from default to user input time
+        return ZonedDateTime.of(date, time, zone);
+    }
 
     /**
-     * A helper function which valiZonedDateTimes data and returns a non-null event if and only if all
+     * A helper function which validates data and returns a non-null event if and only if all
      * validation checks pass, or an error message if and only if at least one validation check fails.
-     * @param ctx context of this validation including the mode, the set of inputs to valiZonedDateTime etc
+     * @param ctx context of this validation including the mode, the set of inputs to validate etc
      * @return A ValidationResult containing a true or false value
      */
     private ValidationResult validateInput(ValidationContext ctx) {
@@ -356,46 +380,38 @@ public class CreateEventFragment extends Fragment {
 
         // Title Check
         if (ctx.input.title.isBlank()) {
-            return ValidationResult.invalid("Event title cannot be blank");
+            return ValidationResult.invalid(getString(R.string.error_empty_title));
         }
 
         // Description Check
         if (ctx.input.description.isBlank()) {
-            return ValidationResult.invalid("Event description cannot be blank");
+            return ValidationResult.invalid(getString(R.string.error_empty_description));
         }
 
         // Registration Open/Close Checks
 
-        if(!ctx.input.registrationOpen.matches("\\d{4}-\\d{2}-\\d{2}")) {
-            return ValidationResult.invalid("Please enter a date with the form YYYY-MM-DD");
+        if(!ctx.input.registrationOpen.matches("\\d{1,4}-\\d{1,2}-\\d{1,2}")) {
+            return ValidationResult.invalid(getString(R.string.error_invalid_date_format));
         }
 
-        if(!ctx.input.registrationClose.matches("\\d{4}-\\d{2}-\\d{2}")) {
-            return ValidationResult.invalid("Please enter a date with the form YYYY-MM-DD");
+        if(!ctx.input.registrationClose.matches("\\d{1,4}-\\d{1,2}-\\d{1,2}")) {
+            return ValidationResult.invalid(getString(R.string.error_invalid_date_format));
         }
 
         try {
             // Generate registration open/close ZonedDateTimes
-            ZoneId zone = ZoneId.systemDefault();
-
-            LocalDate date = LocalDate.parse(ctx.input.registrationOpen);
-            LocalTime time = LocalTime.of(12, 0); // TODO: change from default to user input time
-            registrationOpen = ZonedDateTime.of(date, time, zone);
-
-            date = LocalDate.parse(ctx.input.registrationClose);
-            time = LocalTime.of(12, 0); // TODO: change from default to user input time
-            registrationClose = ZonedDateTime.of(date, time, zone);
-
+            registrationOpen = parseRegistrationDate(ctx.input.registrationOpen);
+            registrationClose = parseRegistrationDate(ctx.input.registrationClose);
         } catch (DateTimeParseException e) {
-            return ValidationResult.invalid("Please enter a valid date");
+            return ValidationResult.invalid(getString(R.string.error_impossible_date));
         }
 
         if (registrationOpen.equals(registrationClose)) {
-            return ValidationResult.invalid("registration open cannot be the same as registration close");
+            return ValidationResult.invalid(getString(R.string.error_open_date_equals_close_date));
         } else if (registrationClose.isBefore(registrationOpen)) {
-            return ValidationResult.invalid("registration cannot close before it opens");
+            return ValidationResult.invalid(getString(R.string.error_close_date_before_open_date));
         } else if (registrationOpen.isBefore(ZonedDateTime.now())) {
-            return ValidationResult.invalid("registration period must take place after the current time");
+            return ValidationResult.invalid(getString(R.string.error_registration_period));
         }
 
         // Waiting List Capacity Check
