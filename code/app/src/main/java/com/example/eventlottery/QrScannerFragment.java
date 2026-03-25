@@ -6,7 +6,9 @@
  *
  *<p>
  *     TODO: cite these:
- *     https://reintech.io/blog/implementing-android-app-qr-code-scanner
+ *          https://reintech.io/blog/implementing-android-app-qr-code-scanner
+ *     TODO: test this fragment
+ *          see https://calvin.my/posts/how-to-test-qr-code-scanning-with-android-emulator-camera
  *</p>
  *
  * @author Grace MacKenzie
@@ -15,20 +17,18 @@
 package com.example.eventlottery;
 
 import android.Manifest;
-import android.content.pm.PackageManager;
 import android.os.Bundle;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.core.app.ActivityCompat;
-import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
 import android.widget.Toast;
 
 import com.google.firebase.firestore.FirebaseFirestore;
@@ -67,8 +67,7 @@ public class QrScannerFragment extends Fragment {
     }
 
     @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container,
-                             Bundle savedInstanceState) {
+    public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         // Inflate the layout for this fragment
         return inflater.inflate(R.layout.fragment_qr_scanner, container, false);
     }
@@ -76,13 +75,21 @@ public class QrScannerFragment extends Fragment {
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-
-        // DECLARE VARS
         barcodeView = view.findViewById(R.id.barcode_scanner);
+
+        // BIND BACK BUTTON
+        Button cancelButton = view.findViewById(R.id.cancel_button);
+        cancelButton.setOnClickListener( v -> {
+            // navigate back to home page
+            HomePageFragment fragment = new HomePageFragment();
+            requireActivity().getSupportFragmentManager()
+                    .beginTransaction()
+                    .replace(R.id.fragment_container, fragment)
+                    .commit();
+        });
 
         // START SCANNING
         requestCameraPermission.launch(Manifest.permission.CAMERA);
-
     }
 
     @Override
@@ -100,17 +107,11 @@ public class QrScannerFragment extends Fragment {
     // METHODS
 
     /**
-     * Use this factory method to create a new instance of
-     * this fragment using the provided parameters.
-     * @return A new instance of fragment BlankFragment.
+     * A factory method to create a new QrScannerFragment.
+     * @return A new instance of the QrScannerFragment.
      */
-    // TODO: Rename and change types and number of parameters
     public static QrScannerFragment newInstance() {
-        QrScannerFragment fragment = new QrScannerFragment();
-        Bundle args = new Bundle();
-        args.putString("arg1", "test");
-        fragment.setArguments(args);
-        return fragment;
+        return new QrScannerFragment();
     }
 
     // HELPER METHODS
@@ -134,10 +135,6 @@ public class QrScannerFragment extends Fragment {
                 handleFirebaseId(qrText);
             }
         });
-    }
-
-    private void handleScanResult(String qrText) {
-        // handle result
     }
 
     /**
