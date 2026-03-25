@@ -1,6 +1,5 @@
 <resources>
     <string name="app_name">Event Lottery</string>
-    <!-- TODO: Remove or change this placeholder text -->
     <string name="hello_blank_fragment">Hello blank fragment</string>
 
     <!-- Waiting List Dialog -->
@@ -29,8 +28,29 @@
     <string name="waitlist_management_title">Waiting List</string>
     <string name="run_lottery_btn">Run Lottery</string>
     <string name="close_btn_desc">Close Dialog</string>
+    <string name="back_btn_desc">Back</string>
     <string name="draw_lottery_prompt">How many entrants would you like to randomly invite from the waiting list?</string>
     <string name="draw_btn">Draw</string>
     <string name="success_draw_toast">Drew %1$d entrants successfully!</string>
     <string name="fail_draw_toast">Failed to run lottery</string>
+
+    <string name="btn_join_leave_waitlist">Join / Leave Waitlist</string>
+    <string name="btn_manage_waitlist">Manage Waitlist</string>
+
+    <!-- Error Messages -->
+    <string name="error_empty_title">Event title cannot be blank</string>
+    <string name="error_empty_description">Event description cannot be blank</string>
+    <string name="error_invalid_date_format">Please enter a date with the form YYYY-MM-DD</string>
+    <string name="error_impossible_date">Please enter a valid date</string>
+    <string name="error_open_date_equals_close_date">registration open cannot be the same as registration close</string>
+    <string name="error_close_date_before_open_date">registration cannot close before it opens</string>
+    <string name="error_registration_period">registration period must take place after the current time</string>
+    <string name="error_invalid_capacity">Waiting List Capacity must be an integer above 0</string>
+    <string name="error_no_event_id">Error: No Event ID provided</string>
+    <string name="error_load_event_failed">Failed to load event data</string>
+    <string name="join_success">Joined waitlist successfully!</string>
+    <string name="leave_success">Left waitlist successfully!</string>
+    <string name="action_failed">Operation failed</string>
+    <string name="failed_to_load_events">Failed to load events</string>
+    <string name="error_must_be_signed_in">You must be signed in to perform this action.</string>
 </resources>
