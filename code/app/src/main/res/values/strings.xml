@@ -13,9 +13,12 @@
     <string name="cancel">Cancel</string>
     <string name="confirm">Confirm</string>
     <string name="delete">Delete Event</string>
+    <string name="back">Back</string>
+    <string name="save">Save</string>
 
     <string name="prompt_image_edit">Tap to edit image</string>
     <string name="poster_image_content_description">Event poster image</string>
+    <string name="qr_code_content_description">Event QR code</string>
     <string name="event_title">Event Title</string>
     <string name="event_description">Event Description</string>
 

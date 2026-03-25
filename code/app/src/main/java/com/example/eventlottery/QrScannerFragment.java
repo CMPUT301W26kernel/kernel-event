@@ -25,6 +25,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -120,6 +121,7 @@ public class QrScannerFragment extends Fragment {
         barcodeView.decodeContinuous(result -> {
             // result is the decoded string from the QR code
             String qrText = result.getText();
+            // Log.d("QR_DEBUG", "Raw QR text: [" + qrText + "]");
 
             if (qrText != null) {
                 // Stop scanning so it doesn't fire repeatedly
@@ -129,10 +131,9 @@ public class QrScannerFragment extends Fragment {
                 if (!isFirebaseId(qrText)) {
                     Toast.makeText(requireContext(), R.string.error_invalid_qr_code, Toast.LENGTH_SHORT).show();
                     barcodeView.resume();
-                    return;
+                } else {
+                    handleFirebaseId(qrText);
                 }
-
-                handleFirebaseId(qrText);
             }
         });
     }
