@@ -176,6 +176,15 @@
                     app:cornerRadius="14dp"
                     app:backgroundTint="@color/primary_dark" />
 
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/button_toggle_auth_mode"
+                    style="@style/Widget.Material3.Button.TextButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center_horizontal"
+                    android:layout_marginTop="4dp"
+                    android:text="Already have an account? Sign in" />
+
                 <ProgressBar
                     android:id="@+id/setup_progress"
                     style="?android:attr/progressBarStyle"

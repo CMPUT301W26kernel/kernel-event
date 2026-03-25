@@ -17,21 +17,38 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.CheckBox;
 import android.widget.ListView;
 import android.widget.Toast;
 
+import com.google.android.material.textfield.TextInputEditText;
+import com.google.android.material.textfield.TextInputLayout;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 
+import java.time.LocalDate;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
+import java.util.Locale;
 
 /**
  * Home page fragment that displays a list of events fetched from Firestore.
  */
 public class HomePageFragment extends Fragment {
+    private final ArrayList<Event> allEvents = new ArrayList<>();
+    private final ArrayList<Event> filteredEvents = new ArrayList<>();
+    private EventAdapter adapter;
+
+    private TextInputLayout keywordLayout;
+    private TextInputLayout availableDateLayout;
+    private TextInputLayout minCapacityLayout;
+
+    private TextInputEditText keywordInput;
+    private TextInputEditText availableDateInput;
+    private TextInputEditText minCapacityInput;
+    private CheckBox openNowOnlyCheckbox;
 
     public HomePageFragment() {
         // Required empty public constructor
@@ -48,15 +65,35 @@ public class HomePageFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
 
         ListView listView = view.findViewById(R.id.list_view);
-        ArrayList<Event> eventList = new ArrayList<>();
-        EventAdapter adapter = new EventAdapter(requireContext(), eventList);
+        keywordLayout = view.findViewById(R.id.input_search_keyword_layout);
+        availableDateLayout = view.findViewById(R.id.input_available_date_layout);
+        minCapacityLayout = view.findViewById(R.id.input_min_capacity_layout);
+        keywordInput = view.findViewById(R.id.input_search_keyword);
+        availableDateInput = view.findViewById(R.id.input_available_date);
+        minCapacityInput = view.findViewById(R.id.input_min_capacity);
+        openNowOnlyCheckbox = view.findViewById(R.id.checkbox_open_now_only);
+
+        View applyFiltersButton = view.findViewById(R.id.button_apply_filters);
+        View clearFiltersButton = view.findViewById(R.id.button_clear_filters);
+
+        adapter = new EventAdapter(requireContext(), filteredEvents);
         listView.setAdapter(adapter);
+
+        applyFiltersButton.setOnClickListener(v -> applyFilters());
+        clearFiltersButton.setOnClickListener(v -> {
+            if (keywordInput != null) keywordInput.setText("");
+            if (availableDateInput != null) availableDateInput.setText("");
+            if (minCapacityInput != null) minCapacityInput.setText("");
+            if (openNowOnlyCheckbox != null) openNowOnlyCheckbox.setChecked(false);
+            clearFilterErrors();
+            applyFilters();
+        });
 
         // Fetch all events from Firestore
         FirebaseFirestore.getInstance().collection("events")
             .get()
             .addOnSuccessListener(queryDocumentSnapshots -> {
-                eventList.clear();
+                allEvents.clear();
                 for (QueryDocumentSnapshot document : queryDocumentSnapshots) {
                     try {
                         // Since Event.java uses ZonedDateTime and lacks an empty constructor, 
@@ -107,13 +144,13 @@ public class HomePageFragment extends Fragment {
                         );
                         
                         event.setEventId(document.getId());
-                        eventList.add(event);
+                        allEvents.add(event);
                         
                     } catch (Exception e) {
                         Log.e("HomePageFragment", "Error parsing event document: " + document.getId(), e);
                     }
                 }
-                adapter.notifyDataSetChanged();
+                applyFilters();
             })
             .addOnFailureListener(e -> {
                 if (getContext() != null) {
@@ -123,7 +160,7 @@ public class HomePageFragment extends Fragment {
 
         // Navigation to EventOverviewFragment
         listView.setOnItemClickListener((parent, view1, position, id) -> {
-            Event selectedEvent = eventList.get(position);
+            Event selectedEvent = filteredEvents.get(position);
             
             // Navigate to EventOverviewFragment
             EventOverviewFragment fragment = new EventOverviewFragment();
@@ -137,5 +174,91 @@ public class HomePageFragment extends Fragment {
                     .addToBackStack(null)
                     .commit();
         });
+    }
+
+    private void clearFilterErrors() {
+        keywordLayout.setError(null);
+        availableDateLayout.setError(null);
+        minCapacityLayout.setError(null);
+    }
+
+    private void applyFilters() {
+        clearFilterErrors();
+
+        String keyword = valueOf(keywordInput).toLowerCase(Locale.US).trim();
+        String availableDateRaw = valueOf(availableDateInput).trim();
+        String minCapacityRaw = valueOf(minCapacityInput).trim();
+        boolean openNowOnly = openNowOnlyCheckbox != null && openNowOnlyCheckbox.isChecked();
+
+        LocalDate availableDate = null;
+        if (!availableDateRaw.isEmpty()) {
+            try {
+                availableDate = LocalDate.parse(availableDateRaw);
+            } catch (Exception e) {
+                availableDateLayout.setError("Date must be YYYY-MM-DD");
+                return;
+            }
+        }
+
+        Integer minCapacity = null;
+        if (!minCapacityRaw.isEmpty()) {
+            try {
+                minCapacity = Integer.parseInt(minCapacityRaw);
+                if (minCapacity < 1) {
+                    minCapacityLayout.setError("Capacity must be at least 1");
+                    return;
+                }
+            } catch (NumberFormatException e) {
+                minCapacityLayout.setError("Capacity must be a number");
+                return;
+            }
+        }
+
+        ZonedDateTime now = ZonedDateTime.now();
+        filteredEvents.clear();
+        for (Event event : allEvents) {
+            if (!matchesKeyword(event, keyword)) continue;
+            if (!matchesAvailability(event, availableDate, openNowOnly, now)) continue;
+            if (!matchesCapacity(event, minCapacity)) continue;
+            filteredEvents.add(event);
+        }
+        adapter.notifyDataSetChanged();
+    }
+
+    private boolean matchesKeyword(Event event, String keyword) {
+        if (keyword.isEmpty()) return true;
+        String title = event.getTitle() == null ? "" : event.getTitle().toLowerCase(Locale.US);
+        String description = event.getDescription() == null ? "" : event.getDescription().toLowerCase(Locale.US);
+        return title.contains(keyword) || description.contains(keyword);
+    }
+
+    private boolean matchesAvailability(Event event, LocalDate availableDate, boolean openNowOnly, ZonedDateTime now) {
+        ZonedDateTime open = event.getRegistrationOpen();
+        ZonedDateTime close = event.getRegistrationClose();
+
+        if (openNowOnly && (now.isBefore(open) || now.isAfter(close))) {
+            return false;
+        }
+
+        if (availableDate != null) {
+            LocalDate openDate = open.toLocalDate();
+            LocalDate closeDate = close.toLocalDate();
+            if (availableDate.isBefore(openDate) || availableDate.isAfter(closeDate)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private boolean matchesCapacity(Event event, Integer minCapacity) {
+        if (minCapacity == null) return true;
+        Integer capacity = event.getWaitingListCapacity();
+        return capacity != null && capacity >= minCapacity;
+    }
+
+    private String valueOf(TextInputEditText editText) {
+        if (editText == null || editText.getText() == null) return "";
+        return editText.getText().toString();
     }
 }
