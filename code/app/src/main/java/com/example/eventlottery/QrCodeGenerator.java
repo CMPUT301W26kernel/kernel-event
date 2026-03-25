@@ -1,12 +1,11 @@
 /**
  * QR Code Generator
  * A utility class containing a function to generate a QR code which encodes an eventId
- * Last Modified: 2026-03-22 by Grace MacKenzie
+ * Last Modified: 2026-03-25 by Grace MacKenzie
  *
  *<p>
  *     TODO: cite these:
  *     https://www.geeksforgeeks.org/android/how-to-generate-qr-code-in-android/
- *     https://reintech.io/blog/implementing-android-app-qr-code-scanner
  *</p>
  *
  * @author Grace MacKenzie

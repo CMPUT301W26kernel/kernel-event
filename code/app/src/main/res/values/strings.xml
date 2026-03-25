@@ -53,4 +53,7 @@
     <string name="action_failed">Operation failed</string>
     <string name="failed_to_load_events">Failed to load events</string>
     <string name="error_must_be_signed_in">You must be signed in to perform this action.</string>
+    <string name="error_camera_inaccessible">Camera access is required to scan QR codes</string>
+    <string name="error_camera_permission_denied">Camera permission denied. Cannot scan QR codes.</string>
+    <string name="error_invalid_qr_code">Invalid QR code</string>
 </resources>
