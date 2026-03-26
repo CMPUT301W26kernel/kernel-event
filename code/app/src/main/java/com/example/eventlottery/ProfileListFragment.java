@@ -65,10 +65,14 @@ public class ProfileListFragment extends Fragment {
         params.height = (int) (100 * getResources().getDisplayMetrics().density);
         bottomBar.setLayoutParams(params);
 
-        // Hide status bar which is for home page
+        // Hide status bar and filters which are only for home page
         View statusText = view.findViewById(R.id.logged_in_status);
         if (statusText != null) {
             statusText.setVisibility(View.GONE);
+        }
+        View filterContainer = view.findViewById(R.id.filter_container);
+        if (filterContainer != null) {
+            filterContainer.setVisibility(View.GONE);
         }
 
         adapter = new ProfileAdapter(requireContext(), userList);

@@ -73,10 +73,14 @@ public class EventHistoryFragment extends Fragment {
         listView = view.findViewById(R.id.list_view);
         FrameLayout bottomBar = view.findViewById(R.id.bottom_bar);
 
-        // Hide the status bar which is only for home page
+        // Hide the status bar and filters which are only for home page
         View statusText = view.findViewById(R.id.logged_in_status);
         if (statusText != null) {
             statusText.setVisibility(View.GONE);
+        }
+        View filterContainer = view.findViewById(R.id.filter_container);
+        if (filterContainer != null) {
+            filterContainer.setVisibility(View.GONE);
         }
 
         // Adjust bottom bar height for this fragment
