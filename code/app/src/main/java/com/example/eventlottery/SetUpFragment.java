@@ -34,6 +34,8 @@ import com.google.firebase.firestore.FirebaseFirestore;
 import android.text.TextUtils;
 import android.util.Patterns;
 
+import java.util.regex.Pattern;
+
 /**
  * A simple {@link Fragment} subclass for user setup.
  */
@@ -50,15 +52,23 @@ public class SetUpFragment extends Fragment {
 
     // Role selection UI (must choose exactly one of Entrant / Organizer / Admin).
     private RadioGroup roleGroup;
+    private View roleLabel;
     private TextView errorText;
     private ProgressBar progressBar;
     private Button createAccountButton;
+    private Button toggleAuthModeButton;
 
     // Firebase services used by this feature:
     // - FirebaseAuth: create/sign-in users
     // - Firestore: store the User profile document including role
     private FirebaseAuth auth;
     private FirebaseFirestore firestore;
+    private boolean signInMode = false;
+
+    // Name: letters, spaces, apostrophes, and hyphens only (2 to 50 chars).
+    private static final Pattern NAME_PATTERN = Pattern.compile("^[A-Za-z][A-Za-z\\s'\\-]{1,49}$");
+    // Phone: optional leading +, 10-15 digits, spaces/dashes/parentheses allowed.
+    private static final Pattern PHONE_PATTERN = Pattern.compile("^\\+?[0-9\\-()\\s]{10,20}$");
 
     public SetUpFragment() {
         // Required empty public constructor
@@ -91,12 +101,26 @@ public class SetUpFragment extends Fragment {
         passwordInput = view.findViewById(R.id.input_password);
 
         roleGroup = view.findViewById(R.id.role_group);
+        roleLabel = view.findViewById(R.id.role_label);
         errorText = view.findViewById(R.id.setup_error);
         progressBar = view.findViewById(R.id.setup_progress);
         createAccountButton = view.findViewById(R.id.button_create_account);
+        toggleAuthModeButton = view.findViewById(R.id.button_toggle_auth_mode);
 
         // Primary action: validates input, creates Firebase account, writes profile to Firestore, then route to home.
-        createAccountButton.setOnClickListener(v -> attemptCreateAccount());
+        createAccountButton.setOnClickListener(v -> {
+            if (signInMode) {
+                attemptSignIn();
+            } else {
+                attemptCreateAccount();
+            }
+        });
+        toggleAuthModeButton.setOnClickListener(v -> {
+            signInMode = !signInMode;
+            updateAuthModeUi();
+        });
+
+        updateAuthModeUi();
     }
 
     private void attemptCreateAccount() {
@@ -114,7 +138,10 @@ public class SetUpFragment extends Fragment {
         boolean valid = true;
 
         if (TextUtils.isEmpty(username)) {
-            usernameLayout.setError("Username is required");
+            usernameLayout.setError("Name is required");
+            valid = false;
+        } else if (!NAME_PATTERN.matcher(username).matches()) {
+            usernameLayout.setError("Use 2-50 letters, spaces, apostrophes, or hyphens");
             valid = false;
         }
 
@@ -128,6 +155,9 @@ public class SetUpFragment extends Fragment {
 
         if (TextUtils.isEmpty(phone)) {
             phoneLayout.setError("Phone number is required");
+            valid = false;
+        } else if (!PHONE_PATTERN.matcher(phone).matches()) {
+            phoneLayout.setError("Enter a valid phone number");
             valid = false;
         }
 
@@ -192,6 +222,43 @@ public class SetUpFragment extends Fragment {
                 });
     }
 
+    private void attemptSignIn() {
+        clearErrors();
+
+        String email = getText(emailInput);
+        String password = getText(passwordInput);
+        boolean valid = true;
+
+        if (TextUtils.isEmpty(email)) {
+            emailLayout.setError("Email is required");
+            valid = false;
+        } else if (!Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
+            emailLayout.setError("Enter a valid email");
+            valid = false;
+        }
+
+        if (TextUtils.isEmpty(password) || password.length() < 6) {
+            passwordLayout.setError("Password must be at least 6 characters");
+            valid = false;
+        }
+
+        if (!valid) {
+            return;
+        }
+
+        setLoading(true);
+        auth.signInWithEmailAndPassword(email, password)
+                .addOnSuccessListener(authResult -> {
+                    setLoading(false);
+                    Toast.makeText(requireContext(), "Signed in", Toast.LENGTH_SHORT).show();
+                    navigateToHome();
+                })
+                .addOnFailureListener(e -> {
+                    setLoading(false);
+                    showError("Sign in failed: " + e.getMessage());
+                });
+    }
+
     private void navigateToHome() {
         // Fix: Added check for isAdded() and getActivity() to prevent crashes if fragment is detached.
         if (isAdded() && getActivity() != null) {
@@ -234,6 +301,7 @@ public class SetUpFragment extends Fragment {
         // Toggle loading UI while network calls are in progress.
         progressBar.setVisibility(loading ? View.VISIBLE : View.GONE);
         createAccountButton.setEnabled(!loading);
+        toggleAuthModeButton.setEnabled(!loading);
     }
 
     private String getText(TextInputEditText editText) {
@@ -242,5 +310,34 @@ public class SetUpFragment extends Fragment {
             return "";
         }
         return editText.getText().toString().trim();
+    }
+
+    private void updateAuthModeUi() {
+        TextView title = requireView().findViewById(R.id.setup_title);
+        TextView subtitle = requireView().findViewById(R.id.setup_subtitle);
+
+        if (signInMode) {
+            title.setText("Welcome back");
+            subtitle.setText("Sign in with your existing account.");
+            createAccountButton.setText("Sign in");
+            toggleAuthModeButton.setText("Need an account? Sign up");
+
+            usernameLayout.setVisibility(View.GONE);
+            phoneLayout.setVisibility(View.GONE);
+            if (roleLabel != null) roleLabel.setVisibility(View.GONE);
+            roleGroup.setVisibility(View.GONE);
+        } else {
+            title.setText("Let’s get you set up.");
+            subtitle.setText("Create an account and pick a role to continue.");
+            createAccountButton.setText("Create account");
+            toggleAuthModeButton.setText("Already have an account? Sign in");
+
+            usernameLayout.setVisibility(View.VISIBLE);
+            phoneLayout.setVisibility(View.VISIBLE);
+            if (roleLabel != null) roleLabel.setVisibility(View.VISIBLE);
+            roleGroup.setVisibility(View.VISIBLE);
+        }
+
+        clearErrors();
     }
 }
