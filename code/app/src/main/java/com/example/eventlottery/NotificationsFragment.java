@@ -1,19 +1,12 @@
-/**
- * Notifications Fragment
- * Displays a list of notifications for the current user
- * Last Modified: 2026-03-12 by Radwa Sheikhdon
- * Handles real-time updates and links to NotificationRepository for accept/decline actions.
- * @author Radwa Sheikhdon
- * @version 1.0
- * @since 2023-03-02
- */
-
 package com.example.eventlottery;
 
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Toast;
+
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
@@ -21,8 +14,10 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.ListenerRegistration;
 import com.google.firebase.firestore.Query;
 
 import java.util.ArrayList;
@@ -31,32 +26,23 @@ import java.util.List;
 /**
  * Notifications Fragment
  * Displays a list of notifications for the current user
- * Last Modified: 2026-03-12 by Radwa Sheikhdon
+ * Last Modified: 2026-03-26 by Radwa Sheikhdon
  * Handles real-time updates and links to NotificationRepository for accept/decline actions.
  * @author Radwa Sheikhdon
- * @version 1.0
+ * @version 1.3
  * @since 2023-03-02
  */
 public class NotificationsFragment extends Fragment {
+
+    private static final String TAG = "NotificationsFragment";
 
     private RecyclerView recyclerView;
     private NotificationsAdapter adapter;
     private final FirebaseFirestore db = FirebaseFirestore.getInstance();
     private final NotificationRepository repository = new NotificationRepository();
     private String currentUserId;
+    private ListenerRegistration notificationsListener;
 
-
-    /**
-     * Called to have the fragment instantiate its user interface view.
-     * @param inflater The LayoutInflater object that can be used to inflate
-     * any views in the fragment,
-     * @param container If non-null, this is the parent view that the fragment's
-     * UI should be attached to.  The fragment should not add the view itself,
-     * but this can be used to generate the LayoutParams of the view.
-     * @param savedInstanceState If non-null, this fragment is being re-constructed
-     * from a previous saved state as given here.
-     * @return
-     */
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
@@ -64,16 +50,6 @@ public class NotificationsFragment extends Fragment {
         return inflater.inflate(R.layout.fragment_notifications, container, false);
     }
 
-
-    /**
-     * Called immediately after {@link #onCreateView(LayoutInflater, ViewGroup, Bundle)}
-     * has returned, but before any saved state has been restored in to the view.
-     * This gives subclasses a chance to initialize themselves once
-     * they know their view hierarchy has been completely created.
-     * @param view The View returned by {@link #onCreateView(LayoutInflater, ViewGroup, Bundle)}.
-     * @param savedInstanceState If non-null, this fragment is being re-constructed
-     * from a previous saved state as given here.
-     */
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
@@ -84,25 +60,48 @@ public class NotificationsFragment extends Fragment {
         adapter = new NotificationsAdapter(new ArrayList<>(), repository);
         recyclerView.setAdapter(adapter);
 
-        // Get current user ID safely
-        var user = FirebaseAuth.getInstance().getCurrentUser();
-        currentUserId = (user != null) ? user.getUid() : "anonymous";
+        FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
+        if (currentUser == null) {
+            Toast.makeText(getContext(), "No signed-in user", Toast.LENGTH_SHORT).show();
+            Log.e(TAG, "No signed-in user");
+            return;
+        }
+
+        currentUserId = currentUser.getUid();
+        Log.d(TAG, "Current user UID: " + currentUserId);
+        Toast.makeText(getContext(), "UID: " + currentUserId, Toast.LENGTH_LONG).show();
 
         loadNotifications();
     }
 
-    /**
-     * Loads notifications for the current user from Firestore.
-     * Updates the adapter in real-time when data changes.
-     * @return
-     * @throws Exception
-     */
     private void loadNotifications() {
-        db.collection("notifications")
+        if (currentUserId == null) {
+            Log.e(TAG, "loadNotifications called with null currentUserId");
+            return;
+        }
+
+        if (notificationsListener != null) {
+            notificationsListener.remove();
+            notificationsListener = null;
+        }
+
+        notificationsListener = db.collection("notifications")
                 .whereEqualTo("userId", currentUserId)
                 .orderBy("timestamp", Query.Direction.DESCENDING)
                 .addSnapshotListener((value, error) -> {
-                    if (error != null || !isAdded()) return;
+                    if (!isAdded()) {
+                        return;
+                    }
+
+                    if (error != null) {
+                        Log.e(TAG, "Failed to load notifications", error);
+                        Toast.makeText(
+                                getContext(),
+                                "Failed to load notifications: " + error.getMessage(),
+                                Toast.LENGTH_LONG
+                        ).show();
+                        return;
+                    }
 
                     List<Notification> list = new ArrayList<>();
                     if (value != null) {
@@ -115,9 +114,22 @@ public class NotificationsFragment extends Fragment {
                         }
                     }
 
-                    if (adapter != null) {
-                        adapter.updateList(list);
-                    }
+                    Log.d(TAG, "Loaded notifications count: " + list.size());
+                    Toast.makeText(getContext(), "Loaded " + list.size() + " notifications", Toast.LENGTH_SHORT).show();
+
+                    adapter.updateList(list);
                 });
+    }
+
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+
+        if (notificationsListener != null) {
+            notificationsListener.remove();
+            notificationsListener = null;
+        }
+
+        recyclerView = null;
     }
 }
