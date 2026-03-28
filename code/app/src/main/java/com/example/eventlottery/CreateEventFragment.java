@@ -25,7 +25,6 @@
  */
 package com.example.eventlottery;
 
-import android.graphics.Bitmap;
 import android.os.Bundle;
 
 import androidx.annotation.NonNull;
@@ -161,7 +160,7 @@ public class CreateEventFragment extends Fragment {
                         }
 
                         // Change negative button appearance
-                        negativeButton.setText(R.string.delete);
+                        negativeButton.setText(R.string.delete_event);
                         negativeButton.setTextColor(ContextCompat.getColor(requireContext(), R.color.secondary_light));
                         negativeButton.setBackgroundColor(ContextCompat.getColor(requireContext(), R.color.secondary_dark));
                     });

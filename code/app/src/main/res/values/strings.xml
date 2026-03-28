@@ -10,10 +10,13 @@
     <string name="waiting_list_dialog_action_join">Join</string>
     <string name="waiting_list_dialog_action_leave">Leave</string>
 
+    <!-- Generic dialogue-->
     <string name="cancel">Cancel</string>
     <string name="confirm">Confirm</string>
-    <string name="delete">Delete Event</string>
+    <string name="save">Save</string>
+    <string name="back">Back</string>
 
+    <!-- Event Creation/Editing Dialogue -->
     <string name="prompt_image_edit">Tap to edit image</string>
     <string name="poster_image_content_description">Event poster image</string>
     <string name="qr_code_content_description">Event QR code</string>
@@ -23,9 +26,10 @@
     <string name="event_registration_window_format">Registration: %1$s - %2$s</string>
     <string name="event_waitlist_count_format">Waitlist entrants: %1$d</string>
     <string name="event_unknown_organizer">Unknown organizer</string>
+    <string name="delete_event">Delete Event</string>
 
     <string name="default_event_title">My Event</string>
-    <string name="default_event_description">Describe your event here(…, &#8230;)</string>
+    <string name="default_event_description">Describe your event here&#8230;</string>
     <string name="waiting_list_capacity">Waiting List Capacity (Optional)</string>
     <string name="registration_open">Registration Open\n(YYYY/MM/DD)</string>
     <string name="registration_close">Registration Close\n(YYYY/MM/DD)</string>
@@ -73,4 +77,8 @@
     <string name="action_failed">Operation failed</string>
     <string name="failed_to_load_events">Failed to load events</string>
     <string name="error_must_be_signed_in">You must be signed in to perform this action.</string>
+    <string name="error_load_comments_failed">Failed to load comments</string>
+    <string name="error_post_comment_failed">Failed to post comment</string>
+    <string name="error_generic">Sorry something went wrong&#8230;</string>
+    <string name="error_invalid_qr_code">Not an eventId</string>
 </resources>
