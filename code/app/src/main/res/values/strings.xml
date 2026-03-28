@@ -59,4 +59,5 @@
     <string name="error_camera_inaccessible">Camera access is required to scan QR codes</string>
     <string name="error_camera_permission_denied">Camera permission denied. Cannot scan QR codes.</string>
     <string name="error_invalid_qr_code">Invalid QR code</string>
+    <string name="error_generic">Sorry something went wrong...</string>
 </resources>

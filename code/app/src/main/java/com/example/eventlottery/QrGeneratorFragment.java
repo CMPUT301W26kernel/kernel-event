@@ -4,10 +4,10 @@
  * Last Modified: 2026-03-25 by Grace MacKenzie
  *
  *<p>
+ *     TODO: cite this: https://www.geeksforgeeks.org/android/how-to-generate-qr-code-in-android/
  *     TODO: navigation
- *     TODO: handle null qrCode
- *     TODO: display generated qrCode
  *     TODO: implement download/save for QR Code
+ *           try this: https://www.javathinking.com/blog/android-save-image-into-gallery/
  *     TODO: implement back button
  *</p>
  *
@@ -24,10 +24,13 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.ImageView;
+import android.widget.Toast;
 
 import com.google.zxing.BarcodeFormat;
 import com.google.zxing.WriterException;
@@ -62,21 +65,23 @@ public class QrGeneratorFragment extends Fragment {
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
+        ImageView qrCodeView = view.findViewById(R.id.qr_code);
         Bitmap qrCode = null;
 
+        // Generate QR code from eventId
         if (eventId != null) {
             qrCode = generateQrCode(eventId);
         } else {
-            // TODO: handle this
+            Toast.makeText(requireContext(), R.string.error_generic, Toast.LENGTH_LONG).show();
+            Log.w("QRGenerator", "Missing eventId");
         }
 
-        if (qrCode == null) {
-            // TODO: handle null qrCode (something went wrong during QR code creation
+        // Display QR code
+        if (qrCode != null) {
+            qrCodeView.setImageBitmap(qrCode);
         } else {
-            // TODO: display generated qrCode
+            Toast.makeText(requireContext(), R.string.error_generic, Toast.LENGTH_LONG).show();
         }
-
-
 
         Button backButton = view.findViewById(R.id.back_button);
         backButton.setOnClickListener( v -> {
@@ -119,6 +124,7 @@ public class QrGeneratorFragment extends Fragment {
         try{
             bitmap = barcodeEncoder.encodeBitmap(eventId, BarcodeFormat.QR_CODE, 400, 400);
         } catch (WriterException e) {
+            Log.w("QRGenerator", "Failed to encode QR: " + e.getMessage());
             return null;
         }
         return bitmap;

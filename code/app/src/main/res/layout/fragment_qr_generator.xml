@@ -14,7 +14,7 @@
         android:id="@+id/qr_code"
         android:layout_width="300dp"
         android:layout_height="300dp"
-        android:background="@drawable/default_image"
+        android:src="@drawable/default_image"
         android:contentDescription="@string/qr_code_content_description"
 
         app:layout_constraintTop_toTopOf="parent"
