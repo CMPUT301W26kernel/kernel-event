@@ -34,7 +34,6 @@ import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 
 import java.time.LocalDate;
-import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
@@ -139,32 +138,7 @@ public class HomePageFragment extends Fragment {
                 allEvents.clear();
                 for (QueryDocumentSnapshot document : queryDocumentSnapshots) {
                     try {
-                        String title = document.getString("title");
-                        String description = document.getString("description");
-                        String organizerId = document.getString("organizerId");
-                        Long capacityLong = document.getLong("waitingListCapacity");
-                        Integer capacity = (capacityLong != null) ? capacityLong.intValue() : null;
-
-                        ZonedDateTime openDate = ZonedDateTime.now();
-                        ZonedDateTime closeDate = ZonedDateTime.now().plusDays(1);
-                        
-                        Object openObj = document.get("registrationOpen");
-                        if (openObj instanceof com.google.firebase.Timestamp) {
-                            com.google.firebase.Timestamp ts = (com.google.firebase.Timestamp) openObj;
-                            openDate = ZonedDateTime.ofInstant(Instant.ofEpochSecond(ts.getSeconds(), ts.getNanoseconds()), ZoneId.systemDefault());
-                        }
-                        
-                        Object closeObj = document.get("registrationClose");
-                        if (closeObj instanceof com.google.firebase.Timestamp) {
-                            com.google.firebase.Timestamp ts = (com.google.firebase.Timestamp) closeObj;
-                            closeDate = ZonedDateTime.ofInstant(Instant.ofEpochSecond(ts.getSeconds(), ts.getNanoseconds()), ZoneId.systemDefault());
-                        }
-
-                        Event event = new Event(
-                            title != null ? title : "Untitled Event",
-                            description != null ? description : "No description",
-                            organizerId, openDate, closeDate, capacity
-                        );
+                        Event event = document.toObject(Event.class);
                         event.setEventId(document.getId());
                         allEvents.add(event);
                     } catch (Exception e) {
