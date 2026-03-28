@@ -58,7 +58,7 @@ public class UserProfileFragment extends Fragment {
     private TextView roleView;
 
     //New variables for buttons and Device ID text.
-    private Button deleteButton, historyButton, doneButton, notificationLogsButton;
+    private Button deleteButton, historyButton, doneButton, notificationLogsButton, signOutButton;
     private TextView deviceIdText, profileTitle;
 
     // Mode flags
@@ -133,6 +133,7 @@ public class UserProfileFragment extends Fragment {
 
         //Bindings for new UI elements.
         deleteButton = view.findViewById(R.id.delete_button);
+        signOutButton = view.findViewById(R.id.sign_out_button);
         historyButton = view.findViewById(R.id.history_button);
         notificationLogsButton = view.findViewById(R.id.notification_logs_button);
         doneButton = view.findViewById(R.id.done_button);
@@ -153,16 +154,19 @@ public class UserProfileFragment extends Fragment {
         if (isAdminMode) {
             profileTitle.setText("Review Profile"); // Will be updated to username once loaded
             historyButton.setVisibility(View.GONE);
+            signOutButton.setVisibility(View.GONE);
             // Notification logs button visibility will be set in bindProfile based on role
         } else {
             profileTitle.setText("Your Profile");
             historyButton.setVisibility(View.VISIBLE);
+            signOutButton.setVisibility(View.VISIBLE);
             notificationLogsButton.setVisibility(View.GONE);
         }
 
         //Listeners for button clicks.
         doneButton.setOnClickListener(v -> validateAndSave());
         deleteButton.setOnClickListener(v -> showDeleteConfirmation());
+        signOutButton.setOnClickListener(v -> signOut());
         historyButton.setOnClickListener(v -> {
             // Navigate to EventHistoryFragment
             if (getActivity() != null) {
@@ -374,24 +378,37 @@ public class UserProfileFragment extends Fragment {
     }
 
     /**
-     * Removes the user from all events they are registered for (waiting list).
+     * Removes the user from all events they are registered for (all lottery lists).
      * @param userId The ID of the user to remove.
      */
     private void removeUserFromEvents(String userId) {
         FirebaseFirestore db = FirebaseFirestore.getInstance();
-        db.collection("events")
-                .whereArrayContains("waitingList", userId)
-                .get()
-                .addOnSuccessListener(queryDocumentSnapshots -> {
-                    for (DocumentSnapshot doc : queryDocumentSnapshots) {
-                        doc.getReference().update("waitingList", FieldValue.arrayRemove(userId));
-                    }
-                })
-                .addOnFailureListener(e -> Log.e("UserProfileFragment", "Error removing user from events", e));
+        String[] lists = {"waitingList", "invitedList", "acceptedList", "cancelledList"};
+
+        for (String listName : lists) {
+            db.collection("events")
+                    .whereArrayContains(listName, userId)
+                    .get()
+                    .addOnSuccessListener(queryDocumentSnapshots -> {
+                        for (DocumentSnapshot doc : queryDocumentSnapshots) {
+                            doc.getReference().update(listName, FieldValue.arrayRemove(userId));
+                        }
+                    })
+                    .addOnFailureListener(e -> Log.e("UserProfileFragment", "Error removing user from " + listName, e));
+        }
     }
 
     /**
-     * Navigates the user back to the SetUpFragment after profile deletion.
+     * Signs the user out of Firebase and navigates to the setup screen.
+     */
+    private void signOut() {
+        FirebaseAuth.getInstance().signOut();
+        Toast.makeText(getContext(), "Signed Out", Toast.LENGTH_SHORT).show();
+        navigateToSetUpFragment();
+    }
+
+    /**
+     * Navigates the user back to the SetUpFragment after profile deletion or sign out.
      */
     private void navigateToSetUpFragment() {
         if (getActivity() != null) {
