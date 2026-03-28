@@ -13,17 +13,19 @@
     <string name="cancel">Cancel</string>
     <string name="confirm">Confirm</string>
     <string name="delete">Delete Event</string>
-    <string name="back">Back</string>
-    <string name="save">Save</string>
 
     <string name="prompt_image_edit">Tap to edit image</string>
     <string name="poster_image_content_description">Event poster image</string>
     <string name="qr_code_content_description">Event QR code</string>
     <string name="event_title">Event Title</string>
     <string name="event_description">Event Description</string>
+    <string name="event_organizer_format">Organizer: %1$s</string>
+    <string name="event_registration_window_format">Registration: %1$s - %2$s</string>
+    <string name="event_waitlist_count_format">Waitlist entrants: %1$d</string>
+    <string name="event_unknown_organizer">Unknown organizer</string>
 
     <string name="default_event_title">My Event</string>
-    <string name="default_event_description">Describe your event here…</string>
+    <string name="default_event_description">Describe your event here(…, &#8230;)</string>
     <string name="waiting_list_capacity">Waiting List Capacity (Optional)</string>
     <string name="registration_open">Registration Open\n(YYYY/MM/DD)</string>
     <string name="registration_close">Registration Close\n(YYYY/MM/DD)</string>
@@ -39,10 +41,25 @@
 
     <string name="btn_join_leave_waitlist">Join / Leave Waitlist</string>
     <string name="btn_manage_waitlist">Manage Waitlist</string>
+    <string name="comments_header">Comments</string>
+    <string name="comments_empty">No comments yet. Start the conversation.</string>
+    <string name="comment_hint">Add a comment</string>
+    <string name="comment_post_action">Post</string>
+    <string name="comment_delete_action">Remove</string>
+    <string name="comment_pinned_badge">Organizer</string>
+    <string name="comment_removed_text">Comment removed</string>
+    <string name="comment_removed_reason_admin">Removed by admin for policy violation</string>
+    <string name="comment_removed_reason_organizer">Removed by organizer</string>
+    <string name="comment_sign_in_required">Sign in to post a comment.</string>
+    <string name="comment_admin_read_only">Admins can review and remove comments, but they cannot post them.</string>
+    <string name="comment_only_event_organizer">Only the organizer of this event can comment as an organizer.</string>
+    <string name="comment_post_unavailable">Comment posting is unavailable for this account.</string>
+    <string name="comment_default_author">User</string>
 
     <!-- Error Messages -->
     <string name="error_empty_title">Event title cannot be blank</string>
     <string name="error_empty_description">Event description cannot be blank</string>
+    <string name="error_empty_comment">Comment cannot be blank</string>
     <string name="error_invalid_date_format">Please enter a date with the form YYYY-MM-DD</string>
     <string name="error_impossible_date">Please enter a valid date</string>
     <string name="error_open_date_equals_close_date">registration open cannot be the same as registration close</string>
@@ -56,8 +73,4 @@
     <string name="action_failed">Operation failed</string>
     <string name="failed_to_load_events">Failed to load events</string>
     <string name="error_must_be_signed_in">You must be signed in to perform this action.</string>
-    <string name="error_camera_inaccessible">Camera access is required to scan QR codes</string>
-    <string name="error_camera_permission_denied">Camera permission denied. Cannot scan QR codes.</string>
-    <string name="error_invalid_qr_code">Invalid QR code</string>
-    <string name="error_generic">Sorry something went wrong...</string>
 </resources>
