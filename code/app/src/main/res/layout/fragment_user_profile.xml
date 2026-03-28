@@ -49,6 +49,19 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@id/profile_role" />
 
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/sign_out_button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Sign Out"
+            android:textAllCaps="false"
+            android:textSize="18sp"
+            app:backgroundTint="#3F7E8A"
+            app:cornerRadius="8dp"
+            app:layout_constraintBottom_toBottomOf="@id/delete_button"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="@id/delete_button" />
+
         <TextView
             android:id="@+id/username_label"
             android:layout_width="wrap_content"
