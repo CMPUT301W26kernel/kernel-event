@@ -5,8 +5,8 @@
  * Last Modified: 2026-03-25 by Grace MacKenzie
  *
  *<p>
- *     TODO: cite these:
- *          https://reintech.io/blog/implementing-android-app-qr-code-scanner
+ *     Based on tutorial: "Implementing an Android app with a QR code scanner" by Arthur C. Codex
+ *     from REINTECH Media at https://reintech.io/blog/implementing-android-app-qr-code-scanner
  *     TODO: test this fragment
  *          see https://calvin.my/posts/how-to-test-qr-code-scanning-with-android-emulator-camera
  *</p>

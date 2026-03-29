@@ -81,4 +81,5 @@
     <string name="error_post_comment_failed">Failed to post comment</string>
     <string name="error_generic">Sorry something went wrong&#8230;</string>
     <string name="error_invalid_qr_code">Not an eventId</string>
+    <string name="error_failed_to_save_image">Failed to save image</string>
 </resources>

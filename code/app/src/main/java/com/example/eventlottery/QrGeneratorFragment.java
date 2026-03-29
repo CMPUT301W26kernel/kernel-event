@@ -1,14 +1,11 @@
 /**
  * QR Generator Fragment
  * Displays a QR code for an event which admin/organizers can download to use as they please.
- * Last Modified: 2026-03-25 by Grace MacKenzie
+ * Last Modified: 2026-03-29 by Grace MacKenzie
  *
  *<p>
- *     TODO: cite this: https://www.geeksforgeeks.org/android/how-to-generate-qr-code-in-android/
- *     TODO: navigation
- *     TODO: implement download/save for QR Code
- *           try this: https://www.javathinking.com/blog/android-save-image-into-gallery/
- *     TODO: implement back button
+ *     Based on Tutorial "How to Generate QR Code in Android?" from Geeks For Geeks at
+ *     https://www.geeksforgeeks.org/android/how-to-generate-qr-code-in-android/
  *</p>
  *
  * @author Grace MacKenzie
@@ -16,14 +13,17 @@
  */
 package com.example.eventlottery;
 
-import android.Manifest;
+import android.content.ContentValues;
 import android.graphics.Bitmap;
+import android.net.Uri;
 import android.os.Bundle;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 
+import android.os.Environment;
+import android.provider.MediaStore;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -35,6 +35,9 @@ import android.widget.Toast;
 import com.google.zxing.BarcodeFormat;
 import com.google.zxing.WriterException;
 import com.journeyapps.barcodescanner.BarcodeEncoder;
+
+import java.io.IOException;
+import java.io.OutputStream;
 
 /**
  * A fragment to display a QR code for an event which admin/organizers can download
@@ -66,14 +69,14 @@ public class QrGeneratorFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
         ImageView qrCodeView = view.findViewById(R.id.qr_code);
-        Bitmap qrCode = null;
+        Bitmap qrCode;
 
         // Generate QR code from eventId
         if (eventId != null) {
             qrCode = generateQrCode(eventId);
         } else {
-            Toast.makeText(requireContext(), R.string.error_generic, Toast.LENGTH_LONG).show();
-            Log.w("QRGenerator", "Missing eventId");
+            qrCode = null;
+            view.findViewById(R.id.error_mssg).setVisibility(View.VISIBLE);
         }
 
         // Display QR code
@@ -83,15 +86,33 @@ public class QrGeneratorFragment extends Fragment {
             Toast.makeText(requireContext(), R.string.error_generic, Toast.LENGTH_LONG).show();
         }
 
+        // Set on click listeners
+
         Button backButton = view.findViewById(R.id.back_button);
         backButton.setOnClickListener( v -> {
-            // TODO: navigate back to event overview
+            // Navigate back to EventOverviewFragment
+            EventOverviewFragment fragment = new EventOverviewFragment();
+            Bundle bundle = new Bundle();
+            bundle.putString("eventId", eventId);
+            fragment.setArguments(bundle);
+            requireActivity().getSupportFragmentManager()
+                    .beginTransaction()
+                    .replace(R.id.fragment_container, fragment)
+                    .commit();
         });
 
-        Button saveButton = view.findViewById(R.id.save_button);
-        saveButton.setOnClickListener( v -> {
-            // TODO: save generated qrCode as JPEG or PNG or something to device
-        });
+        if (qrCode!= null) {
+            Button saveButton = view.findViewById(R.id.save_button);
+            saveButton.setVisibility(View.VISIBLE);
+            saveButton.setOnClickListener( v -> {
+                try {
+                    saveBitmapToGallery(qrCode);
+                } catch (IOException e) {
+                    Toast.makeText(getContext(), R.string.error_failed_to_save_image, Toast.LENGTH_SHORT).show();
+                    Log.e("SaveImage", "Failed to save image:" + e.getMessage());
+                }
+            });
+        }
     }
 
     // METHODS
@@ -115,6 +136,7 @@ public class QrGeneratorFragment extends Fragment {
 
     /**
      * Generates a QR code to encode an eventID
+     *
      * @param eventId The eventId of an event this QR code should reference
      * @return On success, returns a bitmap encoding the given eventId
      */
@@ -124,9 +146,39 @@ public class QrGeneratorFragment extends Fragment {
         try{
             bitmap = barcodeEncoder.encodeBitmap(eventId, BarcodeFormat.QR_CODE, 400, 400);
         } catch (WriterException e) {
-            Log.w("QRGenerator", "Failed to encode QR: " + e.getMessage());
+            Log.e("QRGenerator", "Failed to encode QR: " + e.getMessage());
             return null;
         }
         return bitmap;
+    }
+
+    /**
+     * Saves a QR code bitmap to the gallery as a png.
+     * This function was written with assistance from Microsoft, Copilot
+     *
+     * @param qrCode the QR code bitmap to save to the gallery.
+     * @throws IOException if the MediaStore entry cannot be created or the output stream cannot be opened
+     */
+    private void saveBitmapToGallery(Bitmap qrCode) throws IOException {
+        // Setup metadata for image file
+        ContentValues values = new ContentValues();
+        values.put(MediaStore.Images.Media.DISPLAY_NAME, "qrCode_" + System.currentTimeMillis() + ".png");
+        values.put(MediaStore.Images.Media.MIME_TYPE, "image/png");
+        values.put(MediaStore.Images.Media.RELATIVE_PATH, Environment.DIRECTORY_PICTURES + "/EventLottery");
+
+        // Create a file entry to insert the qrCode into
+        Uri uri = requireContext().getContentResolver().insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values);
+        if (uri == null) {
+            throw new IOException("Failed to create MediaStore entry");
+        }
+
+        // Write the qrCode to the gallery
+        // (The try/catch block automatically closes the OutputStream)
+        try (OutputStream out = requireContext().getContentResolver().openOutputStream(uri)) {
+            if (out == null) {
+                throw new IOException("Failed to open output stream");
+            }
+            qrCode.compress(Bitmap.CompressFormat.PNG, 100, out);
+        }
     }
 }
