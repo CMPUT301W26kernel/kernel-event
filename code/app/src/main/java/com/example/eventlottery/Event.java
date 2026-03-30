@@ -1,22 +1,33 @@
 /**
  * Event
  * A class representing an Event which stores event data
- * Last Modified: 2026-03-21 by Grace MacKenzie
+ * Last Modified: 2026-03-30 by Grace MacKenzie
  * <p>
  *     Notes:
  *     - the registration open and close MUST be ZonedDateTimes. The project specifications state that
  *       times need to be zoned, and we will need to perform a number of date comparisons for
  *       filtering and such.
+ *     - Please do not touch registrationOpenIso, registrationCloseIso, encodedPosterImage.
+ *       These are meant purely for storage in Firebase and are automatically encoded, decoded,
+ *       and updated as needed.
+ *     - TODO: Refactor this class into a Domain model and a Firebase DTO
+ *     - TODO: Refactor constructor to relocate validation logic into a static factory
+ *     - TODO: document shit
  * </p>
  *
  * @author Grace MacKenzie
  * @since 2026-03-02
  */
 package com.example.eventlottery;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.util.Base64;
+
 import androidx.annotation.Nullable;
 
 import com.google.firebase.firestore.Exclude;
 
+import java.io.ByteArrayOutputStream;
 import java.time.ZonedDateTime;
 
 /**
@@ -30,16 +41,16 @@ public class Event {
     private Integer waitingListCapacity;
 
     @Exclude
+    private Bitmap posterImage = null;
+    private String encodedPosterImage; // Read only
+
+    @Exclude
     private ZonedDateTime registrationOpen = null;
     private String registrationOpenIso; // Read only
 
     @Exclude
     private ZonedDateTime registrationClose = null;
     private String registrationCloseIso; // Read only
-
-
-    // Not sure how to do the image, but a reference to it should go in here.
-    // geological requirement thingy also goes somewhere in here. see US 02.02.03
 
     /**
      * An empty public constructor required for Firebase deserialization.
@@ -55,8 +66,12 @@ public class Event {
      * @param registrationOpen the date the registration opens
      * @param registrationClose the date the registration closes
      */
-    public Event(String title, String description, String organizerId, ZonedDateTime registrationOpen, ZonedDateTime registrationClose, @Nullable Integer waitingListCapacity) {
-        // TODO: Generate a Firestore event ID
+    public Event(String title,
+                 String description,
+                 String organizerId,
+                 ZonedDateTime registrationOpen,
+                 ZonedDateTime registrationClose,
+                 @Nullable Integer waitingListCapacity) {
         this.title = title;
         this.description = description;
         this.organizerId = organizerId;
@@ -74,7 +89,6 @@ public class Event {
     }
 
     // GETTERS & SETTERS
-    // TODO: Set conditions on setters for some attributes (namely the ZonedDateTime attributes)
 
     public String getEventId() {
         return eventId;
@@ -102,6 +116,39 @@ public class Event {
 
     public String getOrganizerId() {
         return organizerId;
+    }
+
+    /**
+     * A public getter required by Firestore to store encodedPosterImage
+     * @return The encoded base 64 string associated with the poster image
+     */
+    public String getEncodedPosterImage() {
+        return encodedPosterImage;
+    }
+
+    @Exclude
+    public Bitmap getPosterImage() {
+        if (this.posterImage == null & this.encodedPosterImage != null) {
+            // Decode string to bitmap: Base64 string -> Byte Array -> Bitmap
+            byte[] bytes = Base64.decode(encodedPosterImage, Base64.DEFAULT);
+            this.posterImage = BitmapFactory.decodeByteArray(bytes, 0, bytes.length);
+        }
+        return posterImage;
+    }
+
+    public void setPosterImage(Bitmap posterImage) {
+        this.posterImage = posterImage;
+
+        // Update encodedPosterImage
+        if (posterImage != null) {
+            // Encode bitmap as string: Bitmap -> Byte Array -> Base 64 string
+            ByteArrayOutputStream stream = new ByteArrayOutputStream();
+            posterImage.compress(Bitmap.CompressFormat.JPEG, 80, stream);
+            byte[] bytes = stream.toByteArray();
+            this.encodedPosterImage = Base64.encodeToString(bytes, Base64.DEFAULT);
+        } else {
+            this.encodedPosterImage = null;
+        }
     }
 
     /**
