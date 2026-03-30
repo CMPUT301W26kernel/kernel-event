@@ -10,9 +10,6 @@
  *        be edited.
  *      - In CREATE mode, it is assumed that no such event is present and must be created.
  *        It is also assumed that an organizer id is present instead.
- *      - TODO: Generate a QR code upon Event creation
- *        see https://www.geeksforgeeks.org/android/how-to-generate-qr-code-in-android/
- *        and https://reintech.io/blog/implementing-android-app-qr-code-scanner
  *      - TODO: upload an optional image to firebase and store a reference to that image.
  *      - TODO: add a "loading screen" to edit mode to hide default Create Mode stuff.
  *              Just overlay a loading image on top of everything and hide it at the end
