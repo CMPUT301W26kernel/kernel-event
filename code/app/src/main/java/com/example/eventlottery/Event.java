@@ -1,7 +1,7 @@
 /**
  * Event
  * A class representing an Event which stores event data
- * Last Modified: 2026-03-29 by Grace MacKenzie
+ * Last Modified: 2026-03-30 by Grace MacKenzie
  * <p>
  *     Notes:
  *     - the registration open and close MUST be ZonedDateTimes. The project specifications state that
@@ -64,7 +64,6 @@ public class Event {
      * @param registrationClose the date the registration closes
      */
     public Event(String title, String description, String organizerId, ZonedDateTime registrationOpen, ZonedDateTime registrationClose, @Nullable Integer waitingListCapacity) {
-        // TODO: Generate a Firestore event ID
         this.title = title;
         this.description = description;
         this.organizerId = organizerId;
