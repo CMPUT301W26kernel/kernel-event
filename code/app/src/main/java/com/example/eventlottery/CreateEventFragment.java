@@ -1,7 +1,7 @@
 /**
  * Create Event Fragment
  * Allows Admin and Organizers to create and edit events
- * Last Modified: 2026-03-22 by Grace MacKenzie
+ * Last Modified: 2026-03-30 by Grace MacKenzie
  *<p>
  *     Notes
  *      - This fragment has two modes: CREATE and EDIT
@@ -10,7 +10,6 @@
  *        be edited.
  *      - In CREATE mode, it is assumed that no such event is present and must be created.
  *        It is also assumed that an organizer id is present instead.
- *      - TODO: upload an optional image to firebase and store a reference to that image.
  *      - TODO: add a "loading screen" to edit mode to hide default Create Mode stuff.
  *              Just overlay a loading image on top of everything and hide it at the end
  *              of the .onSuccess block when loading the event from eventId
@@ -25,13 +24,20 @@
  */
 package com.example.eventlottery;
 
+import android.app.Activity;
+import android.content.Intent;
+import android.graphics.Bitmap;
+import android.net.Uri;
 import android.os.Bundle;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 
+import android.provider.MediaStore;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -45,6 +51,7 @@ import com.google.firebase.firestore.CollectionReference;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.FirebaseFirestore;
 
+import java.io.IOException;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZoneId;
@@ -64,7 +71,7 @@ public class CreateEventFragment extends Fragment {
     private FirebaseFirestore db;
     private CollectionReference eventsRef;
 
-    private ImageView editPosterImage; // TODO: optionally upload image to Firestore and store reference in Event
+    private ImageView editPosterImage;
     private EditText editTitle;
     private EditText editDescription;
     private EditText editRegOpenYear;
@@ -79,6 +86,33 @@ public class CreateEventFragment extends Fragment {
     private Button positiveButton;
 
     private Event currentEvent = null;
+    private Bitmap selectedPosterImage = null;
+
+    // The launcher callback for image picking
+    private final ActivityResultLauncher<Intent> imagePickerLauncher =
+            registerForActivityResult(
+                    new ActivityResultContracts.StartActivityForResult(), result -> {
+                        if (result.getResultCode() == Activity.RESULT_OK && result.getData() != null) {
+                            Uri imageUri = result.getData().getData();
+
+                            try {
+                                Bitmap bitmap = MediaStore.Images.Media.getBitmap(
+                                        requireActivity().getContentResolver(),
+                                        imageUri
+                                );
+
+                                // Show it in the ImageView
+                                editPosterImage.setImageBitmap(bitmap);
+
+                                // Store it for later saving
+                                selectedPosterImage = bitmap;
+
+                            } catch (IOException e) {
+                                Log.e("ImagePicker", "Failed to load image from URI", e);
+                            }
+                        }
+                    }
+            );
 
     // CONSTRUCTORS
 
@@ -158,6 +192,9 @@ public class CreateEventFragment extends Fragment {
                         if (currentEvent.getWaitingListCapacity() != null) {
                             editCapacity.setText(String.valueOf(currentEvent.getWaitingListCapacity()));
                         }
+                        if (currentEvent.getPosterImage() != null) {
+                            editPosterImage.setImageBitmap(currentEvent.getPosterImage());
+                        }
 
                         // Change negative button appearance
                         negativeButton.setText(R.string.delete_event);
@@ -166,7 +203,7 @@ public class CreateEventFragment extends Fragment {
                     });
         }
 
-        // BUTTON LISTENERS
+        // ON CLICK LISTENERS
 
         positiveButton.setOnClickListener(v -> {
             // Gather and valiZonedDateTime user entries
@@ -208,6 +245,8 @@ public class CreateEventFragment extends Fragment {
                     .replace(R.id.fragment_container, fragment)
                     .commit();
         });
+
+        editPosterImage.setOnClickListener(v -> openImagePicker());
     }
 
     // NEW INSTANCE METHODS
@@ -296,6 +335,15 @@ public class CreateEventFragment extends Fragment {
         docRef.delete()
                 .addOnSuccessListener(aVoid -> Log.d("DELETE", "City deleted from Firestore"))
                 .addOnFailureListener(e -> Log.e("DELETE", "Error deleting city", e));
+    }
+
+    /**
+     * Opens the users image gallery application for the user to select an image from.
+     */
+    private void openImagePicker() {
+        Intent intent = new Intent(Intent.ACTION_PICK);
+        intent.setType("image/*");
+        imagePickerLauncher.launch(intent);
     }
 
     // HELPER METHODS FOR PARSING AND VALIDATION
@@ -434,12 +482,14 @@ public class CreateEventFragment extends Fragment {
                     registrationClose,
                     capacity
             );
+            returnEvent.setPosterImage(selectedPosterImage); // TODO: fix this in some refactor
         } else {
             returnEvent.setTitle(ctx.input.title);
             returnEvent.setDescription(ctx.input.description);
             returnEvent.setRegistrationOpen(registrationOpen);
             returnEvent.setRegistrationClose(registrationClose);
             returnEvent.setWaitingListCapacity(capacity);
+            returnEvent.setPosterImage(selectedPosterImage);
         }
 
         return ValidationResult.valid(returnEvent);

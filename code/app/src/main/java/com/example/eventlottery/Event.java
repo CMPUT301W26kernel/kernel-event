@@ -10,6 +10,9 @@
  *     - Please do not touch registrationOpenIso, registrationCloseIso, encodedPosterImage.
  *       These are meant purely for storage in Firebase and are automatically encoded, decoded,
  *       and updated as needed.
+ *     - TODO: Refactor this class into a Domain model and a Firebase DTO
+ *     - TODO: Refactor constructor to relocate validation logic into a static factory
+ *     - TODO: document shit
  * </p>
  *
  * @author Grace MacKenzie
@@ -63,7 +66,12 @@ public class Event {
      * @param registrationOpen the date the registration opens
      * @param registrationClose the date the registration closes
      */
-    public Event(String title, String description, String organizerId, ZonedDateTime registrationOpen, ZonedDateTime registrationClose, @Nullable Integer waitingListCapacity) {
+    public Event(String title,
+                 String description,
+                 String organizerId,
+                 ZonedDateTime registrationOpen,
+                 ZonedDateTime registrationClose,
+                 @Nullable Integer waitingListCapacity) {
         this.title = title;
         this.description = description;
         this.organizerId = organizerId;
@@ -120,7 +128,7 @@ public class Event {
 
     @Exclude
     public Bitmap getPosterImage() {
-        if (this.posterImage == null) {
+        if (this.posterImage == null & this.encodedPosterImage != null) {
             // Decode string to bitmap: Base64 string -> Byte Array -> Bitmap
             byte[] bytes = Base64.decode(encodedPosterImage, Base64.DEFAULT);
             this.posterImage = BitmapFactory.decodeByteArray(bytes, 0, bytes.length);
@@ -131,11 +139,16 @@ public class Event {
     public void setPosterImage(Bitmap posterImage) {
         this.posterImage = posterImage;
 
-        // Encode bitmap as string: Bitmap -> Byte Array -> Base 64 string
-        ByteArrayOutputStream stream = new ByteArrayOutputStream();
-        posterImage.compress(Bitmap.CompressFormat.JPEG, 80, stream);
-        byte[] bytes = stream.toByteArray();
-        this.encodedPosterImage = Base64.encodeToString(bytes, Base64.DEFAULT);
+        // Update encodedPosterImage
+        if (posterImage != null) {
+            // Encode bitmap as string: Bitmap -> Byte Array -> Base 64 string
+            ByteArrayOutputStream stream = new ByteArrayOutputStream();
+            posterImage.compress(Bitmap.CompressFormat.JPEG, 80, stream);
+            byte[] bytes = stream.toByteArray();
+            this.encodedPosterImage = Base64.encodeToString(bytes, Base64.DEFAULT);
+        } else {
+            this.encodedPosterImage = null;
+        }
     }
 
     /**
