@@ -83,7 +83,7 @@ public class CreateEventFragment extends Fragment {
     private EditText editCapacity;
 
     private Button negativeButton;
-    private Button positiveButton;
+    private Button clearImageButton;
 
     private Event currentEvent = null;
     private Bitmap selectedPosterImage = null;
@@ -103,6 +103,7 @@ public class CreateEventFragment extends Fragment {
 
                                 // Show it in the ImageView
                                 editPosterImage.setImageBitmap(bitmap);
+                                clearImageButton.setVisibility(View.VISIBLE);
 
                                 // Store it for later saving
                                 selectedPosterImage = bitmap;
@@ -149,8 +150,9 @@ public class CreateEventFragment extends Fragment {
         mode = (eventId == null) ? EventCreationMode.CREATE : EventCreationMode.EDIT ;
 
         // Find Buttons
+        Button positiveButton = view.findViewById(R.id.confirm_button);
         negativeButton = view.findViewById(R.id.cancel_button);
-        positiveButton = view.findViewById(R.id.confirm_button);
+        clearImageButton = view.findViewById(R.id.clear_image_button);
 
         // Find EditText views
         editPosterImage = view.findViewById(R.id.poster_image);
@@ -247,6 +249,12 @@ public class CreateEventFragment extends Fragment {
         });
 
         editPosterImage.setOnClickListener(v -> openImagePicker());
+
+        clearImageButton.setOnClickListener(v -> {
+            selectedPosterImage = null;
+            editPosterImage.setImageResource(R.drawable.default_image);
+            clearImageButton.setVisibility(View.GONE);
+        });
     }
 
     // NEW INSTANCE METHODS

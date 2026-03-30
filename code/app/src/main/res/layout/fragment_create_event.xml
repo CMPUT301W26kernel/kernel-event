@@ -40,10 +40,23 @@
 
             <ImageView
                 android:id="@+id/poster_image"
-                android:layout_width="200dp"
-                android:layout_height="200dp"
+                android:layout_width="280dp"
+                android:layout_height="280dp"
                 android:background="@drawable/default_image"
                 android:contentDescription="@string/poster_image_content_description" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/clear_image_button"
+                android:layout_width="wrap_content"
+                android:layout_height="45dp"
+                android:layout_marginTop="5dp"
+                android:visibility="gone"
+
+                android:text="Clear Image"
+                android:textSize="20sp"
+
+                android:backgroundTint="@color/primary_mid"
+                app:cornerRadius="12dp"/>
 
             <!-- Edit Event Title -->
 
