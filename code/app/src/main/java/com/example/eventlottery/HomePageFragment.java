@@ -2,9 +2,10 @@
  * Home page fragment that displays a list of events fetched from Firestore.
  * This fragment acts as the main entry point for entrants to browse and select events.
  * 
- * Last Modified: 2026-03-25 by Rebecca OluwaBiyi
+ * Last Modified: 2026-03-30 by Grace Mackenzie
  * @author Pierce
  * @author Rebecca OluwaBiyi
+ * @author Grace MacKenzie
  * @since 2026-03-13
  */
 package com.example.eventlottery;
@@ -55,6 +56,8 @@ public class HomePageFragment extends Fragment {
     private TextInputEditText availableDateInput;
     private TextInputEditText minCapacityInput;
     private CheckBox openNowOnlyCheckbox;
+
+    private FirebaseUser currentUser;
 
     public HomePageFragment() {
         // Required empty public constructor
@@ -108,7 +111,7 @@ public class HomePageFragment extends Fragment {
         FrameLayout bottomBar = view.findViewById(R.id.bottom_bar);
         TextView statusText = view.findViewById(R.id.logged_in_status);
 
-        FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
+        currentUser = FirebaseAuth.getInstance().getCurrentUser();
         if (currentUser != null) {
             FirebaseFirestore.getInstance().collection("users")
                     .document(currentUser.getUid())
@@ -182,6 +185,24 @@ public class HomePageFragment extends Fragment {
         if (profilesBtn != null) {
             profilesBtn.setOnClickListener(v -> getParentFragmentManager().beginTransaction()
                     .replace(R.id.fragment_container, new ProfileListFragment())
+                    .addToBackStack(null)
+                    .commit());
+        }
+
+        // Admin/Organizer Create Event Button
+        MaterialButton createEventBtn = bottomBarView.findViewById(R.id.btn_plus);
+        if (createEventBtn != null) {
+            createEventBtn.setOnClickListener(v -> getParentFragmentManager().beginTransaction()
+                    .replace(R.id.fragment_container, CreateEventFragment.newInstanceCreateMode(currentUser.getUid()))
+                    .addToBackStack(null)
+                    .commit());
+        }
+
+        // QR Scanner Button
+        MaterialButton qrScannerBtn = bottomBarView.findViewById(R.id.btn_camera);
+        if (qrScannerBtn != null) {
+            qrScannerBtn.setOnClickListener(v -> getParentFragmentManager().beginTransaction()
+                    .replace(R.id.fragment_container, QrScannerFragment.newInstance())
                     .addToBackStack(null)
                     .commit());
         }
