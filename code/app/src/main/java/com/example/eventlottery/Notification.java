@@ -27,6 +27,7 @@ public class Notification {
     public static final String STATUS_EXPIRED = "EXPIRED";
     public static final String STATUS_READ = "READ" ;
 
+
     private String notificationId;
     private String userId;
     private String eventId;

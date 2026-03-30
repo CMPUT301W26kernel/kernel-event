@@ -76,8 +76,6 @@
         android:text="@string/btn_manage_waitlist"
         android:visibility="gone" />
 
-    <!-- COMMENTS SECTION -->
-
     <TextView
         android:id="@+id/text_comments_header"
         android:layout_width="match_parent"

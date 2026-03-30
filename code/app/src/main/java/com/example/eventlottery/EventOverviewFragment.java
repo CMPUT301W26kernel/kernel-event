@@ -1,9 +1,12 @@
+<<<<<<< HEAD
 /**
  * Event Overview Fragment
  * Displays the details of an event.
  * Last Modified: 2026-03-25
  */
-package com.example.eventlottery;
+        =======
+        >>>>>>> 16f09e3 (my local changes)
+        package com.example.eventlottery;
 
 import android.os.Bundle;
 import android.text.TextUtils;
@@ -11,8 +14,11 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+<<<<<<< HEAD
 import android.widget.EditText;
 import android.widget.LinearLayout;
+=======
+        >>>>>>> 16f09e3 (my local changes)
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -22,26 +28,42 @@ import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.example.eventlottery.EventComment;
+import com.example.eventlottery.EventCommentAdapter;
+import com.example.eventlottery.EventCommentPolicy;
+import com.example.eventlottery.EventCommentRepository;
+import com.example.eventlottery.NotificationRepository;
+import com.example.eventlottery.WaitingListDialogFragment;
+import com.example.eventlottery.WaitingListRepository;
+import com.example.eventlottery.WaitlistManagementFragment;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.Timestamp;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.ListenerRegistration;
 
+<<<<<<< HEAD
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
+=======
+        >>>>>>> 16f09e3 (my local changes)
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
 /**
+ <<<<<<< HEAD
  * Displays event details, waitlist actions, and the event comment thread.
  *
  * <p>The fragment normally loads its event, role, and comments from Firebase. Tests may inject
  * a {@link TestState} and a fake {@link EventCommentRepository} to test the UI without
  * depending on Firebase state.</p>
+ =======
+ * Displays event details and allows entrants to interact with the waiting list.
+ * Organizers/admins see a manage waitlist button instead of join/leave.
+ >>>>>>> 16f09e3 (my local changes)
  */
 public class EventOverviewFragment extends Fragment implements
         WaitingListDialogFragment.WaitingListDialogListener,
@@ -145,10 +167,13 @@ public class EventOverviewFragment extends Fragment implements
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         waitlistRepo = new WaitingListRepository();
+<<<<<<< HEAD
         if (commentRepository == null) {
             commentRepository = new EventCommentRepository();
         }
         currentUserId = getCurrentUserId();
+=======
+>>>>>>> 16f09e3 (my local changes)
 
         if (getArguments() != null) {
             eventId = getArguments().getString("eventId");
@@ -162,6 +187,7 @@ public class EventOverviewFragment extends Fragment implements
 
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
+<<<<<<< HEAD
         bindViews(view);
         setupCommentsList(view);
         backButton.setOnClickListener(v -> navigateBackToPreviousScreen());
@@ -169,6 +195,8 @@ public class EventOverviewFragment extends Fragment implements
         manageWaitlistButton.setOnClickListener(v -> openWaitlistManagementDialog());
         postCommentButton.setOnClickListener(v -> submitComment());
 
+=======
+>>>>>>> 16f09e3 (my local changes)
         if (eventId == null) {
             if (getContext() != null) {
                 Toast.makeText(getContext(), getString(R.string.error_no_event_id), Toast.LENGTH_SHORT).show();
@@ -176,6 +204,7 @@ public class EventOverviewFragment extends Fragment implements
             navigateToFallbackScreen();
             return;
         }
+<<<<<<< HEAD
 
         if (testState != null) {
             applyTestState(testState);
@@ -246,6 +275,129 @@ public class EventOverviewFragment extends Fragment implements
                     loadCurrentUserProfile();
                 })
                 .addOnFailureListener(error -> showLoadError());
+=======
+
+        Button btnJoinWaitlist   = view.findViewById(R.id.btn_join_waitlist);
+        Button btnManageWaitlist = view.findViewById(R.id.btn_manage_waitlist);
+        Button btnNotifyWaitlist = view.findViewById(R.id.btn_notify_waiting_list);
+        Button btnNotifySelected = view.findViewById(R.id.btn_notify_selected);
+        Button btnNotifyCancelled = view.findViewById(R.id.btn_notify_cancelled);
+
+        TextView tvTitle         = view.findViewById(R.id.text_event_title);
+        TextView tvDescription   = view.findViewById(R.id.text_event_description);
+        TextView tvOrganizer     = view.findViewById(R.id.text_event_organizer);
+        TextView tvDates         = view.findViewById(R.id.text_event_dates);
+        TextView tvCapacity      = view.findViewById(R.id.text_event_capacity);
+        TextView tvWaitlistCount = view.findViewById(R.id.text_waitlist_count);
+
+        FirebaseFirestore.getInstance().collection("events").document(eventId).get()
+                .addOnSuccessListener(documentSnapshot -> {
+                    if (!documentSnapshot.exists()) {
+                        if (getContext() != null) {
+                            Toast.makeText(getContext(), getString(R.string.error_load_event_failed), Toast.LENGTH_SHORT).show();
+                        }
+                        return;
+                    }
+
+                    Event currentEvent = documentSnapshot.toObject(Event.class);
+                    if (currentEvent == null) {
+                        if (getContext() != null) {
+                            Toast.makeText(getContext(), getString(R.string.error_load_event_failed), Toast.LENGTH_SHORT).show();
+                        }
+                        return;
+                    }
+                    currentEvent.setEventId(documentSnapshot.getId());
+
+                    if (tvTitle != null) {
+                        tvTitle.setText(currentEvent.getTitle() != null ? currentEvent.getTitle() : "Untitled Event");
+                    }
+                    if (tvDescription != null) {
+                        tvDescription.setText(currentEvent.getDescription() != null ? currentEvent.getDescription() : "No description available.");
+                    }
+                    if (tvOrganizer != null) {
+                        tvOrganizer.setText("Organizer: " + (currentEvent.getOrganizerId() != null ? currentEvent.getOrganizerId() : "Unknown"));
+                    }
+
+                    if (tvDates != null) {
+                        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy/MM/dd");
+                        String openStr = currentEvent.getRegistrationOpen() != null
+                                ? currentEvent.getRegistrationOpen().format(formatter) : "Unknown";
+                        String closeStr = currentEvent.getRegistrationClose() != null
+                                ? currentEvent.getRegistrationClose().format(formatter) : "Unknown";
+                        tvDates.setText("Registration:\n  Opens:  " + openStr + "\n  Closes: " + closeStr);
+                    }
+
+                    if (tvCapacity != null) {
+                        tvCapacity.setText(currentEvent.getWaitingListCapacity() != null
+                                ? "Capacity: " + currentEvent.getWaitingListCapacity()
+                                : "Capacity: Unlimited");
+                    }
+
+                    List<String> waitlist = new ArrayList<>();
+                    Object waitlistObj = documentSnapshot.get("waitingList");
+                    if (waitlistObj instanceof List<?>) {
+                        for (Object item : (List<?>) waitlistObj) {
+                            if (item instanceof String) {
+                                waitlist.add((String) item);
+                            }
+                        }
+                    }
+
+                    final int count = waitlist.size();
+                    if (tvWaitlistCount != null) {
+                        tvWaitlistCount.setText("People on waiting list: " + count);
+                    }
+
+                    final String eventName = currentEvent.getTitle() != null ? currentEvent.getTitle() : "Event";
+                    final String currentUserId = getCurrentUserId();
+                    final boolean inWaitingList = currentUserId != null && waitlist.contains(currentUserId);
+                    final String organizerId = currentEvent.getOrganizerId();
+                    final boolean isOrganizer = organizerId != null && organizerId.equals(currentUserId);
+
+                    if (currentUserId == null) {
+                        showJoinWaitlistButton(btnJoinWaitlist, btnManageWaitlist, eventName, count, inWaitingList);
+                        hideNotifyButtons(btnNotifyWaitlist, btnNotifySelected, btnNotifyCancelled);
+                        return;
+                    }
+
+                    FirebaseFirestore.getInstance().collection("users").document(currentUserId).get()
+                            .addOnSuccessListener(userDoc -> {
+                                String role = userDoc.exists() ? userDoc.getString("role") : null;
+                                boolean isAdmin = "admin".equals(role);
+
+                                if (isOrganizer || isAdmin) {
+                                    showManageWaitlistButton(btnJoinWaitlist, btnManageWaitlist);
+
+                                    if (isOrganizer) {
+                                        showOrganizerNotifyButtons(
+                                                btnNotifyWaitlist,
+                                                btnNotifySelected,
+                                                btnNotifyCancelled
+                                        );
+                                        setOrganizerNotifyActions(
+                                                btnNotifyWaitlist,
+                                                btnNotifySelected,
+                                                btnNotifyCancelled
+                                        );
+                                    } else {
+                                        hideNotifyButtons(btnNotifyWaitlist, btnNotifySelected, btnNotifyCancelled);
+                                    }
+                                } else {
+                                    showJoinWaitlistButton(btnJoinWaitlist, btnManageWaitlist, eventName, count, inWaitingList);
+                                    hideNotifyButtons(btnNotifyWaitlist, btnNotifySelected, btnNotifyCancelled);
+                                }
+                            })
+                            .addOnFailureListener(e -> {
+                                showJoinWaitlistButton(btnJoinWaitlist, btnManageWaitlist, eventName, count, inWaitingList);
+                                hideNotifyButtons(btnNotifyWaitlist, btnNotifySelected, btnNotifyCancelled);
+                            });
+                })
+                .addOnFailureListener(e -> {
+                    if (getContext() != null) {
+                        Toast.makeText(getContext(), getString(R.string.error_load_event_failed), Toast.LENGTH_SHORT).show();
+                    }
+                });
+>>>>>>> 16f09e3 (my local changes)
     }
 
     /**
@@ -484,9 +636,7 @@ public class EventOverviewFragment extends Fragment implements
      * Returns the user to the previous screen or the home screen when the event cannot be shown.
      */
     private void navigateToFallbackScreen() {
-        if (!isAdded()) {
-            return;
-        }
+        if (!isAdded()) return;
 
         if (getParentFragmentManager().getBackStackEntryCount() > 0) {
             getParentFragmentManager().popBackStack();
@@ -499,6 +649,7 @@ public class EventOverviewFragment extends Fragment implements
                 .commit();
     }
 
+<<<<<<< HEAD
     /**
      * Returns to the previous screen from the event overview page.
      */
@@ -528,182 +679,266 @@ public class EventOverviewFragment extends Fragment implements
     private void showManageWaitlistButton() {
         joinWaitlistButton.setVisibility(View.GONE);
         manageWaitlistButton.setVisibility(View.VISIBLE);
-    }
-
-    /**
-     * Helper method to get the current authenticated user's ID.
-     * @return The ID of the current user, or null if not authenticated.
-     */
-    private String getCurrentUserId() {
-        if (FirebaseAuth.getInstance().getCurrentUser() != null) {
-            return FirebaseAuth.getInstance().getCurrentUser().getUid();
-        }
-        return null;
-    }
-
-    @Override
-    public void onJoinWaitingList(String eventId) {
-        String userId = getCurrentUserId();
-        if (userId == null) {
-            Toast.makeText(getContext(), getString(R.string.error_must_be_signed_in), Toast.LENGTH_SHORT).show();
-            return;
+=======
+        private void showJoinWaitlistButton(Button btnJoin, Button btnManage,
+                String eventName, int count, boolean inWaitingList) {
+            btnManage.setVisibility(View.GONE);
+            btnJoin.setVisibility(View.VISIBLE);
+            btnJoin.setOnClickListener(v -> {
+                WaitingListDialogFragment dialog =
+                        WaitingListDialogFragment.newInstance(eventId, eventName, count, inWaitingList);
+                dialog.show(getChildFragmentManager(), "WaitingListDialog");
+            });
         }
 
-        waitlistRepo.joinWaitingList(eventId, userId).addOnSuccessListener(aVoid -> {
-            inWaitingList = true;
-            waitlistCount += 1;
-            eventWaitlistView.setText(getString(R.string.event_waitlist_count_format, waitlistCount));
-            refreshActionState();
-
-            if (getContext() != null) {
-                Toast.makeText(getContext(), getString(R.string.join_success), Toast.LENGTH_SHORT).show();
-            }
-        }).addOnFailureListener(e -> {
-            if (getContext() != null) {
-                Toast.makeText(getContext(), getString(R.string.action_failed), Toast.LENGTH_SHORT).show();
-            }
-        });
-    }
-
-    /**
-     * Handles the entrant action to leave the waiting list and refreshes the local screen state.
-     *
-     * @param eventId Event whose waiting list should be updated.
-     */
-    @Override
-    public void onLeaveWaitingList(String eventId) {
-        String userId = getCurrentUserId();
-        if (userId == null) {
-            Toast.makeText(getContext(), getString(R.string.error_must_be_signed_in), Toast.LENGTH_SHORT).show();
-            return;
+        private void showManageWaitlistButton(Button btnJoin, Button btnManage) {
+            btnJoin.setVisibility(View.GONE);
+            btnManage.setVisibility(View.VISIBLE);
+            btnManage.setOnClickListener(v -> {
+                WaitlistManagementFragment dialog = WaitlistManagementFragment.newInstance(eventId);
+                dialog.show(getChildFragmentManager(), "WaitlistManagementDialog");
+            });
+>>>>>>> 16f09e3 (my local changes)
         }
 
-        waitlistRepo.leaveWaitingList(eventId, userId).addOnSuccessListener(aVoid -> {
-            inWaitingList = false;
-            waitlistCount = Math.max(0, waitlistCount - 1);
-            eventWaitlistView.setText(getString(R.string.event_waitlist_count_format, waitlistCount));
-            refreshActionState();
-
-            if (getContext() != null) {
-                Toast.makeText(getContext(), getString(R.string.leave_success), Toast.LENGTH_SHORT).show();
-            }
-        }).addOnFailureListener(e -> {
-            if (getContext() != null) {
-                Toast.makeText(getContext(), getString(R.string.action_failed), Toast.LENGTH_SHORT).show();
-            }
-        });
-    }
-
-    /**
-     * Opens the waitlist management view from the waitlist dialog callback.
-     *
-     * @param eventId Event whose waiting list should be shown.
-     */
-    @Override
-    public void onViewWaitingList(String eventId) {
-        WaitlistManagementFragment dialog = WaitlistManagementFragment.newInstance(eventId);
-        dialog.show(getChildFragmentManager(), "WaitlistManagementDialog");
-    }
-
-    /**
-     * Removes a visible comment when the current viewer is allowed to moderate it.
-     *
-     * @param comment Comment selected for removal.
-     */
-    @Override
-    public void onDeleteComment(EventComment comment) {
-        if (!EventCommentPolicy.canDeleteComment(comment, currentUserId, currentUserRole, eventOrganizerId)) {
-            return;
+        private void showOrganizerNotifyButtons(Button btnNotifyWaitlist, Button btnNotifySelected, Button btnNotifyCancelled) {
+            btnNotifyWaitlist.setVisibility(View.VISIBLE);
+            btnNotifySelected.setVisibility(View.VISIBLE);
+            btnNotifyCancelled.setVisibility(View.VISIBLE);
         }
 
-        String removalReason = "admin".equalsIgnoreCase(currentUserRole)
-                ? getString(R.string.comment_removed_reason_admin)
-                : getString(R.string.comment_removed_reason_organizer);
+        private void hideNotifyButtons(Button btnNotifyWaitlist, Button btnNotifySelected, Button btnNotifyCancelled) {
+            if (btnNotifyWaitlist != null) btnNotifyWaitlist.setVisibility(View.GONE);
+            if (btnNotifySelected != null) btnNotifySelected.setVisibility(View.GONE);
+            if (btnNotifyCancelled != null) btnNotifyCancelled.setVisibility(View.GONE);
+        }
 
-        commentRepository.removeComment(
+        private void setOrganizerNotifyActions(Button btnNotifyWaitlist, Button btnNotifySelected, Button btnNotifyCancelled) {
+            NotificationRepository repo = new NotificationRepository();
+
+            btnNotifyWaitlist.setOnClickListener(v -> {
+                repo.sendWaitingListNotification(eventId, "A spot opened up! Sign up now!");
+                Toast.makeText(getContext(), "Waiting list notified", Toast.LENGTH_SHORT).show();
+            });
+
+            btnNotifySelected.setOnClickListener(v -> {
+                repo.sendInvitedUsersNotification(
                         eventId,
-                        comment.getCommentId(),
-                        removalReason
-                )
-                .addOnFailureListener(error -> {
-                    if (getContext() != null) {
-                        Toast.makeText(getContext(), R.string.action_failed, Toast.LENGTH_SHORT).show();
-                    }
+                        "You have been selected! Please sign up for the event."
+                );
+                Toast.makeText(getContext(), "Selected entrants notified", Toast.LENGTH_SHORT).show();
+            });
+
+            btnNotifyCancelled.setOnClickListener(v -> {
+                repo.sendCancelledEntrantsNotification(
+                        eventId,
+                        "An update is available for entrants who previously cancelled."
+                ).addOnSuccessListener(unused -> {
+                    Toast.makeText(getContext(), "Cancelled entrants notified", Toast.LENGTH_SHORT).show();
+                }).addOnFailureListener(e -> {
+                    Toast.makeText(getContext(), "Failed to notify cancelled entrants", Toast.LENGTH_SHORT).show();
                 });
-    }
-
-    /**
-     * Shows a load failure toast and navigates away from the fragment.
-     */
-    private void showLoadError() {
-        if (getContext() != null) {
-            Toast.makeText(getContext(), getString(R.string.error_load_event_failed), Toast.LENGTH_SHORT).show();
+            });
         }
-        navigateToFallbackScreen();
-    }
 
-    /**
-     * Converts a Firestore array value into a typed list of strings.
-     *
-     * @param value Raw Firestore field value.
-     * @return String entries extracted from the value, or an empty list.
-     */
-    private List<String> extractStringList(Object value) {
-        List<String> result = new ArrayList<>();
-        if (value instanceof List<?>) {
-            for (Object item : (List<?>) value) {
-                if (item instanceof String) {
-                    result.add((String) item);
+        private String getCurrentUserId() {
+            if (FirebaseAuth.getInstance().getCurrentUser() != null) {
+                return FirebaseAuth.getInstance().getCurrentUser().getUid();
+            }
+            return null;
+        }
+
+        @Override
+        public void onJoinWaitingList(String eventId) {
+            String userId = getCurrentUserId();
+            if (userId == null) {
+                Toast.makeText(getContext(), getString(R.string.error_must_be_signed_in), Toast.LENGTH_SHORT).show();
+                return;
+            }
+<<<<<<< HEAD
+
+            waitlistRepo.joinWaitingList(eventId, userId).addOnSuccessListener(aVoid -> {
+                inWaitingList = true;
+                waitlistCount += 1;
+                eventWaitlistView.setText(getString(R.string.event_waitlist_count_format, waitlistCount));
+                refreshActionState();
+
+                if (getContext() != null) {
+                    Toast.makeText(getContext(), getString(R.string.join_success), Toast.LENGTH_SHORT).show();
+                }
+            }).addOnFailureListener(e -> {
+                if (getContext() != null) {
+                    Toast.makeText(getContext(), getString(R.string.action_failed), Toast.LENGTH_SHORT).show();
+                }
+            });
+=======
+            waitlistRepo.joinWaitingList(eventId, userId)
+                    .addOnSuccessListener(aVoid -> {
+                        if (getContext() != null) {
+                            Toast.makeText(getContext(), getString(R.string.join_success), Toast.LENGTH_SHORT).show();
+                        }
+                    })
+                    .addOnFailureListener(e -> {
+                        if (getContext() != null) {
+                            Toast.makeText(getContext(), getString(R.string.action_failed), Toast.LENGTH_SHORT).show();
+                        }
+                    });
+>>>>>>> 16f09e3 (my local changes)
+        }
+
+        /**
+         * Handles the entrant action to leave the waiting list and refreshes the local screen state.
+         *
+         * @param eventId Event whose waiting list should be updated.
+         */
+        @Override
+        public void onLeaveWaitingList(String eventId) {
+            String userId = getCurrentUserId();
+            if (userId == null) {
+                Toast.makeText(getContext(), getString(R.string.error_must_be_signed_in), Toast.LENGTH_SHORT).show();
+                return;
+            }
+<<<<<<< HEAD
+
+            waitlistRepo.leaveWaitingList(eventId, userId).addOnSuccessListener(aVoid -> {
+                inWaitingList = false;
+                waitlistCount = Math.max(0, waitlistCount - 1);
+                eventWaitlistView.setText(getString(R.string.event_waitlist_count_format, waitlistCount));
+                refreshActionState();
+
+                if (getContext() != null) {
+                    Toast.makeText(getContext(), getString(R.string.leave_success), Toast.LENGTH_SHORT).show();
+                }
+            }).addOnFailureListener(e -> {
+                if (getContext() != null) {
+                    Toast.makeText(getContext(), getString(R.string.action_failed), Toast.LENGTH_SHORT).show();
+                }
+            });
+=======
+            waitlistRepo.leaveWaitingList(eventId, userId)
+                    .addOnSuccessListener(aVoid -> {
+                        if (getContext() != null) {
+                            Toast.makeText(getContext(), getString(R.string.leave_success), Toast.LENGTH_SHORT).show();
+                        }
+                    })
+                    .addOnFailureListener(e -> {
+                        if (getContext() != null) {
+                            Toast.makeText(getContext(), getString(R.string.action_failed), Toast.LENGTH_SHORT).show();
+                        }
+                    });
+>>>>>>> 16f09e3 (my local changes)
+        }
+
+        /**
+         * Opens the waitlist management view from the waitlist dialog callback.
+         *
+         * @param eventId Event whose waiting list should be shown.
+         */
+        @Override
+        public void onViewWaitingList(String eventId) {
+            WaitlistManagementFragment dialog = WaitlistManagementFragment.newInstance(eventId);
+            dialog.show(getChildFragmentManager(), "WaitlistManagementDialog");
+        }
+
+        /**
+         * Removes a visible comment when the current viewer is allowed to moderate it.
+         *
+         * @param comment Comment selected for removal.
+         */
+        @Override
+        public void onDeleteComment(EventComment comment) {
+            if (!EventCommentPolicy.canDeleteComment(comment, currentUserId, currentUserRole, eventOrganizerId)) {
+                return;
+            }
+
+            String removalReason = "admin".equalsIgnoreCase(currentUserRole)
+                    ? getString(R.string.comment_removed_reason_admin)
+                    : getString(R.string.comment_removed_reason_organizer);
+
+            commentRepository.removeComment(
+                            eventId,
+                            comment.getCommentId(),
+                            removalReason
+                    )
+                    .addOnFailureListener(error -> {
+                        if (getContext() != null) {
+                            Toast.makeText(getContext(), R.string.action_failed, Toast.LENGTH_SHORT).show();
+                        }
+                    });
+        }
+
+        /**
+         * Shows a load failure toast and navigates away from the fragment.
+         */
+        private void showLoadError() {
+            if (getContext() != null) {
+                Toast.makeText(getContext(), getString(R.string.error_load_event_failed), Toast.LENGTH_SHORT).show();
+            }
+            navigateToFallbackScreen();
+        }
+
+        /**
+         * Converts a Firestore array value into a typed list of strings.
+         *
+         * @param value Raw Firestore field value.
+         * @return String entries extracted from the value, or an empty list.
+         */
+        private List<String> extractStringList(Object value) {
+            List<String> result = new ArrayList<>();
+            if (value instanceof List<?>) {
+                for (Object item : (List<?>) value) {
+                    if (item instanceof String) {
+                        result.add((String) item);
+                    }
                 }
             }
+            return result;
         }
-        return result;
-    }
 
-    /**
-     * Parses an event timestamp field from Firestore into the local time zone.
-     *
-     * @param documentSnapshot Firestore event document.
-     * @param fieldName Name of the date field to parse.
-     * @return Parsed date, or the current time as a fallback.
-     */
-    private ZonedDateTime readEventDate(DocumentSnapshot documentSnapshot, String fieldName) {
-        Object rawValue = documentSnapshot.get(fieldName);
-        if (rawValue instanceof Timestamp) {
-            Timestamp timestamp = (Timestamp) rawValue;
-            return ZonedDateTime.ofInstant(
-                    Instant.ofEpochSecond(timestamp.getSeconds(), timestamp.getNanoseconds()),
-                    ZoneId.systemDefault()
-            );
-        }
-        if (rawValue instanceof String) {
-            try {
-                return ZonedDateTime.parse((String) rawValue);
-            } catch (Exception ignored) {
-                // Fall through to the default below.
+        /**
+         * Parses an event timestamp field from Firestore into the local time zone.
+         *
+         * @param documentSnapshot Firestore event document.
+         * @param fieldName Name of the date field to parse.
+         * @return Parsed date, or the current time as a fallback.
+         */
+        private ZonedDateTime readEventDate(DocumentSnapshot documentSnapshot, String fieldName) {
+            Object rawValue = documentSnapshot.get(fieldName);
+            if (rawValue instanceof Timestamp) {
+                Timestamp timestamp = (Timestamp) rawValue;
+                return ZonedDateTime.ofInstant(
+                        Instant.ofEpochSecond(timestamp.getSeconds(), timestamp.getNanoseconds()),
+                        ZoneId.systemDefault()
+                );
             }
+            if (rawValue instanceof String) {
+                try {
+                    return ZonedDateTime.parse((String) rawValue);
+                } catch (Exception ignored) {
+                    // Fall through to the default below.
+                }
+            }
+            return ZonedDateTime.now();
         }
-        return ZonedDateTime.now();
-    }
 
-    /**
-     * Formats a zoned date for concise event display.
-     *
-     * @param date Date to format.
-     * @return Localized short date string.
-     */
-    private String formatEventDate(ZonedDateTime date) {
-        return EVENT_DATE_FORMATTER.format(date);
-    }
+        /**
+         * Formats a zoned date for concise event display.
+         *
+         * @param date Date to format.
+         * @return Localized short date string.
+         */
+        private String formatEventDate(ZonedDateTime date) {
+            return EVENT_DATE_FORMATTER.format(date);
+        }
 
-    /**
-     * Returns the input string unless it is blank, in which case the fallback is returned.
-     *
-     * @param value Candidate value.
-     * @param fallback Replacement for null or blank values.
-     * @return Display-safe string value.
-     */
-    private String fallbackText(String value, String fallback) {
-        return value == null || value.trim().isEmpty() ? fallback : value;
+        /**
+         * Returns the input string unless it is blank, in which case the fallback is returned.
+         *
+         * @param value Candidate value.
+         * @param fallback Replacement for null or blank values.
+         * @return Display-safe string value.
+         */
+        private String fallbackText(String value, String fallback) {
+            return value == null || value.trim().isEmpty() ? fallback : value;
+        }
     }
-}

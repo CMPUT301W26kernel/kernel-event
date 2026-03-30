@@ -32,16 +32,25 @@ import java.util.List;
  * @version 1.3
  * @since 2023-03-02
  */
+
+/**
+ * Displays notifications for the currently signed-in user.
+ * Supports real-time updates and invitation actions through NotificationRepository.
+ */
 public class NotificationsFragment extends Fragment {
 
     private static final String TAG = "NotificationsFragment";
 
     private RecyclerView recyclerView;
     private NotificationsAdapter adapter;
+    private ListenerRegistration notificationsListener;
+
     private final FirebaseFirestore db = FirebaseFirestore.getInstance();
     private final NotificationRepository repository = new NotificationRepository();
-    private String currentUserId;
-    private ListenerRegistration notificationsListener;
+
+    public NotificationsFragment() {
+        // Required empty public constructor
+    }
 
     @Nullable
     @Override
@@ -60,65 +69,59 @@ public class NotificationsFragment extends Fragment {
         adapter = new NotificationsAdapter(new ArrayList<>(), repository);
         recyclerView.setAdapter(adapter);
 
-        FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
-        if (currentUser == null) {
-            Toast.makeText(getContext(), "No signed-in user", Toast.LENGTH_SHORT).show();
-            Log.e(TAG, "No signed-in user");
+        String currentUserId = getCurrentUserId();
+        if (currentUserId == null) {
+            if (getContext() != null) {
+                Toast.makeText(getContext(), "No signed-in user", Toast.LENGTH_SHORT).show();
+            }
             return;
         }
 
-        currentUserId = currentUser.getUid();
-        Log.d(TAG, "Current user UID: " + currentUserId);
-        Toast.makeText(getContext(), "UID: " + currentUserId, Toast.LENGTH_LONG).show();
-
-        loadNotifications();
+        loadNotifications(currentUserId);
     }
 
-    private void loadNotifications() {
-        if (currentUserId == null) {
-            Log.e(TAG, "loadNotifications called with null currentUserId");
-            return;
-        }
-
+    private void loadNotifications(String userId) {
         if (notificationsListener != null) {
             notificationsListener.remove();
             notificationsListener = null;
         }
 
         notificationsListener = db.collection("notifications")
-                .whereEqualTo("userId", currentUserId)
+                .whereEqualTo("userId", userId)
                 .orderBy("timestamp", Query.Direction.DESCENDING)
                 .addSnapshotListener((value, error) -> {
-                    if (!isAdded()) {
-                        return;
-                    }
+                    if (!isAdded()) return;
 
                     if (error != null) {
                         Log.e(TAG, "Failed to load notifications", error);
-                        Toast.makeText(
-                                getContext(),
-                                "Failed to load notifications: " + error.getMessage(),
-                                Toast.LENGTH_LONG
-                        ).show();
+                        if (getContext() != null) {
+                            Toast.makeText(
+                                    getContext(),
+                                    "Failed to load notifications",
+                                    Toast.LENGTH_LONG
+                            ).show();
+                        }
                         return;
                     }
 
-                    List<Notification> list = new ArrayList<>();
+                    List<Notification> notifications = new ArrayList<>();
                     if (value != null) {
                         for (DocumentSnapshot doc : value.getDocuments()) {
-                            Notification n = doc.toObject(Notification.class);
-                            if (n != null) {
-                                n.setNotificationId(doc.getId());
-                                list.add(n);
+                            Notification notification = doc.toObject(Notification.class);
+                            if (notification != null) {
+                                notification.setNotificationId(doc.getId());
+                                notifications.add(notification);
                             }
                         }
                     }
 
-                    Log.d(TAG, "Loaded notifications count: " + list.size());
-                    Toast.makeText(getContext(), "Loaded " + list.size() + " notifications", Toast.LENGTH_SHORT).show();
-
-                    adapter.updateList(list);
+                    adapter.updateList(notifications);
                 });
+    }
+
+    private String getCurrentUserId() {
+        FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
+        return currentUser != null ? currentUser.getUid() : null;
     }
 
     @Override

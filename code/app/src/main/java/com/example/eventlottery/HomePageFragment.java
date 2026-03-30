@@ -1,7 +1,7 @@
 /**
  * Home page fragment that displays a list of events fetched from Firestore.
  * This fragment acts as the main entry point for entrants to browse and select events.
- * 
+ *
  * Last Modified: 2026-03-30 by Grace Mackenzie
  * @author Pierce
  * @author Rebecca OluwaBiyi
@@ -120,7 +120,7 @@ public class HomePageFragment extends Fragment {
                         if (documentSnapshot.exists()) {
                             String username = documentSnapshot.getString("username");
                             String role = documentSnapshot.getString("role");
-                            
+
                             // Update the status bar
                             if (statusText != null) {
                                 String userLabel = (username != null ? username : "User");
@@ -136,25 +136,25 @@ public class HomePageFragment extends Fragment {
 
     private void fetchEventsFromFirestore() {
         FirebaseFirestore.getInstance().collection("events")
-            .get()
-            .addOnSuccessListener(queryDocumentSnapshots -> {
-                allEvents.clear();
-                for (QueryDocumentSnapshot document : queryDocumentSnapshots) {
-                    try {
-                        Event event = document.toObject(Event.class);
-                        event.setEventId(document.getId());
-                        allEvents.add(event);
-                    } catch (Exception e) {
-                        Log.e("HomePageFragment", "Error parsing event: " + document.getId(), e);
+                .get()
+                .addOnSuccessListener(queryDocumentSnapshots -> {
+                    allEvents.clear();
+                    for (QueryDocumentSnapshot document : queryDocumentSnapshots) {
+                        try {
+                            Event event = document.toObject(Event.class);
+                            event.setEventId(document.getId());
+                            allEvents.add(event);
+                        } catch (Exception e) {
+                            Log.e("HomePageFragment", "Error parsing event: " + document.getId(), e);
+                        }
                     }
-                }
-                applyFilters();
-            })
-            .addOnFailureListener(e -> {
-                if (getContext() != null) {
-                    Toast.makeText(getContext(), "Failed to load events", Toast.LENGTH_SHORT).show();
-                }
-            });
+                    applyFilters();
+                })
+                .addOnFailureListener(e -> {
+                    if (getContext() != null) {
+                        Toast.makeText(getContext(), "Failed to load events", Toast.LENGTH_SHORT).show();
+                    }
+                });
     }
 
     private void loadBottomBar(FrameLayout container, String role) {

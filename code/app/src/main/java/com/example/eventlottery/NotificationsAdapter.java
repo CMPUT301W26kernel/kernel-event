@@ -17,21 +17,17 @@ import java.util.List;
 import java.util.Locale;
 
 /**
- * Adapter for notifications list
- * Last Modified: 2026-03-26 by Radwa Sheikhdon
- * Handles safe Accept/Decline with Firestore repository callbacks.
- * @author Radwa
- * @version 1.5
- * @since 2023-03-02
+ * RecyclerView adapter for displaying notifications.
+ * Supports marking notifications as read and responding to invitation notifications.
  */
 public class NotificationsAdapter extends RecyclerView.Adapter<NotificationsAdapter.ViewHolder> {
 
     private List<Notification> notificationList;
     private final NotificationRepository repository;
 
-    public NotificationsAdapter(List<Notification> list, NotificationRepository repo) {
-        this.notificationList = list;
-        this.repository = repo;
+    public NotificationsAdapter(List<Notification> notificationList, NotificationRepository repository) {
+        this.notificationList = notificationList;
+        this.repository = repository;
     }
 
     public void updateList(List<Notification> newList) {
@@ -51,8 +47,23 @@ public class NotificationsAdapter extends RecyclerView.Adapter<NotificationsAdap
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         Notification notification = notificationList.get(position);
 
-        holder.message.setText(notification.getMessage());
+        bindMessage(holder, notification);
+        bindTimestamp(holder, notification);
+        resetViewState(holder);
+        bindItemClick(holder, notification);
 
+        if (isUnreadInvite(notification)) {
+            showInviteActions(holder, notification);
+        } else {
+            showStatusBadge(holder, notification);
+        }
+    }
+
+    private void bindMessage(ViewHolder holder, Notification notification) {
+        holder.message.setText(notification.getMessage());
+    }
+
+    private void bindTimestamp(ViewHolder holder, Notification notification) {
         if (notification.getTimestamp() != null) {
             Date date = notification.getTimestamp().toDate();
             SimpleDateFormat sdf = new SimpleDateFormat("MMM dd, HH:mm", Locale.getDefault());
@@ -60,138 +71,134 @@ public class NotificationsAdapter extends RecyclerView.Adapter<NotificationsAdap
         } else {
             holder.time.setText("");
         }
+    }
 
-        // Reset recycled view state
+    private void resetViewState(ViewHolder holder) {
         holder.layoutInviteActions.setVisibility(View.GONE);
         holder.statusBadge.setVisibility(View.VISIBLE);
         holder.btnAccept.setOnClickListener(null);
         holder.btnDecline.setOnClickListener(null);
+    }
 
-        // Default item click: mark unread notifications as read
+    private void bindItemClick(ViewHolder holder, Notification notification) {
         holder.itemView.setOnClickListener(v -> {
-            if (Notification.STATUS_UNREAD.equals(notification.getStatus())) {
-                repository.markAsRead(notification, new NotificationRepository.NotificationCallback() {
-                    @Override
-                    public void onSuccess() {
-                        int pos = holder.getAdapterPosition();
-                        if (pos != RecyclerView.NO_POSITION) {
-                            notification.setStatus(Notification.STATUS_READ);
-                            notifyItemChanged(pos);
-                            Toast.makeText(v.getContext(), "Marked as read", Toast.LENGTH_SHORT).show();
-                        }
-                    }
+            if (!Notification.STATUS_UNREAD.equals(notification.getStatus())) return;
 
-                    @Override
-                    public void onFailure(Exception e) {
-                        Toast.makeText(v.getContext(), "Failed to mark as read", Toast.LENGTH_SHORT).show();
+            repository.markAsRead(notification, new NotificationRepository.NotificationCallback() {
+                @Override
+                public void onSuccess() {
+                    int pos = holder.getAdapterPosition();
+                    if (pos != RecyclerView.NO_POSITION) {
+                        notification.setStatus(Notification.STATUS_READ);
+                        notifyItemChanged(pos);
+                        Toast.makeText(v.getContext(), "Marked as read", Toast.LENGTH_SHORT).show();
                     }
-                });
+                }
+
+                @Override
+                public void onFailure(Exception e) {
+                    Toast.makeText(v.getContext(), "Failed to mark as read", Toast.LENGTH_SHORT).show();
+                }
+            });
+        });
+    }
+
+    private boolean isUnreadInvite(Notification notification) {
+        return Notification.TYPE_INVITE.equals(notification.getType()) &&
+                Notification.STATUS_UNREAD.equals(notification.getStatus());
+    }
+
+    private void showInviteActions(ViewHolder holder, Notification notification) {
+        holder.layoutInviteActions.setVisibility(View.VISIBLE);
+        holder.statusBadge.setVisibility(View.GONE);
+
+        holder.btnAccept.setBackgroundTintList(
+                ColorStateList.valueOf(holder.itemView.getContext().getColor(R.color.primary_dark))
+        );
+        holder.btnDecline.setBackgroundTintList(
+                ColorStateList.valueOf(holder.itemView.getContext().getColor(R.color.secondary_dark))
+        );
+
+        holder.btnAccept.setTextColor(holder.itemView.getContext().getColor(R.color.white));
+        holder.btnDecline.setTextColor(holder.itemView.getContext().getColor(R.color.white));
+
+        holder.btnAccept.setOnClickListener(v -> handleAccept(holder, notification, v));
+        holder.btnDecline.setOnClickListener(v -> handleDecline(holder, notification, v));
+    }
+
+    private void handleAccept(ViewHolder holder, Notification notification, View view) {
+        if (!hasRequiredIds(notification)) {
+            Toast.makeText(view.getContext(), "Invalid notification data", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        repository.acceptInvitation(notification, new NotificationRepository.NotificationCallback() {
+            @Override
+            public void onSuccess() {
+                int pos = holder.getAdapterPosition();
+                if (pos != RecyclerView.NO_POSITION) {
+                    notification.setStatus(Notification.STATUS_ACCEPTED);
+                    notifyItemChanged(pos);
+                    Toast.makeText(view.getContext(), "Invitation accepted", Toast.LENGTH_SHORT).show();
+                }
+            }
+
+            @Override
+            public void onFailure(Exception e) {
+                Toast.makeText(view.getContext(),
+                        "Failed to accept invitation: " + e.getMessage(),
+                        Toast.LENGTH_LONG).show();
             }
         });
+    }
 
-        // Unread invite: show buttons, hide badge
-        if (Notification.TYPE_INVITE.equals(notification.getType()) &&
-                Notification.STATUS_UNREAD.equals(notification.getStatus())) {
+    private void handleDecline(ViewHolder holder, Notification notification, View view) {
+        if (!hasRequiredIds(notification)) {
+            Toast.makeText(view.getContext(), "Invalid notification data", Toast.LENGTH_SHORT).show();
+            return;
+        }
 
-            holder.layoutInviteActions.setVisibility(View.VISIBLE);
-            holder.statusBadge.setVisibility(View.GONE);
-
-            // Match button colors to final accepted/declined tag colors
-            holder.btnAccept.setBackgroundTintList(
-                    ColorStateList.valueOf(
-                            holder.itemView.getContext().getColor(R.color.primary_dark)
-                    )
-            );
-            holder.btnDecline.setBackgroundTintList(
-                    ColorStateList.valueOf(
-                            holder.itemView.getContext().getColor(R.color.secondary_dark)
-                    )
-            );
-
-            holder.btnAccept.setTextColor(
-                    holder.itemView.getContext().getColor(R.color.white)
-            );
-            holder.btnDecline.setTextColor(
-                    holder.itemView.getContext().getColor(R.color.white)
-            );
-
-            holder.btnAccept.setOnClickListener(v -> {
-                if (notification.getNotificationId() == null ||
-                        notification.getEventId() == null ||
-                        notification.getUserId() == null) {
-                    Toast.makeText(v.getContext(), "Invalid notification data", Toast.LENGTH_SHORT).show();
-                    return;
+        repository.declineInvitation(notification, new NotificationRepository.NotificationCallback() {
+            @Override
+            public void onSuccess() {
+                int pos = holder.getAdapterPosition();
+                if (pos != RecyclerView.NO_POSITION) {
+                    notification.setStatus(Notification.STATUS_DECLINED);
+                    notifyItemChanged(pos);
+                    Toast.makeText(view.getContext(), "Invitation declined", Toast.LENGTH_SHORT).show();
                 }
-
-                repository.acceptInvitation(notification, new NotificationRepository.NotificationCallback() {
-                    @Override
-                    public void onSuccess() {
-                        int pos = holder.getAdapterPosition();
-                        if (pos != RecyclerView.NO_POSITION) {
-                            notification.setStatus(Notification.STATUS_ACCEPTED);
-                            notifyItemChanged(pos);
-                            Toast.makeText(v.getContext(), "Invitation Accepted!", Toast.LENGTH_SHORT).show();
-                        }
-                    }
-
-                    @Override
-                    public void onFailure(Exception e) {
-                        Toast.makeText(
-                                v.getContext(),
-                                "Failed to accept invitation: " + e.getMessage(),
-                                Toast.LENGTH_LONG
-                        ).show();
-                    }
-                });
-            });
-
-            holder.btnDecline.setOnClickListener(v -> {
-                if (notification.getNotificationId() == null ||
-                        notification.getEventId() == null ||
-                        notification.getUserId() == null) {
-                    Toast.makeText(v.getContext(), "Invalid notification data", Toast.LENGTH_SHORT).show();
-                    return;
-                }
-
-                repository.declineInvitation(notification, new NotificationRepository.NotificationCallback() {
-                    @Override
-                    public void onSuccess() {
-                        int pos = holder.getAdapterPosition();
-                        if (pos != RecyclerView.NO_POSITION) {
-                            notification.setStatus(Notification.STATUS_DECLINED);
-                            notifyItemChanged(pos);
-                            Toast.makeText(v.getContext(), "Invitation Declined!", Toast.LENGTH_SHORT).show();
-                        }
-                    }
-
-                    @Override
-                    public void onFailure(Exception e) {
-                        Toast.makeText(v.getContext(), "Failed to decline invitation", Toast.LENGTH_SHORT).show();
-                    }
-                });
-            });
-
-        } else {
-            // All non-unread-invite notifications: show colored status badge
-            String status = notification.getStatus();
-            holder.statusBadge.setText(status != null && !status.isEmpty() ? status : "UNKNOWN");
-
-            int color;
-            if (Notification.STATUS_ACCEPTED.equals(status)) {
-                color = holder.itemView.getContext().getColor(R.color.primary_dark);
-            } else if (Notification.STATUS_DECLINED.equals(status)) {
-                color = holder.itemView.getContext().getColor(R.color.secondary_dark);
-            } else if (Notification.STATUS_UNREAD.equals(status)) {
-                color = holder.itemView.getContext().getColor(R.color.primary_mid);
-            } else {
-                color = holder.itemView.getContext().getColor(R.color.grey_light);
             }
 
-            holder.statusBadge.setBackgroundTintList(ColorStateList.valueOf(color));
-            holder.statusBadge.setTextColor(
-                    holder.itemView.getContext().getColor(R.color.white)
-            );
+            @Override
+            public void onFailure(Exception e) {
+                Toast.makeText(view.getContext(), "Failed to decline invitation", Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
+    private void showStatusBadge(ViewHolder holder, Notification notification) {
+        String status = notification.getStatus();
+        holder.statusBadge.setText(status != null && !status.isEmpty() ? status : "UNKNOWN");
+
+        int color;
+        if (Notification.STATUS_ACCEPTED.equals(status)) {
+            color = holder.itemView.getContext().getColor(R.color.primary_dark);
+        } else if (Notification.STATUS_DECLINED.equals(status)) {
+            color = holder.itemView.getContext().getColor(R.color.secondary_dark);
+        } else if (Notification.STATUS_UNREAD.equals(status)) {
+            color = holder.itemView.getContext().getColor(R.color.primary_mid);
+        } else {
+            color = holder.itemView.getContext().getColor(R.color.grey_light);
         }
+
+        holder.statusBadge.setBackgroundTintList(ColorStateList.valueOf(color));
+        holder.statusBadge.setTextColor(holder.itemView.getContext().getColor(R.color.white));
+    }
+
+    private boolean hasRequiredIds(Notification notification) {
+        return notification.getNotificationId() != null
+                && notification.getEventId() != null
+                && notification.getUserId() != null;
     }
 
     @Override
