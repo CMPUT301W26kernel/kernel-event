@@ -8,9 +8,9 @@ import com.google.firebase.Timestamp;
  * It has fields for notificationId, userId, eventId, type, message, status, and timestamp.
  * It also has getters and setters for each field.
  * The class also has a constructor for creating a notification.
- * Last Modified: 2026-03-12 by Radwa Sheikhdon
+ * Last Modified: 2026-03-31 by Radwa Sheikhdon
  * @author Radwa Sheikhdon
- * @version 1.0
+ * @version 2.0
  * @since 2023-03-02
  */
 public class Notification {
@@ -64,72 +64,59 @@ public class Notification {
     }
 
 
-    // Returns the notificationId of the notification.
+    // GETTERS & SETTERS
     public String getNotificationId() {
         return notificationId;
     }
 
-    // Sets the notificationId of the notification.
     public void setNotificationId(String notificationId) {
         this.notificationId = notificationId;
     }
 
-    // Returns the userId of the notification.
     public String getUserId() {
         return userId;
     }
 
-    // Sets the userId of the notification.
     public void setUserId(String userId) {
         this.userId = userId;
     }
 
-    // Returns the eventId of the notification.
     public String getEventId() {
         return eventId;
     }
 
-    // Sets the eventId of the notification.
     public void setEventId(String eventId) {
         this.eventId = eventId;
     }
 
-    // Returns the type of the notification.
     public String getType() {
         return type;
     }
 
-    // Sets the type of the notification.
     public void setType(String type) {
         this.type = type;
     }
 
-    // Returns the message of the notification.
     public String getMessage() {
         return message;
     }
 
-    // Sets the message of the notification.
     public void setMessage(String message) {
         this.message = message;
     }
 
-    // Returns the status of the notification.
     public String getStatus() {
         return status;
     }
 
-    // Sets the status of the notification.
     public void setStatus(String status) {
         this.status = status;
     }
 
-    // Returns the timestamp of the notification.
     public Timestamp getTimestamp() {
         return timestamp;
     }
 
-    // Sets the timestamp of the notification.
     public void setTimestamp(Timestamp timestamp) {
         this.timestamp = timestamp;
     }

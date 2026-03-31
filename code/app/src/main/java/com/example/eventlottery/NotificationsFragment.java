@@ -26,7 +26,7 @@ import java.util.List;
 /**
  * Notifications Fragment
  * Displays a list of notifications for the current user
- * Last Modified: 2026-03-26 by Radwa Sheikhdon
+ * Last Modified: 2026-03-31 by Radwa Sheikhdon
  * Handles real-time updates and links to NotificationRepository for accept/decline actions.
  * @author Radwa Sheikhdon
  * @version 1.3

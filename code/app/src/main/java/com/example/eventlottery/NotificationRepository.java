@@ -23,9 +23,11 @@ public class NotificationRepository {
 
     private final FirebaseFirestore db;
 
+
     public NotificationRepository() {
         this(FirebaseFirestore.getInstance());
     }
+
 
     public NotificationRepository(FirebaseFirestore db) {
         this.db = db;
@@ -36,6 +38,11 @@ public class NotificationRepository {
         void onFailure(Exception e);
     }
 
+    /**
+     *
+     * @param notification
+     * @param callback
+     */
     public void markAsRead(Notification notification, NotificationCallback callback) {
         if (notification == null || notification.getNotificationId() == null) {
             notifyFailure(callback, new Exception("Invalid notificationId"));
@@ -50,8 +57,8 @@ public class NotificationRepository {
     }
 
     /**
-     * US 01.05.02 Accept invitation to register
-     * US 01.05.07 Entrant accepts private waiting list invitation
+     * Entrant can accept invitation to register and
+     * accept private waiting list invitation.
      */
     public void acceptInvitation(Notification notification, NotificationCallback callback) {
         if (!isValidNotification(notification)) {
@@ -107,8 +114,8 @@ public class NotificationRepository {
     }
 
     /**
-     * US 01.05.03 Decline invitation to register
-     * US 01.05.07 Entrant declines private waiting list invitation
+     * Entrant can decline invitation to register
+     * and decline private waiting list invitation
      */
     public void declineInvitation(Notification notification, NotificationCallback callback) {
         if (!isValidNotification(notification)) {
@@ -216,7 +223,7 @@ public class NotificationRepository {
     }
 
     /**
-     * US 02.07.01 Notify waiting list
+     * Organizer notifies the waiting list
      */
     public void sendWaitingListNotification(String eventId, String message) {
         db.collection("events").document(eventId).get()
@@ -244,9 +251,8 @@ public class NotificationRepository {
     }
 
     /**
-     * US 01.04.01 Receive notification when selected for event
-     * US 2.05.01 Notify selected entrants
-     * US 02.07.02 Notify selected entrants
+     * Receive notification when selected for event
+     * Organizer notifies selected entrants
      */
     public Task<Void> sendInvitedUsersNotification(String eventId, String message) {
         return sendNotificationsToListField(
@@ -258,8 +264,8 @@ public class NotificationRepository {
     }
 
     /**
-     * US 01.04.02 Receive notification when not chosen
-     * US 02.07.03 Notify cancelled entrants
+     * Receive notification when not chosen
+     * Notify cancelled entrants
      */
     public Task<Void> sendCancelledEntrantsNotification(String eventId, String message) {
         return sendNotificationsToListField(
@@ -271,14 +277,14 @@ public class NotificationRepository {
     }
 
     /**
-     * Alias for readability for the "not chosen" story.
+     *
      */
     public Task<Void> sendNotSelectedEntrantsNotification(String eventId, String message) {
         return sendCancelledEntrantsNotification(eventId, message);
     }
 
     /**
-     * US 01.05.06 Send entrant notification to join private event
+     * Send entrant notification to join private event
      */
     public Task<Void> sendPrivateWaitlistInviteNotification(String eventId, String message) {
         return sendNotificationsToListField(

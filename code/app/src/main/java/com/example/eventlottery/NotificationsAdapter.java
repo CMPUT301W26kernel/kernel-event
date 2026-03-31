@@ -51,8 +51,9 @@ public class NotificationsAdapter extends RecyclerView.Adapter<NotificationsAdap
         bindTimestamp(holder, notification);
         resetViewState(holder);
         bindItemClick(holder, notification);
+        showTypeBadge(holder, notification);
 
-        if (isUnreadInvite(notification)) {
+        if (isActionableInvite(notification)) {
             showInviteActions(holder, notification);
         } else {
             showStatusBadge(holder, notification);
@@ -103,16 +104,34 @@ public class NotificationsAdapter extends RecyclerView.Adapter<NotificationsAdap
         });
     }
 
-    private boolean isUnreadInvite(Notification notification) {
+    private boolean isActionableInvite(Notification notification) {
         String type = notification.getType();
-        return (Notification.TYPE_INVITE.equals(type)
-                || Notification.TYPE_COORGANIZER_INVITE.equals(type))
-                && Notification.STATUS_UNREAD.equals(notification.getStatus());
+        String status = notification.getStatus();
+
+        boolean isInviteType =
+                Notification.TYPE_INVITE.equals(type) ||
+                        Notification.TYPE_COORGANIZER_INVITE.equals(type);
+
+        boolean isStillActionable =
+                Notification.STATUS_UNREAD.equals(status) ||
+                        Notification.STATUS_READ.equals(status);
+
+        return isInviteType && isStillActionable;
     }
 
     private void showInviteActions(ViewHolder holder, Notification notification) {
         holder.layoutInviteActions.setVisibility(View.VISIBLE);
-        holder.statusBadge.setVisibility(View.GONE);
+
+        if (Notification.STATUS_READ.equals(notification.getStatus())) {
+            holder.statusBadge.setVisibility(View.VISIBLE);
+            holder.statusBadge.setText("READ");
+            holder.statusBadge.setBackgroundTintList(
+                    ColorStateList.valueOf(holder.itemView.getContext().getColor(R.color.grey_light))
+            );
+            holder.statusBadge.setTextColor(holder.itemView.getContext().getColor(R.color.white));
+        } else {
+            holder.statusBadge.setVisibility(View.GONE);
+        }
 
         holder.btnAccept.setBackgroundTintList(
                 ColorStateList.valueOf(holder.itemView.getContext().getColor(R.color.primary_dark))
@@ -127,6 +146,7 @@ public class NotificationsAdapter extends RecyclerView.Adapter<NotificationsAdap
         holder.btnAccept.setOnClickListener(v -> handleAccept(holder, notification, v));
         holder.btnDecline.setOnClickListener(v -> handleDecline(holder, notification, v));
     }
+
 
     private void handleAccept(ViewHolder holder, Notification notification, View view) {
         if (!hasRequiredIds(notification)) {
@@ -215,6 +235,42 @@ public class NotificationsAdapter extends RecyclerView.Adapter<NotificationsAdap
         holder.statusBadge.setTextColor(holder.itemView.getContext().getColor(R.color.white));
     }
 
+    private void showTypeBadge(ViewHolder holder, Notification notification) {
+        String type = notification.getType();
+
+        String text;
+        int color;
+
+        if (Notification.TYPE_COORGANIZER_INVITE.equals(type)) {
+            text = "CO-ORGANIZER";
+            color = holder.itemView.getContext().getColor(R.color.primary_deep);
+        } else if (Notification.TYPE_INVITE.equals(type)) {
+            if (notification.getMessage() != null &&
+                    notification.getMessage().toLowerCase().contains("private")) {
+                text = "PRIVATE EVENT";
+                color = holder.itemView.getContext().getColor(R.color.secondary_mid);
+            } else {
+                text = "INVITE";
+                color = holder.itemView.getContext().getColor(R.color.primary_mid);
+            }
+        } else if (Notification.TYPE_INFO.equals(type)) {
+            text = "INFO";
+            color = holder.itemView.getContext().getColor(R.color.primary_dark);
+        } else if (Notification.TYPE_ADMIN.equals(type)) {
+            text = "ADMIN";
+            color = holder.itemView.getContext().getColor(R.color.primary_dark);
+        } else {
+            text = "OTHER";
+            color = holder.itemView.getContext().getColor(R.color.grey_light);
+        }
+
+        holder.typeBadge.setText(text);
+        holder.typeBadge.setBackgroundTintList(ColorStateList.valueOf(color));
+        holder.typeBadge.setTextColor(holder.itemView.getContext().getColor(R.color.white));
+    }
+
+
+
     private boolean hasRequiredIds(Notification notification) {
         return notification.getNotificationId() != null
                 && notification.getEventId() != null
@@ -233,6 +289,8 @@ public class NotificationsAdapter extends RecyclerView.Adapter<NotificationsAdap
         Button btnAccept;
         Button btnDecline;
         View layoutInviteActions;
+        TextView typeBadge;
+
 
         public ViewHolder(@NonNull View itemView) {
             super(itemView);
@@ -242,6 +300,7 @@ public class NotificationsAdapter extends RecyclerView.Adapter<NotificationsAdap
             btnAccept = itemView.findViewById(R.id.btn_accept);
             btnDecline = itemView.findViewById(R.id.btn_decline);
             layoutInviteActions = itemView.findViewById(R.id.layout_invite_actions);
+            typeBadge = itemView.findViewById(R.id.txt_type_badge);
         }
     }
 }
