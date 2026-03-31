@@ -63,16 +63,18 @@ public class NotificationRepository {
 
         db.runTransaction((Transaction.Function<Void>) transaction -> {
                     DocumentSnapshot eventSnap = transaction.get(eventRef);
+                    DocumentSnapshot notificationSnap = transaction.get(notificationRef);
 
                     if (!eventSnap.exists()) {
                         throw new RuntimeException("Event not found");
                     }
 
-                    List<String> privateInviteList =
-                            getStringList(eventSnap.get("privateEventInvitedList"));
+                    if (!notificationSnap.exists()) {
+                        throw new RuntimeException("Notification not found");
+                    }
 
-                    boolean isPrivateWaitlistInvite =
-                            privateInviteList.contains(notification.getUserId());
+                    List<String> privateInviteList = getStringList(eventSnap.get("privateEventInvitedList"));
+                    boolean isPrivateWaitlistInvite = privateInviteList.contains(notification.getUserId());
 
                     transaction.update(notificationRef, "status", Notification.STATUS_ACCEPTED);
 
@@ -86,6 +88,8 @@ public class NotificationRepository {
                                 FieldValue.arrayRemove(notification.getUserId()));
                         transaction.update(eventRef, "acceptedList",
                                 FieldValue.arrayUnion(notification.getUserId()));
+                        transaction.update(eventRef, "waitingList",
+                                FieldValue.arrayRemove(notification.getUserId()));
                     }
 
                     return null;

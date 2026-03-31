@@ -25,6 +25,9 @@
     <string name="event_organizer_format">Organizer: %1$s</string>
     <string name="event_registration_window_format">Registration: %1$s - %2$s</string>
     <string name="event_waitlist_count_format">Waitlist entrants: %1$d</string>
+    <string name="event_capacity_unknown">Capacity: Unknown</string>
+    <string name="event_capacity_unlimited">Capacity: Unlimited</string>
+    <string name="event_capacity_format">Capacity: %1$d</string>
     <string name="event_unknown_organizer">Unknown organizer</string>
     <string name="delete_event">Delete Event</string>
 

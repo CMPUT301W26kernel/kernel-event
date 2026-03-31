@@ -52,6 +52,15 @@
         tools:text="Waitlist entrants: 4" />
 
     <TextView
+        android:id="@+id/text_event_capacity"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="2dp"
+        android:textColor="@android:color/darker_gray"
+        android:textSize="14sp"
+        tools:text="Capacity: Unlimited" />
+
+    <TextView
         android:id="@+id/text_event_description"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
