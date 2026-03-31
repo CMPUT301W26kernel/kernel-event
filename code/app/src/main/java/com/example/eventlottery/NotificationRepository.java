@@ -49,6 +49,10 @@ public class NotificationRepository {
                 .addOnFailureListener(e -> notifyFailure(callback, e));
     }
 
+    /**
+     * US 01.05.02 Accept invitation to register
+     * US 01.05.07 Entrant accepts private waiting list invitation
+     */
     public void acceptInvitation(Notification notification, NotificationCallback callback) {
         if (!isValidNotification(notification)) {
             notifyFailure(callback, new RuntimeException("Invalid notification data"));
@@ -79,11 +83,13 @@ public class NotificationRepository {
                     transaction.update(notificationRef, "status", Notification.STATUS_ACCEPTED);
 
                     if (isPrivateWaitlistInvite) {
+                        // Accepting a private event invite moves entrant onto the waiting list.
                         transaction.update(eventRef, "privateEventInvitedList",
                                 FieldValue.arrayRemove(notification.getUserId()));
                         transaction.update(eventRef, "waitingList",
                                 FieldValue.arrayUnion(notification.getUserId()));
                     } else {
+                        // Accepting a normal invite moves entrant to accepted list.
                         transaction.update(eventRef, "invitedList",
                                 FieldValue.arrayRemove(notification.getUserId()));
                         transaction.update(eventRef, "acceptedList",
@@ -100,6 +106,10 @@ public class NotificationRepository {
                 });
     }
 
+    /**
+     * US 01.05.03 Decline invitation to register
+     * US 01.05.07 Entrant declines private waiting list invitation
+     */
     public void declineInvitation(Notification notification, NotificationCallback callback) {
         if (!isValidNotification(notification)) {
             notifyFailure(callback, new RuntimeException("Invalid notification data"));
@@ -114,9 +124,14 @@ public class NotificationRepository {
 
         db.runTransaction((Transaction.Function<Void>) transaction -> {
                     DocumentSnapshot eventSnap = transaction.get(eventRef);
+                    DocumentSnapshot notificationSnap = transaction.get(notificationRef);
 
                     if (!eventSnap.exists()) {
                         throw new RuntimeException("Event not found");
+                    }
+
+                    if (!notificationSnap.exists()) {
+                        throw new RuntimeException("Notification not found");
                     }
 
                     List<String> privateInviteList =
@@ -128,8 +143,17 @@ public class NotificationRepository {
                     transaction.update(notificationRef, "status", Notification.STATUS_DECLINED);
 
                     if (isPrivateWaitlistInvite) {
+                        // Declining a private waitlist invite just removes the pending invite.
                         transaction.update(eventRef, "privateEventInvitedList",
                                 FieldValue.arrayRemove(notification.getUserId()));
+                    } else {
+                        // Declining a normal invite removes it and records the entrant as cancelled/not selected.
+                        transaction.update(eventRef, "invitedList",
+                                FieldValue.arrayRemove(notification.getUserId()));
+                        transaction.update(eventRef, "acceptedList",
+                                FieldValue.arrayRemove(notification.getUserId()));
+                        transaction.update(eventRef, "cancelledList",
+                                FieldValue.arrayUnion(notification.getUserId()));
                     }
 
                     return null;
@@ -141,28 +165,59 @@ public class NotificationRepository {
     }
 
     public void createNotification(Notification notification) {
-        if (notification == null) return;
-
-        db.collection("notifications")
-                .add(notification)
-                .addOnSuccessListener(docRef -> notification.setNotificationId(docRef.getId()))
-                .addOnFailureListener(e -> Log.e(TAG, "Error adding notification", e));
+        createNotificationTask(notification)
+                .addOnSuccessListener(aVoid -> {
+                    if (notification != null && notification.getNotificationId() != null) {
+                        Log.d(TAG, "Notification added: " + notification.getNotificationId());
+                    }
+                })
+                .addOnFailureListener(e ->
+                        Log.e(TAG, "Error adding notification", e));
     }
 
-    public void sendBulkNotification(List<String> userIds, String eventId, String message) {
+    private Task<Void> createNotificationTask(Notification notification) {
+        if (notification == null) {
+            return Tasks.forException(new IllegalArgumentException("Notification cannot be null"));
+        }
+
+        return canReceiveNotification(notification.getUserId(), notification.getType())
+                .continueWithTask(task -> {
+                    if (!task.isSuccessful()) {
+                        Exception e = task.getException();
+                        throw (e != null) ? e : new Exception("Failed to check notification preference");
+                    }
+
+                    Boolean allowed = task.getResult();
+                    if (allowed == null || !allowed) {
+                        return Tasks.forResult(null);
+                    }
+
+                    DocumentReference notificationRef = db.collection("notifications").document();
+                    notification.setNotificationId(notificationRef.getId());
+                    return notificationRef.set(notification);
+                });
+    }
+
+    public void sendBulkNotification(List<String> userIds,
+                                     String eventId,
+                                     String message,
+                                     String type) {
         if (userIds == null || userIds.isEmpty()) return;
 
         for (String userId : userIds) {
             createNotification(buildNotification(
                     userId,
                     eventId,
-                    Notification.TYPE_INFO,
+                    type,
                     message,
                     Notification.STATUS_UNREAD
             ));
         }
     }
 
+    /**
+     * US 02.07.01 Notify waiting list
+     */
     public void sendWaitingListNotification(String eventId, String message) {
         db.collection("events").document(eventId).get()
                 .addOnSuccessListener(doc -> {
@@ -188,26 +243,56 @@ public class NotificationRepository {
                         Log.e(TAG, "Failed to read waiting list", e));
     }
 
+    /**
+     * US 01.04.01 Receive notification when selected for event
+     * US 2.05.01 Notify selected entrants
+     * US 02.07.02 Notify selected entrants
+     */
     public Task<Void> sendInvitedUsersNotification(String eventId, String message) {
         return sendNotificationsToListField(
-                eventId, "invitedList", Notification.TYPE_INVITE, message
+                eventId,
+                "invitedList",
+                Notification.TYPE_INVITE,
+                message
         );
     }
 
+    /**
+     * US 01.04.02 Receive notification when not chosen
+     * US 02.07.03 Notify cancelled entrants
+     */
     public Task<Void> sendCancelledEntrantsNotification(String eventId, String message) {
         return sendNotificationsToListField(
-                eventId, "cancelledList", Notification.TYPE_INFO, message
+                eventId,
+                "cancelledList",
+                Notification.TYPE_INFO,
+                message
         );
     }
 
+    /**
+     * Alias for readability for the "not chosen" story.
+     */
+    public Task<Void> sendNotSelectedEntrantsNotification(String eventId, String message) {
+        return sendCancelledEntrantsNotification(eventId, message);
+    }
+
+    /**
+     * US 01.05.06 Send entrant notification to join private event
+     */
     public Task<Void> sendPrivateWaitlistInviteNotification(String eventId, String message) {
         return sendNotificationsToListField(
-                eventId, "privateEventInvitedList", Notification.TYPE_INVITE, message
+                eventId,
+                "privateEventInvitedList",
+                Notification.TYPE_INVITE,
+                message
         );
     }
 
-    private Task<Void> sendNotificationsToListField(String eventId, String fieldName,
-                                                    String type, String message) {
+    private Task<Void> sendNotificationsToListField(String eventId,
+                                                    String fieldName,
+                                                    String type,
+                                                    String message) {
         return db.collection("events")
                 .document(eventId)
                 .get()
@@ -223,7 +308,7 @@ public class NotificationRepository {
                     }
 
                     List<String> userIds = getStringList(snapshot.get(fieldName));
-                    List<Task<DocumentReference>> tasks = new ArrayList<>();
+                    List<Task<Void>> tasks = new ArrayList<>();
 
                     for (String userId : userIds) {
                         Notification notification = buildNotification(
@@ -233,15 +318,113 @@ public class NotificationRepository {
                                 message,
                                 Notification.STATUS_UNREAD
                         );
-                        tasks.add(db.collection("notifications").add(notification));
+                        tasks.add(createNotificationTask(notification));
                     }
 
                     return Tasks.whenAll(tasks);
                 });
     }
 
-    private Notification buildNotification(String userId, String eventId,
-                                           String type, String message, String status) {
+    private Task<Boolean> canReceiveNotification(String userId, String type) {
+        if (Notification.TYPE_INVITE.equals(type)
+                || Notification.TYPE_COORGANIZER_INVITE.equals(type)) {
+            return Tasks.forResult(true);
+        }
+
+        return db.collection("users").document(userId).get()
+                .continueWith(task -> {
+                    if (!task.isSuccessful()) {
+                        Exception e = task.getException();
+                        throw (e != null) ? e : new Exception("Failed to load user");
+                    }
+
+                    DocumentSnapshot snapshot = task.getResult();
+                    if (snapshot == null || !snapshot.exists()) {
+                        return true;
+                    }
+
+                    Boolean enabled = snapshot.getBoolean("notificationsEnabled");
+                    return enabled == null || enabled;
+                });
+    }
+
+    public void sendCoOrganizerInviteNotification(String userId, String eventId, String message) {
+        createNotification(buildNotification(
+                userId,
+                eventId,
+                Notification.TYPE_COORGANIZER_INVITE,
+                message,
+                Notification.STATUS_UNREAD
+        ));
+    }
+
+    public void acceptCoOrganizerInvite(Notification notification, NotificationCallback callback) {
+        if (!isValidNotification(notification)) {
+            notifyFailure(callback, new RuntimeException("Invalid notification data"));
+            return;
+        }
+
+        DocumentReference notificationRef = db.collection("notifications")
+                .document(notification.getNotificationId());
+
+        DocumentReference eventRef = db.collection("events")
+                .document(notification.getEventId());
+
+        db.runTransaction((Transaction.Function<Void>) transaction -> {
+                    DocumentSnapshot eventSnap = transaction.get(eventRef);
+                    DocumentSnapshot notificationSnap = transaction.get(notificationRef);
+
+                    if (!eventSnap.exists()) {
+                        throw new RuntimeException("Event not found");
+                    }
+
+                    if (!notificationSnap.exists()) {
+                        throw new RuntimeException("Notification not found");
+                    }
+
+                    transaction.update(notificationRef, "status", Notification.STATUS_ACCEPTED);
+                    transaction.update(eventRef, "coOrganizers", FieldValue.arrayUnion(notification.getUserId()));
+
+                    return null;
+                }).addOnSuccessListener(aVoid -> notifySuccess(callback))
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Accept co-organizer invite failed", e);
+                    notifyFailure(callback, e);
+                });
+    }
+
+    public void declineCoOrganizerInvite(Notification notification, NotificationCallback callback) {
+        if (!isValidNotification(notification)) {
+            notifyFailure(callback, new RuntimeException("Invalid notification data"));
+            return;
+        }
+
+        DocumentReference notificationRef = db.collection("notifications")
+                .document(notification.getNotificationId());
+
+        db.runTransaction((Transaction.Function<Void>) transaction -> {
+                    DocumentSnapshot notificationSnap = transaction.get(notificationRef);
+
+                    if (!notificationSnap.exists()) {
+                        throw new RuntimeException("Notification not found");
+                    }
+
+                    transaction.update(notificationRef, "status", Notification.STATUS_DECLINED);
+                    return null;
+                }).addOnSuccessListener(aVoid -> notifySuccess(callback))
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Decline co-organizer invite failed", e);
+                    notifyFailure(callback, e);
+                });
+    }
+
+
+
+    private Notification buildNotification(String userId,
+                                           String eventId,
+                                           String type,
+                                           String message,
+                                           String status) {
         Notification notification = new Notification();
         notification.setUserId(userId);
         notification.setEventId(eventId);

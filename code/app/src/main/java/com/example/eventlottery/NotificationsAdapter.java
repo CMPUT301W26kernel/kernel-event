@@ -104,8 +104,10 @@ public class NotificationsAdapter extends RecyclerView.Adapter<NotificationsAdap
     }
 
     private boolean isUnreadInvite(Notification notification) {
-        return Notification.TYPE_INVITE.equals(notification.getType()) &&
-                Notification.STATUS_UNREAD.equals(notification.getStatus());
+        String type = notification.getType();
+        return (Notification.TYPE_INVITE.equals(type)
+                || Notification.TYPE_COORGANIZER_INVITE.equals(type))
+                && Notification.STATUS_UNREAD.equals(notification.getStatus());
     }
 
     private void showInviteActions(ViewHolder holder, Notification notification) {
@@ -132,7 +134,7 @@ public class NotificationsAdapter extends RecyclerView.Adapter<NotificationsAdap
             return;
         }
 
-        repository.acceptInvitation(notification, new NotificationRepository.NotificationCallback() {
+        NotificationRepository.NotificationCallback callback = new NotificationRepository.NotificationCallback() {
             @Override
             public void onSuccess() {
                 int pos = holder.getAdapterPosition();
@@ -145,11 +147,19 @@ public class NotificationsAdapter extends RecyclerView.Adapter<NotificationsAdap
 
             @Override
             public void onFailure(Exception e) {
-                Toast.makeText(view.getContext(),
+                Toast.makeText(
+                        view.getContext(),
                         "Failed to accept invitation: " + e.getMessage(),
-                        Toast.LENGTH_LONG).show();
+                        Toast.LENGTH_LONG
+                ).show();
             }
-        });
+        };
+
+        if (Notification.TYPE_COORGANIZER_INVITE.equals(notification.getType())) {
+            repository.acceptCoOrganizerInvite(notification, callback);
+        } else {
+            repository.acceptInvitation(notification, callback);
+        }
     }
 
     private void handleDecline(ViewHolder holder, Notification notification, View view) {
@@ -158,7 +168,7 @@ public class NotificationsAdapter extends RecyclerView.Adapter<NotificationsAdap
             return;
         }
 
-        repository.declineInvitation(notification, new NotificationRepository.NotificationCallback() {
+        NotificationRepository.NotificationCallback callback = new NotificationRepository.NotificationCallback() {
             @Override
             public void onSuccess() {
                 int pos = holder.getAdapterPosition();
@@ -171,9 +181,19 @@ public class NotificationsAdapter extends RecyclerView.Adapter<NotificationsAdap
 
             @Override
             public void onFailure(Exception e) {
-                Toast.makeText(view.getContext(), "Failed to decline invitation", Toast.LENGTH_SHORT).show();
+                Toast.makeText(
+                        view.getContext(),
+                        "Failed to decline invitation: " + e.getMessage(),
+                        Toast.LENGTH_LONG
+                ).show();
             }
-        });
+        };
+
+        if (Notification.TYPE_COORGANIZER_INVITE.equals(notification.getType())) {
+            repository.declineCoOrganizerInvite(notification, callback);
+        } else {
+            repository.declineInvitation(notification, callback);
+        }
     }
 
     private void showStatusBadge(ViewHolder holder, Notification notification) {

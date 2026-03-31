@@ -28,6 +28,16 @@ public class User {
         this.phoneNumber = phoneNumber;
     }
 
+    private Boolean notificationsEnabled = true;
+
+    public Boolean getNotificationsEnabled() {
+        return notificationsEnabled;
+    }
+
+    public void setNotificationsEnabled(Boolean notificationsEnabled) {
+        this.notificationsEnabled = notificationsEnabled;
+    }
+
     public String getUserId() {
         return userId;
     }

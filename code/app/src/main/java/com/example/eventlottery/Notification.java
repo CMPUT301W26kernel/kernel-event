@@ -19,6 +19,7 @@ public class Notification {
     public static final String TYPE_INVITE = "INVITE";
     public static final String TYPE_ADMIN = "ADMIN";
     public static final String TYPE_INFO = "INFO";
+    public static final String TYPE_COORGANIZER_INVITE = "COORGANIZER_INVITE";
 
     // Notification Status
     public static final String STATUS_UNREAD = "UNREAD";
