@@ -10,6 +10,8 @@ import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.Transaction;
+import com.google.firebase.auth.FirebaseAuth;
+
 
 import java.util.ArrayList;
 import java.util.List;
@@ -236,15 +238,36 @@ public class NotificationRepository {
                             event.getWaitingList() == null ||
                             event.getWaitingList().isEmpty()) return;
 
-                    for (String userId : event.getWaitingList()) {
-                        createNotification(buildNotification(
+                    List<String> waitingList = event.getWaitingList();
+                    List<Task<Void>> tasks = new ArrayList<>();
+
+                    for (String userId : waitingList) {
+                        tasks.add(createNotificationTask(buildNotification(
                                 userId,
                                 eventId,
                                 Notification.TYPE_INFO,
                                 message,
                                 Notification.STATUS_UNREAD
+                        )));
+                    }
+
+                    String senderId = FirebaseAuth.getInstance().getCurrentUser() != null
+                            ? FirebaseAuth.getInstance().getCurrentUser().getUid()
+                            : null;
+
+                    if (senderId != null) {
+                        tasks.add(createNotificationLog(
+                                senderId,
+                                eventId,
+                                waitingList,
+                                Notification.TYPE_INFO,
+                                message
                         ));
                     }
+
+                    Tasks.whenAll(tasks)
+                            .addOnFailureListener(e ->
+                                    Log.e(TAG, "Failed to send waiting list notifications", e));
                 })
                 .addOnFailureListener(e ->
                         Log.e(TAG, "Failed to read waiting list", e));
@@ -327,6 +350,20 @@ public class NotificationRepository {
                         tasks.add(createNotificationTask(notification));
                     }
 
+                    String senderId = FirebaseAuth.getInstance().getCurrentUser() != null
+                            ? FirebaseAuth.getInstance().getCurrentUser().getUid()
+                            : null;
+
+                    if (senderId != null && !userIds.isEmpty()) {
+                        tasks.add(createNotificationLog(
+                                senderId,
+                                eventId,
+                                userIds,
+                                type,
+                                message
+                        ));
+                    }
+
                     return Tasks.whenAll(tasks);
                 });
     }
@@ -355,13 +392,33 @@ public class NotificationRepository {
     }
 
     public void sendCoOrganizerInviteNotification(String userId, String eventId, String message) {
-        createNotification(buildNotification(
+        Notification notification = buildNotification(
                 userId,
                 eventId,
                 Notification.TYPE_COORGANIZER_INVITE,
                 message,
                 Notification.STATUS_UNREAD
-        ));
+        );
+
+        createNotification(notification);
+
+        String senderId = FirebaseAuth.getInstance().getCurrentUser() != null
+                ? FirebaseAuth.getInstance().getCurrentUser().getUid()
+                : null;
+
+        if (senderId != null) {
+            List<String> recipients = new ArrayList<>();
+            recipients.add(userId);
+
+            createNotificationLog(
+                    senderId,
+                    eventId,
+                    recipients,
+                    Notification.TYPE_COORGANIZER_INVITE,
+                    message
+            ).addOnFailureListener(e ->
+                    Log.e(TAG, "Failed to log co-organizer invite", e));
+        }
     }
 
     public void acceptCoOrganizerInvite(Notification notification, NotificationCallback callback) {
@@ -422,6 +479,30 @@ public class NotificationRepository {
                     Log.e(TAG, "Decline co-organizer invite failed", e);
                     notifyFailure(callback, e);
                 });
+    }
+
+    private Task<Void> createNotificationLog(String senderId,
+                                             String eventId,
+                                             List<String> recipientIds,
+                                             String type,
+                                             String message) {
+        if (senderId == null || eventId == null || recipientIds == null) {
+            return Tasks.forException(new IllegalArgumentException("Invalid log data"));
+        }
+
+        DocumentReference logRef = db.collection("notification_logs").document();
+
+        NotificationLog log = new NotificationLog();
+        log.setLogId(logRef.getId());
+        log.setSenderId(senderId);
+        log.setEventId(eventId);
+        log.setRecipientIds(new ArrayList<>(recipientIds));
+        log.setRecipientCount(recipientIds.size());
+        log.setType(type);
+        log.setMessage(message);
+        log.setTimestamp(Timestamp.now());
+
+        return logRef.set(log);
     }
 
 
