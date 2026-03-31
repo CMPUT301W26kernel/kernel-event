@@ -258,7 +258,7 @@ public class UserProfileFragment extends Fragment {
      * @param str The string to capitalize.
      * @return The capitalized string.
      */
-    private String capitalize(String str) {
+    public String capitalize(String str) {
         if (str == null || str.isEmpty()) return "";
         return str.substring(0, 1).toUpperCase() + str.substring(1).toLowerCase();
     }
@@ -268,7 +268,7 @@ public class UserProfileFragment extends Fragment {
      * @param value The string to check.
      * @return The original string or an empty string.
      */
-    private String valueOrEmpty(String value) {
+    public String valueOrEmpty(String value) {
         // Guards against null values in Firestore.
         return value == null ? "" : value;
     }
