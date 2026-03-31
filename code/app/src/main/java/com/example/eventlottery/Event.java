@@ -29,6 +29,7 @@ import com.google.firebase.firestore.Exclude;
 
 import java.io.ByteArrayOutputStream;
 import java.time.ZonedDateTime;
+import java.util.List;
 
 /**
  * A class representing an Event which stores event data
@@ -197,6 +198,16 @@ public class Event {
         return waitingListCapacity;
     }
 
+    private List<String> waitingList;
+
+    public List<String> getWaitingList() {
+        return waitingList;
+    }
+
+    public void setWaitingList(List<String> waitingList) {
+        this.waitingList = waitingList;
+    }
+
     public void setWaitingListCapacity(@Nullable Integer waitingListCapacity) {
         if (waitingListCapacity == null || waitingListCapacity > 0 ) {
             this.waitingListCapacity = waitingListCapacity;
@@ -204,5 +215,6 @@ public class Event {
             throw new IllegalArgumentException("Waiting list capacity must be a positive number or null.");
         }
     }
+
 
 }

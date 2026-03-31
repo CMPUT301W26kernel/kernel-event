@@ -168,10 +168,13 @@ public class NotificationRepository {
                 .addOnSuccessListener(doc -> {
                     if (!doc.exists()) return;
 
-                    List<String> waitingList = getStringList(doc.get("waitingList"));
-                    if (waitingList.isEmpty()) return;
+                    Event event = doc.toObject(Event.class);
 
-                    for (String userId : waitingList) {
+                    if (event == null ||
+                            event.getWaitingList() == null ||
+                            event.getWaitingList().isEmpty()) return;
+
+                    for (String userId : event.getWaitingList()) {
                         createNotification(buildNotification(
                                 userId,
                                 eventId,
