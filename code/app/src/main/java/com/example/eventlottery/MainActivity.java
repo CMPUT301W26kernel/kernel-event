@@ -56,18 +56,11 @@ public class MainActivity extends AppCompatActivity {
                 .commit();
     }
 
-    //private void showHomePageFragment() {
-        // Replacing the single fragment container with the app "home" fragment.
-       // getSupportFragmentManager()
-               // .beginTransaction()
-                //.replace(R.id.fragment_container, new HomePageFragment())
-                //.commit();
-   // }
-
     private void showHomePageFragment() {
+        // Replacing the single fragment container with the app "home" fragment.
         getSupportFragmentManager()
                 .beginTransaction()
-                .replace(R.id.fragment_container, new NotificationsFragment())
+                .replace(R.id.fragment_container, new HomePageFragment())
                 .commit();
     }
 
