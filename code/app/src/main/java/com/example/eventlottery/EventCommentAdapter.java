@@ -39,6 +39,7 @@ public class EventCommentAdapter extends RecyclerView.Adapter<EventCommentAdapte
     private String currentUserId;
     private String currentUserRole;
     private String organizerId;
+    private List<String> eventCoOrganizers = new ArrayList<>();
 
     public EventCommentAdapter(OnDeleteCommentListener deleteListener) {
         this.deleteListener = deleteListener;
@@ -61,11 +62,16 @@ public class EventCommentAdapter extends RecyclerView.Adapter<EventCommentAdapte
      * @param currentUserId Signed-in user id, if any.
      * @param currentUserRole Viewer role.
      * @param organizerId Event organizer id.
+     * @param eventCoOrganizers List of co-organizers for the event.
      */
-    public void setViewerContext(String currentUserId, String currentUserRole, String organizerId) {
+    public void setViewerContext(String currentUserId, String currentUserRole, String organizerId, List<String> eventCoOrganizers) {
         this.currentUserId = currentUserId;
         this.currentUserRole = currentUserRole;
         this.organizerId = organizerId;
+        this.eventCoOrganizers.clear();
+        if (eventCoOrganizers != null) {
+            this.eventCoOrganizers.addAll(eventCoOrganizers);
+        }
         notifyDataSetChanged();
     }
 
@@ -96,7 +102,8 @@ public class EventCommentAdapter extends RecyclerView.Adapter<EventCommentAdapte
                     comment,
                     currentUserId,
                     currentUserRole,
-                    organizerId
+                    organizerId,
+                    eventCoOrganizers
             );
             holder.deleteButton.setVisibility(canDelete ? View.VISIBLE : View.GONE);
             holder.deleteButton.setOnClickListener(v -> deleteListener.onDeleteComment(comment));

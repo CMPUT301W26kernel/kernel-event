@@ -52,6 +52,9 @@ public class Event {
     private ZonedDateTime registrationClose = null;
     private String registrationCloseIso; // Read only
 
+    private java.util.List<String> coOrganizers = new java.util.ArrayList<>();
+    private java.util.List<String> pendingCoOrganizers = new java.util.ArrayList<>();
+
     /**
      * An empty public constructor required for Firebase deserialization.
      * DO.NOT.DELETE.
@@ -203,6 +206,22 @@ public class Event {
         } else {
             throw new IllegalArgumentException("Waiting list capacity must be a positive number or null.");
         }
+    }
+
+    public java.util.List<String> getCoOrganizers() {
+        return coOrganizers;
+    }
+
+    public void setCoOrganizers(java.util.List<String> coOrganizers) {
+        this.coOrganizers = coOrganizers;
+    }
+
+    public java.util.List<String> getPendingCoOrganizers() {
+        return pendingCoOrganizers;
+    }
+
+    public void setPendingCoOrganizers(java.util.List<String> pendingCoOrganizers) {
+        this.pendingCoOrganizers = pendingCoOrganizers;
     }
 
 }

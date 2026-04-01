@@ -82,4 +82,13 @@
     <string name="error_generic">Sorry something went wrong&#8230;</string>
     <string name="error_invalid_qr_code">Not an eventId</string>
     <string name="error_failed_to_save_image">Failed to save image</string>
+
+    <string name="back_button_text">Back</string>
+    <string name="entrant_list_title">Entrant List</string>
+    <string name="search_entrants_hint">Search entrants by name or email</string>
+    <string name="pending_invites_title">Pending Invites</string>
+    <string name="co_organizer_invites_button">Co-Organizer Invites</string>
+    <string name="invite_for_event">Invite for: %1$s</string>
+    <string name="accept_invite">Accept</string>
+    <string name="decline_invite">Decline</string>
 </resources>

@@ -164,6 +164,40 @@
             app:layout_constraintTop_toBottomOf="@id/history_button" />
 
         <com.google.android.material.button.MaterialButton
+            android:id="@+id/entrant_list_button"
+            android:layout_width="260dp"
+            android:layout_height="wrap_content"
+            android:minHeight="64dp"
+            android:layout_marginTop="16dp"
+            android:text="See Entrant List"
+            android:textAllCaps="false"
+            android:textSize="18sp"
+            android:visibility="gone"
+            app:backgroundTint="#3F7E8A"
+            app:cornerRadius="8dp"
+            app:layout_goneMarginTop="32dp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/notification_logs_button" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/pending_invites_button"
+            android:layout_width="260dp"
+            android:layout_height="wrap_content"
+            android:minHeight="64dp"
+            android:layout_marginTop="16dp"
+            android:text="@string/co_organizer_invites_button"
+            android:textAllCaps="false"
+            android:textSize="18sp"
+            android:visibility="gone"
+            app:backgroundTint="#3F7E8A"
+            app:cornerRadius="8dp"
+            app:layout_goneMarginTop="32dp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/entrant_list_button" />
+
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/done_button"
             android:layout_width="260dp"
             android:layout_height="wrap_content"
@@ -177,7 +211,7 @@
             app:layout_goneMarginTop="32dp"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/notification_logs_button" />
+            app:layout_constraintTop_toBottomOf="@id/pending_invites_button" />
 
         <TextView
             android:id="@+id/device_id_text"
