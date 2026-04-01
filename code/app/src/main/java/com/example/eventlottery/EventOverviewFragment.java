@@ -374,8 +374,16 @@ public class EventOverviewFragment extends Fragment implements
     private void refreshActionState() {
         commentAdapter.setViewerContext(currentUserId, currentUserRole, eventOrganizerId);
 
-        if (canManageWaitlist()) {
+        boolean isOrganizer = currentUserId != null && currentUserId.equals(eventOrganizerId);
+        boolean isAdmin = "admin".equalsIgnoreCase(currentUserRole);
+
+        if (isOrganizer) {
+            // Allow organizer/admin of event to manage waitlist; cannot join waitlist.
             showManageWaitlistButton();
+        } else if (isAdmin) {
+            //Allow admin to both join and manage waitlists of events they're not organizing.
+            joinWaitlistButton.setVisibility(View.VISIBLE);
+            manageWaitlistButton.setVisibility(View.VISIBLE);
         } else {
             showJoinWaitlistButton();
         }
@@ -390,17 +398,6 @@ public class EventOverviewFragment extends Fragment implements
             commentPermissionView.setVisibility(View.VISIBLE);
             commentPermissionView.setText(resolveCommentPermissionMessage());
         }
-    }
-
-    /**
-     * Returns whether the current viewer can open organizer/admin waitlist management.
-     *
-     * @return True when the viewer is the event organizer or an admin.
-     */
-    private boolean canManageWaitlist() {
-        boolean isOrganizer = currentUserId != null && currentUserId.equals(eventOrganizerId);
-        boolean isAdmin = "admin".equalsIgnoreCase(currentUserRole);
-        return isOrganizer || isAdmin;
     }
 
     /**
