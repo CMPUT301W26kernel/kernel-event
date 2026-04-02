@@ -13,19 +13,29 @@
         android:layout_height="wrap_content"
         android:orientation="vertical">
 
-        <!-- Header card -->
+        <!-- Header card with image as background -->
         <androidx.cardview.widget.CardView
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_height="220dp"
             app:cardCornerRadius="0dp"
             app:cardElevation="4dp"
             app:cardBackgroundColor="@color/primary_deep">
+
+            <ImageView
+                android:id="@+id/image_event_poster"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:scaleType="centerCrop"
+                android:src="@drawable/default_image"
+                android:alpha="0.4"
+                android:contentDescription="Event poster" />
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:padding="20dp">
+                android:padding="20dp"
+                android:layout_gravity="bottom">
 
                 <Button
                     android:id="@+id/btn_back_to_events"
@@ -36,16 +46,6 @@
                     android:backgroundTint="@color/primary_dark"
                     android:textColor="@color/primary_light"
                     android:textSize="13sp" />
-
-                <!-- Poster image placeholder -->
-                <ImageView
-                    android:id="@+id/image_event_poster"
-                    android:layout_width="match_parent"
-                    android:layout_height="180dp"
-                    android:scaleType="centerCrop"
-                    android:src="@drawable/default_image"
-                    android:contentDescription="Event poster"
-                    android:layout_marginTop="12dp" />
 
                 <TextView
                     android:id="@+id/text_event_title"
