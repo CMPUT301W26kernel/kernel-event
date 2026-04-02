@@ -2,6 +2,8 @@ package com.example.eventlottery;
 
 import static org.junit.Assert.assertEquals;
 
+import com.example.eventlottery.profiles.UserProfileFragment;
+
 import org.junit.Before;
 import org.junit.Test;
 

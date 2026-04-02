@@ -7,7 +7,7 @@
  * @author Grace MacKenzie
  * @since 2026-02-28
  */
-package com.example.eventlottery;
+package com.example.eventlottery.profiles;
 
 import android.os.Bundle;
 
@@ -20,11 +20,12 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.ProgressBar;
-import android.widget.RadioButton;
 import android.widget.RadioGroup;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.example.eventlottery.HomePageFragment;
+import com.example.eventlottery.R;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
 import com.google.firebase.auth.FirebaseAuth;
