@@ -102,6 +102,11 @@ public class EventHistoryFragment extends Fragment {
         adapter = new HistoryAdapter(requireContext(), historyItems);
         listView.setAdapter(adapter);
 
+        listView.setOnItemClickListener((parent, v, position, id) -> {
+            HistoryItem selectedItem = historyItems.get(position);
+            navigateToEventOverview(selectedItem.eventId);
+        });
+
         if (currentUserId != null) {
             loadEventHistory();
         }
@@ -142,6 +147,17 @@ public class EventHistoryFragment extends Fragment {
         }).addOnFailureListener(e -> {
             Toast.makeText(getContext(), "Failed to load history.", Toast.LENGTH_SHORT).show();
         });
+    }
+
+    private void navigateToEventOverview(String eventId) {
+        EventOverviewFragment fragment = new EventOverviewFragment();
+        Bundle args = new Bundle();
+        args.putString("eventId", eventId);
+        fragment.setArguments(args);
+        getParentFragmentManager().beginTransaction()
+                .replace(R.id.fragment_container, fragment)
+                .addToBackStack(null)
+                .commit();
     }
 
     private static class HistoryItem {

@@ -5,22 +5,24 @@ import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
 
+import java.util.Collections;
+
 public class EventCommentPolicyTest {
 
     @Test
     public void entrantCanPostComments() {
-        assertTrue(EventCommentPolicy.canPostComment("entrant-1", "entrant", "organizer-1"));
+        assertTrue(EventCommentPolicy.canPostComment("entrant-1", "entrant", "organizer-1", null));
     }
 
     @Test
     public void organizerCanOnlyPostOnOwnEvent() {
-        assertTrue(EventCommentPolicy.canPostComment("organizer-1", "organizer", "organizer-1"));
-        assertFalse(EventCommentPolicy.canPostComment("organizer-2", "organizer", "organizer-1"));
+        assertTrue(EventCommentPolicy.canPostComment("organizer-1", "organizer", "organizer-1", null));
+        assertFalse(EventCommentPolicy.canPostComment("organizer-2", "organizer", "organizer-1", null));
     }
 
     @Test
     public void adminCannotPostComments() {
-        assertFalse(EventCommentPolicy.canPostComment("admin-1", "admin", "organizer-1"));
+        assertFalse(EventCommentPolicy.canPostComment("admin-1", "admin", "organizer-1", null));
     }
 
     @Test
@@ -37,13 +39,15 @@ public class EventCommentPolicyTest {
                 entrantComment,
                 "organizer-1",
                 "organizer",
-                "organizer-1"
+                "organizer-1",
+                null
         ));
         assertFalse(EventCommentPolicy.canDeleteComment(
                 organizerComment,
                 "organizer-1",
                 "organizer",
-                "organizer-1"
+                "organizer-1",
+                null
         ));
     }
 
@@ -57,13 +61,14 @@ public class EventCommentPolicyTest {
                 comment,
                 "admin-1",
                 "admin",
-                "organizer-1"
+                "organizer-1",
+                null
         ));
     }
 
     @Test
     public void organizerCommentsArePinned() {
-        assertTrue(EventCommentPolicy.shouldPinComment("organizer-1", "organizer-1"));
-        assertFalse(EventCommentPolicy.shouldPinComment("entrant-1", "organizer-1"));
+        assertTrue(EventCommentPolicy.shouldPinComment("organizer-1", "organizer-1", null));
+        assertFalse(EventCommentPolicy.shouldPinComment("entrant-1", "organizer-1", null));
     }
 }
