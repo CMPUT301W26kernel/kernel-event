@@ -1,3 +1,15 @@
+/**
+ * Entrant List Fragment
+ * Displays a searchable list of all entrants. Organizers and Admins can select an entrant
+ * from this list to invite them to become a Co-Organizer for an event.
+ * Last Modified: 2026-03-31 by Rebecca OluwaBiyi
+ *
+ * Notes:
+ *      - Accessible by Organizer and Admin roles only via the User Profile.
+ *
+ * @author Rebecca OluwaBiyi
+ * @since 2026-03-31
+ */
 package com.example.eventlottery;
 
 import android.app.AlertDialog;
@@ -28,6 +40,10 @@ import com.google.firebase.firestore.QueryDocumentSnapshot;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * A simple {@link Fragment} subclass.
+ * Displays a searchable list of all users with the Entrant role.
+ */
 public class EntrantListFragment extends Fragment {
 
     private ListView listView;

@@ -1,3 +1,16 @@
+/**
+ * Pending Invites Fragment
+ * Displays a list of pending Co-Organizer invitations sent to the current user.
+ * Users can review, accept, or decline invitations from this screen.
+ * Last Modified: 2026-03-31 by Rebecca OluwaBiyi
+ *
+ * Notes:
+ *      - Accessible from the User Profile screen.
+ *      - Accepting an invite promotes the user to a Co-Organizer for that specific event.
+ *
+ * @author Rebecca OluwaBiyi
+ * @since 2026-03-31
+ */
 package com.example.eventlottery;
 
 import android.os.Bundle;
@@ -21,6 +34,10 @@ import com.google.firebase.firestore.FirebaseFirestore;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * A simple {@link Fragment} subclass.
+ * Displays all pending Co-Organizer invitations for the current user.
+ */
 public class PendingInvitesFragment extends Fragment {
 
     private LinearLayout pendingInvitesList;
