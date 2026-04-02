@@ -6,9 +6,11 @@
  * @author Grace MacKenzie
  * @since 2026-03-10
  */
-package com.example.eventlottery;
+package com.example.eventlottery.creation;
 
 import androidx.annotation.Nullable;
+
+import com.example.eventlottery.Event;
 
 public class ValidationResult {
     public final boolean isValid;

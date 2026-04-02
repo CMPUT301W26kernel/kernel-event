@@ -7,7 +7,7 @@
  * @author Grace MacKenzie
  * @since 2026-03-10
  */
-package com.example.eventlottery;
+package com.example.eventlottery.creation;
 
 public enum EventCreationMode {
     CREATE,
