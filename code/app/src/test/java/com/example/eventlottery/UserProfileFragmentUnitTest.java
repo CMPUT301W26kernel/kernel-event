@@ -2,6 +2,7 @@ package com.example.eventlottery;
 
 import static org.junit.Assert.assertEquals;
 
+import org.junit.Before;
 import org.junit.Test;
 
 /**
@@ -10,20 +11,23 @@ import org.junit.Test;
  */
 public class UserProfileFragmentUnitTest {
 
+    private UserProfileFragment fragment;
+
+    @Before
+    public void setUp() {
+        fragment = new UserProfileFragment();
+    }
+
     /**
-     * Tests the valueOrEmpty helper method in a simulated way.
-     * Note: Since valueOrEmpty is private in UserProfileFragment, 
-     * in a real scenario you might make it package-private for testing 
-     * or test it via public methods. This test demonstrates the logic.
+     * Tests the valueOrEmpty helper method.
      */
     @Test
     public void testValueOrEmpty() {
-        // Logic test: null should return empty string, others should return themselves.
         String nullValue = null;
         String validValue = "TestUser";
 
-        assertEquals("", mockValueOrEmpty(nullValue));
-        assertEquals("TestUser", mockValueOrEmpty(validValue));
+        assertEquals("", fragment.valueOrEmpty(nullValue));
+        assertEquals("TestUser", fragment.valueOrEmpty(validValue));
     }
 
     /**
@@ -31,19 +35,10 @@ public class UserProfileFragmentUnitTest {
      */
     @Test
     public void testCapitalize() {
-        assertEquals("Entrant", mockCapitalize("entrant"));
-        assertEquals("Organizer", mockCapitalize("ORGANIZER"));
-        assertEquals("Admin", mockCapitalize("aDmiN"));
-        assertEquals("", mockCapitalize(null));
-        assertEquals("", mockCapitalize(""));
-    }
-
-    private String mockValueOrEmpty(String value) {
-        return value == null ? "" : value;
-    }
-
-    private String mockCapitalize(String str) {
-        if (str == null || str.isEmpty()) return "";
-        return str.substring(0, 1).toUpperCase() + str.substring(1).toLowerCase();
+        assertEquals("Entrant", fragment.capitalize("entrant"));
+        assertEquals("Organizer", fragment.capitalize("ORGANIZER"));
+        assertEquals("Admin", fragment.capitalize("aDmiN"));
+        assertEquals("", fragment.capitalize(null));
+        assertEquals("", fragment.capitalize(""));
     }
 }
