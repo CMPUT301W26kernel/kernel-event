@@ -13,19 +13,31 @@
         android:layout_height="wrap_content"
         android:orientation="vertical">
 
-        <!-- Header card -->
+        <!-- Header card with image as background -->
         <androidx.cardview.widget.CardView
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_height="220dp"
             app:cardCornerRadius="0dp"
             app:cardElevation="4dp"
             app:cardBackgroundColor="@color/primary_deep">
 
+            <ImageView
+                android:id="@+id/image_event_poster"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:scaleType="centerCrop"
+                android:src="@drawable/default_image"
+                android:alpha="0.4"
+                android:contentDescription="Event poster" />
+
+            <!-- A linear layout to hold Card buttons-->
+
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="20dp">
+                android:orientation="horizontal"
+                android:padding="20dp"
+                android:layout_gravity="top">
 
                 <Button
                     android:id="@+id/btn_back_to_events"
@@ -37,15 +49,30 @@
                     android:textColor="@color/primary_light"
                     android:textSize="13sp" />
 
-                <!-- Poster image placeholder -->
-                <ImageView
-                    android:id="@+id/image_event_poster"
-                    android:layout_width="match_parent"
-                    android:layout_height="180dp"
-                    android:scaleType="centerCrop"
-                    android:src="@drawable/default_img"
-                    android:contentDescription="Event poster"
-                    android:layout_marginTop="12dp" />
+                <Button
+                    android:id="@+id/btn_qr_generate"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="30dp"
+                    android:visibility="gone"
+                    android:contentDescription="@string/generate_qr_code"
+
+                    android:backgroundTint="@color/primary_dark"
+
+                    android:text="@string/generate_qr_code"
+                    android:textColor="@color/primary_light"
+                    android:textSize="13sp" />
+
+            </LinearLayout>
+
+            <!-- A Linear Layout to hold Card text-->
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="20dp"
+                android:layout_gravity="bottom">
 
                 <TextView
                     android:id="@+id/text_event_title"
