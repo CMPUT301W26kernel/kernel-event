@@ -11,17 +11,14 @@
  * @author author2
  * @since 2026-02-28
  */
-package com.example.eventlottery;
+package com.example.eventlottery.profiles;
 
 import android.app.Dialog;
-import android.graphics.Color;
-import android.graphics.drawable.ColorDrawable;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.Window;
 import android.provider.Settings;
 import android.util.Log;
 import android.widget.Button;
@@ -35,6 +32,10 @@ import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentTransaction;
 
+import com.example.eventlottery.EventHistoryFragment;
+import com.example.eventlottery.R;
+import com.example.eventlottery.coorganizers.EntrantListFragment;
+import com.example.eventlottery.coorganizers.PendingInvitesFragment;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.DocumentSnapshot;

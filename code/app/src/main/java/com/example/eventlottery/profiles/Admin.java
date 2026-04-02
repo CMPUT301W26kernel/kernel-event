@@ -1,5 +1,5 @@
 /**
- * Entrant
+ * Admin
  * (description here)
  * Last Modified: 2026-03-02 by Grace MacKenzie
  *
@@ -7,7 +7,7 @@
  * @author author2
  * @since 2026-03-02
  */
-package com.example.eventlottery;
+package com.example.eventlottery.profiles;
 
-public class Entrant {
+public class Admin extends Entrant {
 }
