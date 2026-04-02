@@ -58,12 +58,18 @@ public class UserProfileFragment extends Fragment {
     private TextView roleView;
 
     //New variables for buttons and Device ID text.
-    private Button deleteButton, historyButton, doneButton, notificationLogsButton, signOutButton;
+    private Button deleteButton, historyButton, doneButton, notificationLogsButton, signOutButton, entrantListButton, pendingInvitesButton;
     private TextView deviceIdText, profileTitle;
 
     // Mode flags
     private String targetUserId;
     private boolean isAdminMode = false;
+    
+    // Store original profile data to detect changes
+    private String originalUsername = "";
+    private String originalEmail = "";
+    private String originalPhone = "";
+    private String originalRole = "";
 
     // Constants for arguments
     private static final String ARG_USER_ID = "user_id";
@@ -136,6 +142,8 @@ public class UserProfileFragment extends Fragment {
         signOutButton = view.findViewById(R.id.sign_out_button);
         historyButton = view.findViewById(R.id.history_button);
         notificationLogsButton = view.findViewById(R.id.notification_logs_button);
+        entrantListButton = view.findViewById(R.id.entrant_list_button);
+        pendingInvitesButton = view.findViewById(R.id.pending_invites_button);
         doneButton = view.findViewById(R.id.done_button);
         deviceIdText = view.findViewById(R.id.device_id_text);
 
@@ -161,10 +169,16 @@ public class UserProfileFragment extends Fragment {
             historyButton.setVisibility(View.VISIBLE);
             signOutButton.setVisibility(View.VISIBLE);
             notificationLogsButton.setVisibility(View.GONE);
+            // Load pending invites if viewing own profile
+            loadPendingCoOrganizerInvites();
         }
 
         //Listeners for button clicks.
-        doneButton.setOnClickListener(v -> validateAndSave());
+        if (isAdminMode) {
+            doneButton.setOnClickListener(v -> navigateBack());
+        } else {
+            doneButton.setOnClickListener(v -> validateAndSave());
+        }
         deleteButton.setOnClickListener(v -> showDeleteConfirmation());
         signOutButton.setOnClickListener(v -> signOut());
         historyButton.setOnClickListener(v -> {
@@ -179,6 +193,22 @@ public class UserProfileFragment extends Fragment {
         notificationLogsButton.setOnClickListener(v ->
                 Toast.makeText(getContext(), "Opening Notification Logs...", Toast.LENGTH_SHORT).show()
         );
+        entrantListButton.setOnClickListener(v -> {
+            if (getActivity() != null) {
+                getParentFragmentManager().beginTransaction()
+                        .replace(R.id.fragment_container, new EntrantListFragment())
+                        .addToBackStack(null)
+                        .commit();
+            }
+        });
+        pendingInvitesButton.setOnClickListener(v -> {
+            if (getActivity() != null) {
+                getParentFragmentManager().beginTransaction()
+                        .replace(R.id.fragment_container, new PendingInvitesFragment())
+                        .addToBackStack(null)
+                        .commit();
+            }
+        });
 
         // Authentication check: if we don't have a signed-in user or target user, we shouldn't attempt a profile lookup.
         if (targetUserId == null) {
@@ -237,15 +267,27 @@ public class UserProfileFragment extends Fragment {
         }
 
         // Renders the data.
-        usernameView.setText(valueOrEmpty(user.getUsername()));
-        emailView.setText(valueOrEmpty(user.getEmail()));
-        phoneView.setText(valueOrEmpty(user.getPhoneNumber()));
-        roleView.setText(capitalize(user.getRole()));
+        originalUsername = valueOrEmpty(user.getUsername());
+        originalEmail = valueOrEmpty(user.getEmail());
+        originalPhone = valueOrEmpty(user.getPhoneNumber());
+        originalRole = capitalize(user.getRole());
+
+        usernameView.setText(originalUsername);
+        emailView.setText(originalEmail);
+        phoneView.setText(originalPhone);
+        roleView.setText(originalRole);
+
+        String role = user.getRole();
+        if (!isAdminMode && ("Organizer".equalsIgnoreCase(role) || "Admin".equalsIgnoreCase(role))) {
+            entrantListButton.setVisibility(View.VISIBLE);
+        } else {
+            entrantListButton.setVisibility(View.GONE);
+        }
 
         if (isAdminMode) {
             profileTitle.setText(valueOrEmpty(user.getUsername()));
             // Show notification logs button ONLY for Organizers in Admin mode
-            if ("Organizer".equalsIgnoreCase(user.getRole())) {
+            if ("Organizer".equalsIgnoreCase(role)) {
                 notificationLogsButton.setVisibility(View.VISIBLE);
             } else {
                 notificationLogsButton.setVisibility(View.GONE);
@@ -281,12 +323,23 @@ public class UserProfileFragment extends Fragment {
         String username = usernameView.getText().toString().trim();
         String email = emailView.getText().toString().trim();
         String phone = phoneView.getText().toString().trim();
+        String role = roleView.getText().toString();
 
         if (TextUtils.isEmpty(username)) {
             usernameView.setError("Username is required");
             return;
         }
         
+        boolean hasChanged = !username.equals(originalUsername) ||
+                             !email.equals(originalEmail) ||
+                             !phone.equals(originalPhone) ||
+                             !role.equals(originalRole);
+
+        if (!hasChanged) {
+            navigateBack();
+            return;
+        }
+
         saveUserProfile(username, email, phone);
     }
 
@@ -306,6 +359,25 @@ public class UserProfileFragment extends Fragment {
         userData.put("role", roleView.getText().toString());
         userData.put("userId", targetUserId); // Ensure userId is also saved/updated
 
+        FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
+        if (currentUser != null && currentUser.getUid().equals(targetUserId) && currentUser.getEmail() != null && !currentUser.getEmail().equals(email)) {
+            // Send verification email to the new address before updating the login credential
+            currentUser.verifyBeforeUpdateEmail(email)
+                    .addOnSuccessListener(aVoid -> {
+                        Toast.makeText(getContext(), "Verification email sent. Please check your inbox to update your login email.", Toast.LENGTH_LONG).show();
+                        updateFirestoreProfile(userData);
+                    })
+                    .addOnFailureListener(e -> {
+                        Toast.makeText(getContext(), "Failed to send verification email: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                        // Still update the rest of the profile (username, phone) even if email auth update fails
+                        updateFirestoreProfile(userData);
+                    });
+        } else {
+            updateFirestoreProfile(userData);
+        }
+    }
+
+    private void updateFirestoreProfile(Map<String, Object> userData) {
         FirebaseFirestore.getInstance().collection("users").document(targetUserId)
                 .set(userData)
                 .addOnSuccessListener(aVoid -> {
@@ -313,6 +385,20 @@ public class UserProfileFragment extends Fragment {
                     navigateBack();
                 })
                 .addOnFailureListener(e -> Toast.makeText(getContext(), "Failed to save profile.", Toast.LENGTH_SHORT).show());
+    }
+
+    private void loadPendingCoOrganizerInvites() {
+        if (targetUserId == null) return;
+        FirebaseFirestore.getInstance().collection("events")
+                .whereArrayContains("pendingCoOrganizers", targetUserId)
+                .get()
+                .addOnSuccessListener(queryDocumentSnapshots -> {
+                    if (queryDocumentSnapshots.isEmpty()) {
+                        pendingInvitesButton.setVisibility(View.GONE);
+                    } else {
+                        pendingInvitesButton.setVisibility(View.VISIBLE);
+                    }
+                });
     }
 
     /**
