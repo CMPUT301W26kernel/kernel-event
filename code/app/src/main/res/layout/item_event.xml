@@ -10,7 +10,7 @@
     android:layout_marginBottom="8dp"
     app:cardCornerRadius="16dp"
     app:cardElevation="4dp"
-    app:cardBackgroundColor="#FFFFFF">
+    app:cardBackgroundColor="@color/white">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -18,13 +18,15 @@
         android:orientation="vertical"
         android:padding="16dp">
 
-        <!-- Colored accent bar at top -->
-        <View
-            android:layout_width="40dp"
-            android:layout_height="4dp"
-            android:layout_marginBottom="10dp"
-            android:background="#006A4E"
-            android:backgroundTint="#006A4E" />
+        <!-- Poster image placeholder -->
+        <ImageView
+            android:id="@+id/image_event_poster"
+            android:layout_width="match_parent"
+            android:layout_height="160dp"
+            android:scaleType="centerCrop"
+            android:src="@drawable/default_img"
+            android:contentDescription="Event poster"
+            android:layout_marginBottom="12dp" />
 
         <!-- Event Title -->
         <TextView
@@ -34,54 +36,27 @@
             android:text="Event Title"
             android:textSize="18sp"
             android:textStyle="bold"
-            android:textColor="#1A1A2E"
-            android:letterSpacing="0.01" />
+            android:textColor="@color/primary_deep" />
 
-        <!-- Organizer row -->
-        <LinearLayout
+        <!-- Organizer -->
+        <TextView
+            android:id="@+id/text_event_organizer"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center_vertical"
-            android:layout_marginTop="8dp">
+            android:text="Organizer"
+            android:textSize="13sp"
+            android:textColor="@color/primary_dark"
+            android:layout_marginTop="6dp" />
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="👤 "
-                android:textSize="12sp" />
-
-            <TextView
-                android:id="@+id/text_event_organizer"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Organizer"
-                android:textSize="13sp"
-                android:textColor="#555577" />
-        </LinearLayout>
-
-        <!-- Date row -->
-        <LinearLayout
+        <!-- Date -->
+        <TextView
+            android:id="@+id/text_event_date"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center_vertical"
-            android:layout_marginTop="4dp">
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="📅 "
-                android:textSize="12sp" />
-
-            <TextView
-                android:id="@+id/text_event_date"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Date"
-                android:textSize="13sp"
-                android:textColor="#555577" />
-        </LinearLayout>
+            android:text="Date"
+            android:textSize="13sp"
+            android:textColor="@color/grey_light"
+            android:layout_marginTop="4dp" />
 
     </LinearLayout>
 
