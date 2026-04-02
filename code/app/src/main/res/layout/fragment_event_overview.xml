@@ -43,7 +43,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="180dp"
                     android:scaleType="centerCrop"
-                    android:src="@drawable/default_img"
+                    android:src="@drawable/default_image"
                     android:contentDescription="Event poster"
                     android:layout_marginTop="12dp" />
 
