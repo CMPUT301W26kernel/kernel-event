@@ -5,7 +5,7 @@
  *<p>
  *     Notes
  *      - This fragment has two modes: CREATE and EDIT
- *        @see com.example.eventlottery.EventCreationMode
+ *        @see com.example.eventlottery.creation.EventCreationMode
  *      - In EDIT mode, it is assumed that some event has been passed to the fragment to
  *        be edited.
  *      - In CREATE mode, it is assumed that no such event is present and must be created.
@@ -22,7 +22,7 @@
  * @author Grace MacKenzie
  * @since 2026-02-28
  */
-package com.example.eventlottery;
+package com.example.eventlottery.creation;
 
 import android.app.Activity;
 import android.content.Intent;
@@ -47,6 +47,10 @@ import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.Toast;
 
+import com.example.eventlottery.Event;
+import com.example.eventlottery.EventOverviewFragment;
+import com.example.eventlottery.HomePageFragment;
+import com.example.eventlottery.R;
 import com.google.firebase.firestore.CollectionReference;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.FirebaseFirestore;

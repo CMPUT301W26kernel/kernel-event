@@ -6,7 +6,7 @@
  * @author Grace MacKenzie
  * @since 2026-03-10
  */
-package com.example.eventlottery;
+package com.example.eventlottery.creation;
 
 /**
  * A helper class which holds raw user input data to be used as Event Input
