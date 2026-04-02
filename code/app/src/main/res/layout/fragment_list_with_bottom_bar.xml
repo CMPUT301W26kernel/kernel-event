@@ -1,33 +1,39 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/main"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="#F4F6FA"
     tools:context=".MainActivity">
 
+    <!-- Status bar -->
     <TextView
         android:id="@+id/logged_in_status"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:padding="8dp"
         android:text="Loading user status..."
-        android:background="#EEE"
-        android:textColor="#333"
-        android:textSize="12sp"
+        android:background="#1A1A2E"
+        android:textColor="#AAAACC"
+        android:textSize="11sp"
         android:gravity="center"
+        android:letterSpacing="0.05"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
 
+    <!-- Filter panel -->
     <LinearLayout
         android:id="@+id/filter_container"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:orientation="vertical"
         android:padding="12dp"
-        android:background="@android:color/white"
+        android:background="#FFFFFF"
+        android:elevation="2dp"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toBottomOf="@id/logged_in_status">
@@ -97,6 +103,7 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
+                android:textColor="#1A1A2E"
                 android:text="Open for registration now only" />
 
             <com.google.android.material.button.MaterialButton
@@ -104,6 +111,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="8dp"
+                android:backgroundTint="#006A4E"
                 android:text="Apply" />
 
             <com.google.android.material.button.MaterialButton
@@ -111,27 +119,34 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="8dp"
+                android:backgroundTint="#888888"
                 android:text="Clear" />
         </LinearLayout>
     </LinearLayout>
 
+    <!-- Event list -->
     <ListView
         android:id="@+id/list_view"
         android:layout_width="0dp"
         android:layout_height="0dp"
         android:divider="@android:color/transparent"
         android:dividerHeight="0dp"
-        android:scrollbars="vertical"
+        android:paddingTop="8dp"
+        android:paddingBottom="8dp"
+        android:clipToPadding="false"
+        android:scrollbars="none"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toBottomOf="@id/filter_container"
         app:layout_constraintBottom_toTopOf="@+id/bottom_bar" />
 
+    <!-- Bottom bar -->
     <FrameLayout
         android:id="@+id/bottom_bar"
         android:layout_width="0dp"
-        android:layout_height="60dp"
-        android:background="@color/white"
+        android:layout_height="64dp"
+        android:background="#FFFFFF"
+        android:elevation="8dp"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintBottom_toBottomOf="parent" />
