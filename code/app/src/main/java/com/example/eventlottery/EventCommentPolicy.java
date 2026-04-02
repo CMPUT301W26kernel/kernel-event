@@ -1,5 +1,7 @@
 package com.example.eventlottery;
 
+import java.util.List;
+
 /**
  * Pure business rules for event comment permissions and pinning.
  */
@@ -14,9 +16,10 @@ public final class EventCommentPolicy {
      * @param currentUserId Signed-in user id, if any.
      * @param currentUserRole Viewer role from the user profile.
      * @param organizerId Owner of the event.
+     * @param coOrganizers List of co-organizers for the event.
      * @return True when the viewer is an entrant or the organizer of the event.
      */
-    public static boolean canPostComment(String currentUserId, String currentUserRole, String organizerId) {
+    public static boolean canPostComment(String currentUserId, String currentUserRole, String organizerId, List<String> coOrganizers) {
         if (currentUserId == null || currentUserRole == null) {
             return false;
         }
@@ -26,7 +29,7 @@ public final class EventCommentPolicy {
         }
 
         if ("organizer".equalsIgnoreCase(currentUserRole)) {
-            return currentUserId.equals(organizerId);
+            return currentUserId.equals(organizerId) || (coOrganizers != null && coOrganizers.contains(currentUserId));
         }
 
         return "entrant".equalsIgnoreCase(currentUserRole);
@@ -37,10 +40,11 @@ public final class EventCommentPolicy {
      *
      * @param authorId Comment author id.
      * @param organizerId Event organizer id.
+     * @param coOrganizers List of co-organizers for the event.
      * @return True when the author owns the event.
      */
-    public static boolean shouldPinComment(String authorId, String organizerId) {
-        return authorId != null && authorId.equals(organizerId);
+    public static boolean shouldPinComment(String authorId, String organizerId, List<String> coOrganizers) {
+        return authorId != null && (authorId.equals(organizerId) || (coOrganizers != null && coOrganizers.contains(authorId)));
     }
 
     /**
@@ -50,13 +54,15 @@ public final class EventCommentPolicy {
      * @param currentUserId Signed-in user id, if any.
      * @param currentUserRole Viewer role from the user profile.
      * @param organizerId Owner of the event.
+     * @param coOrganizers List of co-organizers for the event.
      * @return True for admins and for organizers removing other users' comments on their event.
      */
     public static boolean canDeleteComment(
             EventComment comment,
             String currentUserId,
             String currentUserRole,
-            String organizerId
+            String organizerId,
+            List<String> coOrganizers
     ) {
         if (comment == null || currentUserId == null || currentUserRole == null || comment.hasBeenRemoved()) {
             return false;
@@ -66,8 +72,7 @@ public final class EventCommentPolicy {
             return true;
         }
 
-        boolean isOrganizerOfEvent = currentUserId.equals(organizerId)
-                && "organizer".equalsIgnoreCase(currentUserRole);
+        boolean isOrganizerOfEvent = currentUserId.equals(organizerId) || (coOrganizers != null && coOrganizers.contains(currentUserId));
 
         return isOrganizerOfEvent && !currentUserId.equals(comment.getAuthorId());
     }

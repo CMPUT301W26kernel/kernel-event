@@ -97,6 +97,7 @@ public class EventOverviewFragment extends Fragment implements
     private String eventId;
     private String eventTitle = "Event";
     private String eventOrganizerId;
+    private List<String> eventCoOrganizers = new ArrayList<>();
     private String currentUserId;
     private String currentUserRole;
     private String currentUsername;
@@ -293,6 +294,13 @@ public class EventOverviewFragment extends Fragment implements
         eventTitle = eventNameRaw == null ? getString(R.string.default_event_title) : eventNameRaw;
         String description = documentSnapshot.getString("description");
         eventOrganizerId = documentSnapshot.getString("organizerId");
+        
+        List<String> rawCoOrganizers = (List<String>) documentSnapshot.get("coOrganizers");
+        if (rawCoOrganizers != null) {
+            eventCoOrganizers = new ArrayList<>(rawCoOrganizers);
+        } else {
+            eventCoOrganizers.clear();
+        }
 
         eventTitleView.setText(eventTitle);
         eventOrganizerView.setText(getString(
@@ -372,9 +380,9 @@ public class EventOverviewFragment extends Fragment implements
      * current viewer role and event ownership.
      */
     private void refreshActionState() {
-        commentAdapter.setViewerContext(currentUserId, currentUserRole, eventOrganizerId);
+        commentAdapter.setViewerContext(currentUserId, currentUserRole, eventOrganizerId, eventCoOrganizers);
 
-        boolean isOrganizer = currentUserId != null && currentUserId.equals(eventOrganizerId);
+        boolean isOrganizer = currentUserId != null && (currentUserId.equals(eventOrganizerId) || eventCoOrganizers.contains(currentUserId));
         boolean isAdmin = "admin".equalsIgnoreCase(currentUserRole);
 
         if (isOrganizer) {
@@ -388,7 +396,7 @@ public class EventOverviewFragment extends Fragment implements
             showJoinWaitlistButton();
         }
 
-        boolean canPostComment = EventCommentPolicy.canPostComment(currentUserId, currentUserRole, eventOrganizerId);
+        boolean canPostComment = EventCommentPolicy.canPostComment(currentUserId, currentUserRole, eventOrganizerId, eventCoOrganizers);
         commentComposerContainer.setVisibility(canPostComment ? View.VISIBLE : View.GONE);
         postCommentButton.setEnabled(canPostComment);
 
@@ -428,7 +436,7 @@ public class EventOverviewFragment extends Fragment implements
             return;
         }
 
-        if (!EventCommentPolicy.canPostComment(currentUserId, currentUserRole, eventOrganizerId)) {
+        if (!EventCommentPolicy.canPostComment(currentUserId, currentUserRole, eventOrganizerId, eventCoOrganizers)) {
             if (getContext() != null) {
                 Toast.makeText(getContext(), R.string.comment_post_unavailable, Toast.LENGTH_SHORT).show();
             }
@@ -442,7 +450,7 @@ public class EventOverviewFragment extends Fragment implements
                 text,
                 Timestamp.now(),
                 EventComment.STATUS_ACTIVE,
-                EventCommentPolicy.shouldPinComment(currentUserId, eventOrganizerId)
+                EventCommentPolicy.shouldPinComment(currentUserId, eventOrganizerId, eventCoOrganizers)
         );
 
         postCommentButton.setEnabled(false);
@@ -609,7 +617,7 @@ public class EventOverviewFragment extends Fragment implements
      */
     @Override
     public void onDeleteComment(EventComment comment) {
-        if (!EventCommentPolicy.canDeleteComment(comment, currentUserId, currentUserRole, eventOrganizerId)) {
+        if (!EventCommentPolicy.canDeleteComment(comment, currentUserId, currentUserRole, eventOrganizerId, eventCoOrganizers)) {
             return;
         }
 
