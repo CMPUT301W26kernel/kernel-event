@@ -43,16 +43,9 @@ public class MainActivity extends AppCompatActivity {
                 showSetUpFragment();
             } else {
                 // Authenticated user exists -> send them to the main home page.
-                showNotificationsFragment();
+                showHomePageFragment();
             }
         }
-    }
-
-    private void showNotificationsFragment() {
-        getSupportFragmentManager()
-                .beginTransaction()
-                .replace(R.id.fragment_container, new NotificationsFragment())
-                .commit();
     }
 
     private void showSetUpFragment() {
