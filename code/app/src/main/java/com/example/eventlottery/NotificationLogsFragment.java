@@ -14,11 +14,17 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.ListenerRegistration;
 import com.google.firebase.firestore.Query;
 
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Notification Logs Fragment which handles displaying notification logs.
+ * Last Modified: 2026-04-03 by Radwa Sheikhdon
+ * @version 1
+ */
 public class NotificationLogsFragment extends Fragment {
 
     private RecyclerView recyclerView;
@@ -26,9 +32,9 @@ public class NotificationLogsFragment extends Fragment {
     private NotificationLogsAdapter adapter;
     private final List<NotificationLog> logList = new ArrayList<>();
     private FirebaseFirestore db;
+    private ListenerRegistration logsListener;
 
     public NotificationLogsFragment() {
-        // Required empty public constructor
     }
 
     @Nullable
@@ -52,10 +58,18 @@ public class NotificationLogsFragment extends Fragment {
         loadLogs();
     }
 
+    /**
+     * Loads notification logs from Firestore and updates the UI accordingly.
+     */
     private void loadLogs() {
-        db.collection("notification_logs")
+        // Listen for changes to notification logs
+        logsListener = db.collection("notification_logs")
                 .orderBy("timestamp", Query.Direction.DESCENDING)
                 .addSnapshotListener((snapshots, error) -> {
+                    if (!isAdded() || getView() == null) { // Check if the fragment is still attached
+                        return;
+                    }
+                    // Handles errors
                     if (error != null) {
                         emptyText.setVisibility(View.VISIBLE);
                         emptyText.setText("Failed to load notification logs.");
@@ -63,7 +77,7 @@ public class NotificationLogsFragment extends Fragment {
                     }
 
                     logList.clear();
-
+                    // Adds new logs to the list
                     if (snapshots != null) {
                         for (DocumentSnapshot doc : snapshots.getDocuments()) {
                             NotificationLog log = doc.toObject(NotificationLog.class);
@@ -73,9 +87,25 @@ public class NotificationLogsFragment extends Fragment {
                             }
                         }
                     }
-
+                    // Updates the adapter
                     adapter.notifyDataSetChanged();
                     emptyText.setVisibility(logList.isEmpty() ? View.VISIBLE : View.GONE);
                 });
+    }
+
+    /**
+     * Cleans up resources when the fragment is destroyed.
+     */
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+
+        if (logsListener != null) {
+            logsListener.remove();
+            logsListener = null;
+        }
+
+        recyclerView = null;
+        emptyText = null;
     }
 }

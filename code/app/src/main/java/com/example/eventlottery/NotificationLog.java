@@ -4,6 +4,13 @@ import com.google.firebase.Timestamp;
 
 import java.util.List;
 
+/**
+ * This class represents a notification log entry.
+ * It has fields for logId, senderId, eventId, recipientIds, recipientCount, type, message, and timestamp.
+ * It also has getters and setters for each field.
+ * The class also has a constructor for creating a notification log entry.
+ * Last Modified: 2026-04-03 by Radwa Sheikhdon
+ */
 public class NotificationLog {
     private String logId;
     private String senderId;
@@ -18,6 +25,18 @@ public class NotificationLog {
         // Required empty constructor for Firestore
     }
 
+    /**
+     * Creates a new notification log entry.
+     *
+     * @param logId
+     * @param senderId
+     * @param eventId
+     * @param recipientIds
+     * @param recipientCount
+     * @param type
+     * @param message
+     * @param timestamp
+     */
     public NotificationLog(String logId,
                            String senderId,
                            String eventId,
@@ -35,6 +54,8 @@ public class NotificationLog {
         this.message = message;
         this.timestamp = timestamp;
     }
+
+    // Getters and setters
 
     public String getLogId() {
         return logId;

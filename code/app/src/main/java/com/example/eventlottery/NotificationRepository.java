@@ -239,10 +239,10 @@ public class NotificationRepository {
                             event.getWaitingList().isEmpty()) return;
 
                     List<String> waitingList = event.getWaitingList();
-                    List<Task<Void>> tasks = new ArrayList<>();
+                    List<Task<String>> tasks = new ArrayList<>();
 
                     for (String userId : waitingList) {
-                        tasks.add(createNotificationTask(buildNotification(
+                        tasks.add(createNotificationTaskWithResult(buildNotification(
                                 userId,
                                 eventId,
                                 Notification.TYPE_INFO,
@@ -251,21 +251,34 @@ public class NotificationRepository {
                         )));
                     }
 
-                    String senderId = FirebaseAuth.getInstance().getCurrentUser() != null
-                            ? FirebaseAuth.getInstance().getCurrentUser().getUid()
-                            : null;
+                    Tasks.whenAllSuccess(tasks)
+                            .addOnSuccessListener(results -> {
+                                List<String> successfulRecipients = new ArrayList<>();
 
-                    if (senderId != null) {
-                        tasks.add(createNotificationLog(
-                                senderId,
-                                eventId,
-                                waitingList,
-                                Notification.TYPE_INFO,
-                                message
-                        ));
-                    }
+                                for (Object result : results) {
+                                    if (result instanceof String) {
+                                        String userId = (String) result;
+                                        if (userId != null) {
+                                            successfulRecipients.add(userId);
+                                        }
+                                    }
+                                }
 
-                    Tasks.whenAll(tasks)
+                                String senderId = FirebaseAuth.getInstance().getCurrentUser() != null
+                                        ? FirebaseAuth.getInstance().getCurrentUser().getUid()
+                                        : null;
+
+                                if (senderId != null && !successfulRecipients.isEmpty()) {
+                                    createNotificationLog(
+                                            senderId,
+                                            eventId,
+                                            successfulRecipients,
+                                            Notification.TYPE_INFO,
+                                            message
+                                    ).addOnFailureListener(e ->
+                                            Log.e(TAG, "Failed to create notification log", e));
+                                }
+                            })
                             .addOnFailureListener(e ->
                                     Log.e(TAG, "Failed to send waiting list notifications", e));
                 })
@@ -318,6 +331,37 @@ public class NotificationRepository {
         );
     }
 
+    private Task<String> createNotificationTaskWithResult(Notification notification) {
+        if (notification == null) {
+            return Tasks.forException(new IllegalArgumentException("Notification cannot be null"));
+        }
+
+        return canReceiveNotification(notification.getUserId(), notification.getType())
+                .continueWithTask(task -> {
+                    if (!task.isSuccessful()) {
+                        Exception e = task.getException();
+                        throw (e != null) ? e : new Exception("Failed to check notification preference");
+                    }
+
+                    Boolean allowed = task.getResult();
+                    if (allowed == null || !allowed) {
+                        return Tasks.forResult(null); // not sent
+                    }
+
+                    DocumentReference notificationRef = db.collection("notifications").document();
+                    notification.setNotificationId(notificationRef.getId());
+
+                    return notificationRef.set(notification)
+                            .continueWith(setTask -> {
+                                if (!setTask.isSuccessful()) {
+                                    Exception e = setTask.getException();
+                                    throw (e != null) ? e : new Exception("Failed to create notification");
+                                }
+                                return notification.getUserId(); // sent successfully
+                            });
+                });
+    }
+
     private Task<Void> sendNotificationsToListField(String eventId,
                                                     String fieldName,
                                                     String type,
@@ -337,7 +381,7 @@ public class NotificationRepository {
                     }
 
                     List<String> userIds = getStringList(snapshot.get(fieldName));
-                    List<Task<Void>> tasks = new ArrayList<>();
+                    List<Task<String>> tasks = new ArrayList<>();
 
                     for (String userId : userIds) {
                         Notification notification = buildNotification(
@@ -347,24 +391,40 @@ public class NotificationRepository {
                                 message,
                                 Notification.STATUS_UNREAD
                         );
-                        tasks.add(createNotificationTask(notification));
+                        tasks.add(createNotificationTaskWithResult(notification));
                     }
 
-                    String senderId = FirebaseAuth.getInstance().getCurrentUser() != null
-                            ? FirebaseAuth.getInstance().getCurrentUser().getUid()
-                            : null;
+                    return Tasks.whenAllSuccess(tasks).continueWithTask(resultsTask -> {
+                        List<?> results = resultsTask.getResult();
+                        List<String> successfulRecipients = new ArrayList<>();
 
-                    if (senderId != null && !userIds.isEmpty()) {
-                        tasks.add(createNotificationLog(
-                                senderId,
-                                eventId,
-                                userIds,
-                                type,
-                                message
-                        ));
-                    }
+                        if (results != null) {
+                            for (Object result : results) {
+                                if (result instanceof String) {
+                                    String userId = (String) result;
+                                    if (userId != null) {
+                                        successfulRecipients.add(userId);
+                                    }
+                                }
+                            }
+                        }
 
-                    return Tasks.whenAll(tasks);
+                        String senderId = FirebaseAuth.getInstance().getCurrentUser() != null
+                                ? FirebaseAuth.getInstance().getCurrentUser().getUid()
+                                : null;
+
+                        if (senderId != null && !successfulRecipients.isEmpty()) {
+                            return createNotificationLog(
+                                    senderId,
+                                    eventId,
+                                    successfulRecipients,
+                                    type,
+                                    message
+                            );
+                        }
+
+                        return Tasks.forResult(null);
+                    });
                 });
     }
 

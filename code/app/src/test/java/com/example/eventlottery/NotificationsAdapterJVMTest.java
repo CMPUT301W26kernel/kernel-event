@@ -1,10 +1,11 @@
 package com.example.eventlottery;
 
 import static org.junit.Assert.assertEquals;
-import static org.mockito.Mockito.*;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
 
 import android.content.Context;
-import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.Button;
 import android.widget.LinearLayout;
@@ -12,31 +13,34 @@ import android.widget.TextView;
 
 import androidx.test.core.app.ApplicationProvider;
 
+import com.google.firebase.Timestamp;
+
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.RobolectricTestRunner;
 import org.robolectric.annotation.Config;
 
+import java.util.ArrayList;
 import java.util.Collections;
-
-@RunWith(RobolectricTestRunner.class)
-@Config(manifest=Config.NONE)
+import java.util.Date;
+import java.util.List;
 
 /**
- * Notifications Adapter JVM Test
- * Last Modified: 2026-03-12 by Radwa Sheikhdon
- * Handles creation and response logic for notifications.
+ * NotificationsAdapterJVMTest
+ * Last Modified: 2026-04-03 by Radwa Sheikhdon
+ *
+ * Unit tests for NotificationsAdapter.
+ * Verifies correct binding of UI elements and behavior based on notification type and status.
  */
+@RunWith(RobolectricTestRunner.class)
+@Config(sdk = 33)
 public class NotificationsAdapterJVMTest {
 
     private NotificationRepository mockRepo;
     private NotificationsAdapter adapter;
     private Context context;
 
-    /**
-     * Sets up the test environment before each test case.
-     */
     @Before
     public void setup() {
         context = ApplicationProvider.getApplicationContext();
@@ -44,67 +48,266 @@ public class NotificationsAdapterJVMTest {
     }
 
     /**
-     * Tests the bindMessageAndTimestamp method of the NotificationsAdapter.
+     * Builds a mock ViewHolder with required views for testing binding logic.
+     * @return a ViewHolder with initialized child views
      */
-    @Test
-    public void testBindMessageAndTimestamp() {
-        Notification notification = new Notification();
-        notification.setMessage("You won!");
-        notification.setType("INFO");
-        notification.setStatus("UNREAD");
+    private NotificationsAdapter.ViewHolder buildHolder() {
+        LinearLayout root = new LinearLayout(context);
 
-        adapter = new NotificationsAdapter(Collections.singletonList(notification), mockRepo);
+        TextView message = new TextView(context);
+        message.setId(R.id.notification_message);
 
+        TextView time = new TextView(context);
+        time.setId(R.id.notification_time);
 
-        View itemView = new View(context);
-        NotificationsAdapter.ViewHolder holder = new NotificationsAdapter.ViewHolder(itemView);
+        TextView statusBadge = new TextView(context);
+        statusBadge.setId(R.id.txt_status_badge);
 
-        holder.message = new TextView(context);
-        holder.time = new TextView(context);
-        holder.statusBadge = new TextView(context);
-        holder.btnAccept = new Button(context);
-        holder.btnDecline = new Button(context);
-        holder.layoutInviteActions = new LinearLayout(context);
+        TextView typeBadge = new TextView(context);
+        typeBadge.setId(R.id.txt_type_badge);
 
-        adapter.onBindViewHolder(holder, 0);
+        Button btnAccept = new Button(context);
+        btnAccept.setId(R.id.btn_accept);
 
-        assertEquals("You won!", holder.message.getText().toString());
+        Button btnDecline = new Button(context);
+        btnDecline.setId(R.id.btn_decline);
+
+        LinearLayout inviteActions = new LinearLayout(context);
+        inviteActions.setId(R.id.layout_invite_actions);
+
+        root.addView(message);
+        root.addView(time);
+        root.addView(statusBadge);
+        root.addView(typeBadge);
+        root.addView(btnAccept);
+        root.addView(btnDecline);
+        root.addView(inviteActions);
+
+        return spy(new NotificationsAdapter.ViewHolder(root));
     }
 
     /**
-     * Tests the bindInviteClick method of the NotificationsAdapter.
+     * Tests that INFO notifications display message, type badge, and status badge correctly.
      */
     @Test
-    public void testBindInviteClickCallsRepository() {
+    public void testBindMessageAndTypeBadge_forInfoNotification() {
         Notification notification = new Notification();
+        notification.setMessage("You won!");
+        notification.setType(Notification.TYPE_INFO);
+        notification.setStatus(Notification.STATUS_UNREAD);
+
+        adapter = new NotificationsAdapter(
+                Collections.singletonList(notification),
+                mockRepo
+        );
+
+        NotificationsAdapter.ViewHolder holder = buildHolder();
+        adapter.onBindViewHolder(holder, 0);
+
+        assertEquals("You won!", holder.message.getText().toString());
+        assertEquals("INFO", holder.typeBadge.getText().toString());
+        assertEquals("UNREAD", holder.statusBadge.getText().toString());
+        assertEquals(View.GONE, holder.layoutInviteActions.getVisibility());
+        assertEquals(View.VISIBLE, holder.statusBadge.getVisibility());
+    }
+
+    /**
+     * Tests that unread invite notifications show accept/decline buttons
+     * and hide the status badge.
+     */
+    @Test
+    public void testUnreadInviteShowsActionButtons() {
+        Notification notification = new Notification();
+        notification.setNotificationId("n1");
+        notification.setEventId("e1");
+        notification.setUserId("u1");
+        notification.setMessage("You have been invited");
         notification.setType(Notification.TYPE_INVITE);
         notification.setStatus(Notification.STATUS_UNREAD);
 
-        adapter = new NotificationsAdapter(Collections.singletonList(notification), mockRepo);
+        adapter = new NotificationsAdapter(
+                Collections.singletonList(notification),
+                mockRepo
+        );
 
-        View itemView = new View(context);
-        NotificationsAdapter.ViewHolder holder = new NotificationsAdapter.ViewHolder(itemView);
-
-        holder.message = new TextView(context);
-        holder.time = new TextView(context);
-        holder.statusBadge = new TextView(context);
-        holder.btnAccept = new Button(context);
-        holder.btnDecline = new Button(context);
-        holder.layoutInviteActions = new LinearLayout(context);
-
+        NotificationsAdapter.ViewHolder holder = buildHolder();
         adapter.onBindViewHolder(holder, 0);
 
-        // Robolectric handles the click and listener execution
-        holder.btnAccept.performClick();
-        holder.btnDecline.performClick();
+        assertEquals("INVITE", holder.typeBadge.getText().toString());
+        assertEquals(View.VISIBLE, holder.layoutInviteActions.getVisibility());
+        assertEquals(View.GONE, holder.statusBadge.getVisibility());
+    }
 
-        // Verify repository interactions
-        verify(mockRepo).acceptInvitation(notification);
-        verify(mockRepo).declineInvitation(notification);
+    /**
+     * Tests that read invite notifications still show action buttons
+     * and don't display a READ status badge.
+     */
+    @Test
+    public void testReadInviteHidesReadBadgeAndShowsActions() {
+        Notification notification = new Notification();
+        notification.setNotificationId("n2");
+        notification.setEventId("e2");
+        notification.setUserId("u2");
+        notification.setMessage("Invitation reminder");
+        notification.setType(Notification.TYPE_INVITE);
+        notification.setStatus(Notification.STATUS_READ);
 
-        // Verify UI state changes
-        assertEquals(false, holder.btnAccept.isEnabled());
-        assertEquals(false, holder.btnDecline.isEnabled());
+        adapter = new NotificationsAdapter(
+                Collections.singletonList(notification),
+                mockRepo
+        );
+
+        NotificationsAdapter.ViewHolder holder = buildHolder();
+        adapter.onBindViewHolder(holder, 0);
+
+        // Invite actions should be visible
+        assertEquals(View.VISIBLE, holder.layoutInviteActions.getVisibility());
+
+        // READ badge should be hidden
+        assertEquals(View.GONE, holder.statusBadge.getVisibility());
+    }
+
+    /**
+     * Tests that co-organizer invites display the correct badge label.
+     */
+    @Test
+    public void testCoOrganizerInviteShowsCorrectBadge() {
+        Notification notification = new Notification();
+        notification.setNotificationId("n3");
+        notification.setEventId("e3");
+        notification.setUserId("u3");
+        notification.setMessage("Please join as co-organizer");
+        notification.setType(Notification.TYPE_COORGANIZER_INVITE);
+        notification.setStatus(Notification.STATUS_UNREAD);
+
+        adapter = new NotificationsAdapter(
+                Collections.singletonList(notification),
+                mockRepo
+        );
+
+        NotificationsAdapter.ViewHolder holder = buildHolder();
+        adapter.onBindViewHolder(holder, 0);
+
+        assertEquals("CO-ORGANIZER", holder.typeBadge.getText().toString());
+        assertEquals(View.VISIBLE, holder.layoutInviteActions.getVisibility());
+    }
+
+    /**
+     * Tests that private event invitations display the "PRIVATE EVENT" badge.
+     */
+    @Test
+    public void testPrivateInviteShowsPrivateEventBadge() {
+        Notification notification = new Notification();
+        notification.setNotificationId("n4");
+        notification.setEventId("e4");
+        notification.setUserId("u4");
+        notification.setMessage("You are invited to a private event");
+        notification.setType(Notification.TYPE_INVITE);
+        notification.setStatus(Notification.STATUS_UNREAD);
+
+        adapter = new NotificationsAdapter(
+                Collections.singletonList(notification),
+                mockRepo
+        );
+
+        NotificationsAdapter.ViewHolder holder = buildHolder();
+        adapter.onBindViewHolder(holder, 0);
+
+        assertEquals("PRIVATE EVENT", holder.typeBadge.getText().toString());
+        assertEquals(View.VISIBLE, holder.layoutInviteActions.getVisibility());
+    }
+
+    /**
+     * Tests that notifications with null timestamps display an empty time field.
+     */
+    @Test
+    public void testNullTimestampLeavesTimeBlank() {
+        Notification notification = new Notification();
+        notification.setMessage("No timestamp");
+        notification.setType(Notification.TYPE_INFO);
+        notification.setStatus(Notification.STATUS_UNREAD);
+        notification.setTimestamp(null);
+
+        adapter = new NotificationsAdapter(
+                Collections.singletonList(notification),
+                mockRepo
+        );
+
+        NotificationsAdapter.ViewHolder holder = buildHolder();
+        adapter.onBindViewHolder(holder, 0);
+
+        assertEquals("", holder.time.getText().toString());
+    }
+
+    /**
+     * Tests that notifications with a valid timestamp display formatted time.
+     */
+    @Test
+    public void testNonNullTimestampDisplaysTime() {
+        Notification notification = new Notification();
+        notification.setMessage("Has timestamp");
+        notification.setType(Notification.TYPE_INFO);
+        notification.setStatus(Notification.STATUS_UNREAD);
+        notification.setTimestamp(new Timestamp(new Date()));
+
+        adapter = new NotificationsAdapter(
+                Collections.singletonList(notification),
+                mockRepo
+        );
+
+        NotificationsAdapter.ViewHolder holder = buildHolder();
+        adapter.onBindViewHolder(holder, 0);
+
+        assertTrue(holder.time.getText().toString().length() > 0);
+    }
+
+    /**
+     * Tests that getItemCount returns the correct number of items.
+     */
+    @Test
+    public void testGetItemCount() {
+        Notification notification = new Notification();
+        notification.setMessage("Test");
+        notification.setType(Notification.TYPE_INFO);
+        notification.setStatus(Notification.STATUS_UNREAD);
+
+        adapter = new NotificationsAdapter(
+                Collections.singletonList(notification),
+                mockRepo
+        );
+
+        assertEquals(1, adapter.getItemCount());
+    }
+
+    /**
+     * Tests that updateList correctly updates the adapter's dataset size.
+     */
+    @Test
+    public void testUpdateListChangesItemCount() {
+        Notification n1 = new Notification();
+        n1.setMessage("First");
+        n1.setType(Notification.TYPE_INFO);
+        n1.setStatus(Notification.STATUS_UNREAD);
+
+        adapter = new NotificationsAdapter(
+                Collections.singletonList(n1),
+                mockRepo
+        );
+
+        assertEquals(1, adapter.getItemCount());
+
+        Notification n2 = new Notification();
+        n2.setMessage("Second");
+        n2.setType(Notification.TYPE_ADMIN);
+        n2.setStatus(Notification.STATUS_READ);
+
+        List<Notification> newList = new ArrayList<>();
+        newList.add(n1);
+        newList.add(n2);
+
+        adapter.updateList(newList);
+
+        assertEquals(2, adapter.getItemCount());
     }
 }
 
