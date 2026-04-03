@@ -78,6 +78,7 @@
                     android:textColor="@color/primary_deep"/>
 
                 <ToggleButton
+                    android:id="@+id/visibility_toggle"
                     android:layout_width="110dp"
                     android:layout_height="50dp"
                     android:background="@drawable/toggle_background"
