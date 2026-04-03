@@ -46,6 +46,7 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.Toast;
+import android.widget.ToggleButton;
 
 import com.example.eventlottery.Event;
 import com.example.eventlottery.EventOverviewFragment;
@@ -85,6 +86,7 @@ public class CreateEventFragment extends Fragment {
     private EditText editRegCloseMonth;
     private EditText editRegCloseDay;
     private EditText editCapacity;
+    ToggleButton visibilityToggle;
 
     private Button negativeButton;
     private Button clearImageButton;
@@ -169,6 +171,7 @@ public class CreateEventFragment extends Fragment {
         editRegCloseMonth = view.findViewById(R.id.edit_reg_close_month);
         editRegCloseDay = view.findViewById(R.id.edit_reg_close_day);
         editCapacity = view.findViewById(R.id.edit_capacity);
+        visibilityToggle = view.findViewById(R.id.visibility_toggle);
 
         // GET FIRESTORE COLLECTION
 
@@ -195,6 +198,11 @@ public class CreateEventFragment extends Fragment {
                         editRegCloseYear.setText(String.valueOf(currentEvent.getRegistrationClose().getYear()));
                         editRegCloseMonth.setText(String.valueOf(currentEvent.getRegistrationClose().getMonthValue()));
                         editRegCloseDay.setText(String.valueOf(currentEvent.getRegistrationClose().getDayOfMonth()));
+                        if (currentEvent.isPrivate()) {
+                            visibilityToggle.setChecked(true);
+                        } else {
+                            visibilityToggle.setChecked(false);
+                        }
                         if (currentEvent.getWaitingListCapacity() != null) {
                             editCapacity.setText(String.valueOf(currentEvent.getWaitingListCapacity()));
                         }
@@ -494,15 +502,23 @@ public class CreateEventFragment extends Fragment {
                     registrationClose,
                     capacity
             );
-            returnEvent.setPosterImage(selectedPosterImage); // TODO: fix this in some refactor
         } else {
             returnEvent.setTitle(ctx.input.title);
             returnEvent.setDescription(ctx.input.description);
             returnEvent.setRegistrationOpen(registrationOpen);
             returnEvent.setRegistrationClose(registrationClose);
             returnEvent.setWaitingListCapacity(capacity);
-            returnEvent.setPosterImage(selectedPosterImage);
         }
+
+        // Set visibility of returnEvent (off == public / on == private)
+        if (visibilityToggle.isChecked()) {
+            returnEvent.setToPrivate();
+        } else {
+            returnEvent.setToPublic();
+        }
+
+        // Set poster image of returnEvent
+        returnEvent.setPosterImage(selectedPosterImage);
 
         return ValidationResult.valid(returnEvent);
     }
