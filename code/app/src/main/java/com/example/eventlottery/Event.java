@@ -29,7 +29,6 @@ import com.google.firebase.firestore.Exclude;
 
 import java.io.ByteArrayOutputStream;
 import java.time.ZonedDateTime;
-import java.util.List;
 
 /**
  * A class representing an Event which stores event data
@@ -52,6 +51,9 @@ public class Event {
     @Exclude
     private ZonedDateTime registrationClose = null;
     private String registrationCloseIso; // Read only
+
+    private java.util.List<String> coOrganizers = new java.util.ArrayList<>();
+    private java.util.List<String> pendingCoOrganizers = new java.util.ArrayList<>();
 
     /**
      * An empty public constructor required for Firebase deserialization.
@@ -198,16 +200,6 @@ public class Event {
         return waitingListCapacity;
     }
 
-    private List<String> waitingList;
-
-    public List<String> getWaitingList() {
-        return waitingList;
-    }
-
-    public void setWaitingList(List<String> waitingList) {
-        this.waitingList = waitingList;
-    }
-
     public void setWaitingListCapacity(@Nullable Integer waitingListCapacity) {
         if (waitingListCapacity == null || waitingListCapacity > 0 ) {
             this.waitingListCapacity = waitingListCapacity;
@@ -216,5 +208,20 @@ public class Event {
         }
     }
 
+    public java.util.List<String> getCoOrganizers() {
+        return coOrganizers;
+    }
+
+    public void setCoOrganizers(java.util.List<String> coOrganizers) {
+        this.coOrganizers = coOrganizers;
+    }
+
+    public java.util.List<String> getPendingCoOrganizers() {
+        return pendingCoOrganizers;
+    }
+
+    public void setPendingCoOrganizers(java.util.List<String> pendingCoOrganizers) {
+        this.pendingCoOrganizers = pendingCoOrganizers;
+    }
 
 }
