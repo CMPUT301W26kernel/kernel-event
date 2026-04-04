@@ -39,6 +39,7 @@ public class Event {
     private String description;
     private String organizerId; // Read only
     private Integer waitingListCapacity;
+    private boolean isPrivate = false;
 
     @Exclude
     private Bitmap posterImage = null;
@@ -224,4 +225,26 @@ public class Event {
         this.pendingCoOrganizers = pendingCoOrganizers;
     }
 
+    /**
+     * Returns whether an event is private or not.
+     * Events are public by default.
+     * @return true if event is private, false otherwise.
+     */
+    public boolean isPrivate() {
+        return this.isPrivate;
+    }
+
+    /**
+     * Sets an Event to private
+     */
+    public void setToPrivate() {
+        this.isPrivate = true;
+    }
+
+    /**
+     * Sets an Event to public
+     */
+    public void setToPublic() {
+        this.isPrivate = false;
+    }
 }
