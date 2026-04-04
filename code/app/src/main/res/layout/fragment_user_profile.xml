@@ -6,7 +6,7 @@
     android:layout_height="match_parent"
     android:background="#E1F5F5"
     android:fillViewport="true"
-    tools:context=".UserProfileFragment">
+    tools:context=".profiles.UserProfileFragment">
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"

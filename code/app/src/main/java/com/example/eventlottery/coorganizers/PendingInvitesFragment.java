@@ -11,7 +11,7 @@
  * @author Rebecca OluwaBiyi
  * @since 2026-03-31
  */
-package com.example.eventlottery;
+package com.example.eventlottery.coorganizers;
 
 import android.os.Bundle;
 import android.view.LayoutInflater;
@@ -26,6 +26,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 
+import com.example.eventlottery.R;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FieldValue;

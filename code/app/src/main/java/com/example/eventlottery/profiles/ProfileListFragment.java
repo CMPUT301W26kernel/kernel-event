@@ -10,7 +10,7 @@
  * @author Grace MacKenzie
  * @since 2026-02-28
  */
-package com.example.eventlottery;
+package com.example.eventlottery.profiles;
 
 import android.os.Bundle;
 import android.view.LayoutInflater;
@@ -26,6 +26,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 
+import com.example.eventlottery.R;
 import com.google.android.material.button.MaterialButton;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.QueryDocumentSnapshot;

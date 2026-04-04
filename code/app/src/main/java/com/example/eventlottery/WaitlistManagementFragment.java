@@ -22,6 +22,7 @@ import androidx.fragment.app.DialogFragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.example.eventlottery.profiles.User;
 import com.google.firebase.firestore.FirebaseFirestore;
 
 import java.util.ArrayList;

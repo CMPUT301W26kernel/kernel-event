@@ -27,6 +27,8 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.example.eventlottery.creation.CreateEventFragment;
+import com.example.eventlottery.profiles.ProfileListFragment;
+import com.example.eventlottery.profiles.UserProfileFragment;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;

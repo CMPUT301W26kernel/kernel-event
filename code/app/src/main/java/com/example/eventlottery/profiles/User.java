@@ -1,4 +1,4 @@
-package com.example.eventlottery;
+package com.example.eventlottery.profiles;
 
 /**
  * User data model stored in Firestore.
