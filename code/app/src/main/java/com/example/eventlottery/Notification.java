@@ -1,59 +1,57 @@
 package com.example.eventlottery;
 
-
 import com.google.firebase.Timestamp;
+import com.example.eventlottery.NotificationType;
+import com.example.eventlottery.NotificationStatus;
 
 /**
- * This class represents a notification in the application.
- * It has fields for notificationId, userId, eventId, type, message, status, and timestamp.
- * It also has getters and setters for each field.
- * The class also has a constructor for creating a notification.
- * Last Modified: 2026-03-31 by Radwa Sheikhdon
- * @author Radwa Sheikhdon
- * @version 2.0
- * @since 2023-03-02
+ * Notification Model
+ *
+ * Represents a notification stored in Firestore.
+ *
+ * Firestore stores `type` and `status` as Strings
+ * We use enums in code for type safety
+ * Conversion is handled via helper methods
+ *
+ * Last Modified: 2026-04-03 by Radwa Sheikhdon
+ * @author Radwa
  */
 public class Notification {
 
-    //  Types of Notifications
-    public static final String TYPE_INVITE = "INVITE";
-    public static final String TYPE_ADMIN = "ADMIN";
-    public static final String TYPE_INFO = "INFO";
-    public static final String TYPE_COORGANIZER_INVITE = "COORGANIZER_INVITE";
+    /**
+     * Enum representing the type of notification
+     */
 
-    // Notification Status
-    public static final String STATUS_UNREAD = "UNREAD";
-    public static final String STATUS_ACCEPTED = "ACCEPTED";
-    public static final String STATUS_DECLINED = "DECLINED";
-    public static final String STATUS_EXPIRED = "EXPIRED";
-    public static final String STATUS_READ = "READ" ;
-
-
+    // Firestore fields (stay as Strings for serialization)
     private String notificationId;
     private String userId;
     private String eventId;
-    private String type;
+    private String type;    // stored as String in Firestore
     private String message;
-    private String status;
+    private String status;  // stored as String in Firestore
     private Timestamp timestamp;
 
-    // This is a default constructor for creating a notification
-    public Notification() {
-    }
+    /**
+     * Required empty constructor for Firestore deserialization
+     */
+    public Notification() {}
 
     /**
-     * This is a constructor for creating a notification.
-     * It takes in the following parameters: notificationId, userId, eventId, type, message, status, and timestamp.
+     * Constructor for creating a new notification
+     *
      * @param notificationId
      * @param userId
      * @param eventId
      * @param type
      * @param message
-     * @param status
-     * @param timestamp
      */
-    public Notification(String notificationId, String userId, String eventId,
-                        String type, String message, String status, Timestamp timestamp) {
+    public Notification(String notificationId,
+                        String userId,
+                        String eventId,
+                        String type,
+                        String message,
+                        String status,
+                        Timestamp timestamp) {
         this.notificationId = notificationId;
         this.userId = userId;
         this.eventId = eventId;
@@ -63,60 +61,120 @@ public class Notification {
         this.timestamp = timestamp;
     }
 
+    // ENUM HELPERS
 
-    // GETTERS & SETTERS
+    /**
+     * Converts stored String type to enum
+     * This prevents crashes if data is invalid/null
+     */
+    public NotificationType getTypeEnum() {
+        if (type == null) return null;
+        try {
+            return NotificationType.valueOf(type);
+        } catch (IllegalArgumentException e) {
+            return null;
+        }
+    }
+
+    /**
+     * Sets notification type using enum
+     * Converts enum to a String for Firestore
+     */
+    public void setType(NotificationType type) {
+        this.type = (type == null) ? null : type.name();
+    }
+
+    /**
+     * Converts stored String status to enum
+     * This prevents crashes if data is invalid/null
+     */
+    public NotificationStatus getStatusEnum() {
+        if (status == null) return null;
+        try {
+            return NotificationStatus.valueOf(status);
+        } catch (IllegalArgumentException e) {
+            return null;
+        }
+    }
+
+    /**
+     * Sets status using an enum
+     */
+    public void setStatus(NotificationStatus status) {
+        this.status = (status == null) ? null : status.name();
+    }
+
+    /**
+     * Standard GETTERS and SETTERS
+     * @return
+     */
+
+    // Gets notificationId as a String
     public String getNotificationId() {
         return notificationId;
     }
 
+    // Sets notificationId as a String
     public void setNotificationId(String notificationId) {
         this.notificationId = notificationId;
     }
 
+    // Gets userId as a String
     public String getUserId() {
         return userId;
     }
 
+    // Sets userId as a String
     public void setUserId(String userId) {
         this.userId = userId;
     }
 
+    // Gets eventId as a String
     public String getEventId() {
         return eventId;
     }
 
+    // Sets eventId as a String
     public void setEventId(String eventId) {
         this.eventId = eventId;
     }
 
+    // Raw getter (used by Firestore) to get type as a String
     public String getType() {
         return type;
     }
 
+    // Raw setter (used by Firestore) to set type as a String
     public void setType(String type) {
         this.type = type;
     }
 
+    // Gets message as a String
     public String getMessage() {
         return message;
     }
 
+    // Sets message as a String
     public void setMessage(String message) {
         this.message = message;
     }
 
+    // Raw getter (used by Firestore)
     public String getStatus() {
         return status;
     }
 
+    // Raw setter (used by Firestore)
     public void setStatus(String status) {
         this.status = status;
     }
 
+    // Gets timestamp as a Timestamp
     public Timestamp getTimestamp() {
         return timestamp;
     }
 
+    // Sets timestamp as a Timestamp
     public void setTimestamp(Timestamp timestamp) {
         this.timestamp = timestamp;
     }
