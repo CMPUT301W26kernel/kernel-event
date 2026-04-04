@@ -22,6 +22,7 @@ import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.example.eventlottery.creation.CreateEventFragment;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.Timestamp;
 import com.google.firebase.firestore.DocumentSnapshot;
@@ -172,6 +173,7 @@ public class EventOverviewFragment extends Fragment implements
         manageWaitlistButton.setOnClickListener(v -> openWaitlistManagementDialog());
         postCommentButton.setOnClickListener(v -> submitComment());
         qrGenerateButton.setOnClickListener(v -> navigateToQrGeneration());
+        editButton.setOnClickListener(v -> navigateToEditFragment());
 
         if (eventId == null) {
             if (getContext() != null) {
@@ -530,6 +532,13 @@ public class EventOverviewFragment extends Fragment implements
         getParentFragmentManager()
                 .beginTransaction()
                 .replace(R.id.fragment_container, QrGeneratorFragment.newInstance(eventId))
+                .commit();
+    }
+
+    private void navigateToEditFragment() {
+        getParentFragmentManager()
+                .beginTransaction()
+                .replace(R.id.fragment_container, CreateEventFragment.newInstanceEditMode(eventId))
                 .commit();
     }
 
