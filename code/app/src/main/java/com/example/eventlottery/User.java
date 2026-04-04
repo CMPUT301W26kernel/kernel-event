@@ -1,4 +1,4 @@
-package com.example.eventlottery;
+package com.example.eventlottery.profiles;
 
 /**
  * User data model stored in Firestore.
@@ -26,16 +26,6 @@ public class User {
         this.email = email;
         this.role = role;
         this.phoneNumber = phoneNumber;
-    }
-
-    private Boolean notificationsEnabled = true;
-
-    public Boolean getNotificationsEnabled() {
-        return notificationsEnabled;
-    }
-
-    public void setNotificationsEnabled(Boolean notificationsEnabled) {
-        this.notificationsEnabled = notificationsEnabled;
     }
 
     public String getUserId() {
@@ -79,4 +69,5 @@ public class User {
         this.phoneNumber = phoneNumber;
     }
 }
+
 
