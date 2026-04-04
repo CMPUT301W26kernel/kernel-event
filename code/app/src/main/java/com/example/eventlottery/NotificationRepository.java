@@ -5,13 +5,12 @@ import android.util.Log;
 import com.google.android.gms.tasks.Task;
 import com.google.android.gms.tasks.Tasks;
 import com.google.firebase.Timestamp;
+import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.Transaction;
-import com.google.firebase.auth.FirebaseAuth;
-
 
 import java.util.ArrayList;
 import java.util.List;
@@ -25,11 +24,9 @@ public class NotificationRepository {
 
     private final FirebaseFirestore db;
 
-
     public NotificationRepository() {
         this(FirebaseFirestore.getInstance());
     }
-
 
     public NotificationRepository(FirebaseFirestore db) {
         this.db = db;
@@ -41,9 +38,7 @@ public class NotificationRepository {
     }
 
     /**
-     *
-     * @param notification
-     * @param callback
+     * Marks a notification as read.
      */
     public void markAsRead(Notification notification, NotificationCallback callback) {
         if (notification == null || notification.getNotificationId() == null) {
@@ -53,7 +48,7 @@ public class NotificationRepository {
 
         db.collection("notifications")
                 .document(notification.getNotificationId())
-                .update("status", Notification.STATUS_READ)
+                .update("status", NotificationStatus.READ.name())
                 .addOnSuccessListener(aVoid -> notifySuccess(callback))
                 .addOnFailureListener(e -> notifyFailure(callback, e));
     }
@@ -86,19 +81,20 @@ public class NotificationRepository {
                         throw new RuntimeException("Notification not found");
                     }
 
-                    List<String> privateInviteList = getStringList(eventSnap.get("privateEventInvitedList"));
-                    boolean isPrivateWaitlistInvite = privateInviteList.contains(notification.getUserId());
+                    List<String> privateInviteList =
+                            getStringList(eventSnap.get("privateEventInvitedList"));
 
-                    transaction.update(notificationRef, "status", Notification.STATUS_ACCEPTED);
+                    boolean isPrivateWaitlistInvite =
+                            privateInviteList.contains(notification.getUserId());
+
+                    transaction.update(notificationRef, "status", NotificationStatus.ACCEPTED.name());
 
                     if (isPrivateWaitlistInvite) {
-                        // Accepting a private event invite moves entrant onto the waiting list.
                         transaction.update(eventRef, "privateEventInvitedList",
                                 FieldValue.arrayRemove(notification.getUserId()));
                         transaction.update(eventRef, "waitingList",
                                 FieldValue.arrayUnion(notification.getUserId()));
                     } else {
-                        // Accepting a normal invite moves entrant to accepted list.
                         transaction.update(eventRef, "invitedList",
                                 FieldValue.arrayRemove(notification.getUserId()));
                         transaction.update(eventRef, "acceptedList",
@@ -117,7 +113,7 @@ public class NotificationRepository {
 
     /**
      * Entrant can decline invitation to register
-     * and decline private waiting list invitation
+     * and decline private waiting list invitation.
      */
     public void declineInvitation(Notification notification, NotificationCallback callback) {
         if (!isValidNotification(notification)) {
@@ -149,14 +145,12 @@ public class NotificationRepository {
                     boolean isPrivateWaitlistInvite =
                             privateInviteList.contains(notification.getUserId());
 
-                    transaction.update(notificationRef, "status", Notification.STATUS_DECLINED);
+                    transaction.update(notificationRef, "status", NotificationStatus.DECLINED.name());
 
                     if (isPrivateWaitlistInvite) {
-                        // Declining a private waitlist invite just removes the pending invite.
                         transaction.update(eventRef, "privateEventInvitedList",
                                 FieldValue.arrayRemove(notification.getUserId()));
                     } else {
-                        // Declining a normal invite removes it and records the entrant as cancelled/not selected.
                         transaction.update(eventRef, "invitedList",
                                 FieldValue.arrayRemove(notification.getUserId()));
                         transaction.update(eventRef, "acceptedList",
@@ -173,6 +167,9 @@ public class NotificationRepository {
                 });
     }
 
+    /**
+     * Creates a notification.
+     */
     public void createNotification(Notification notification) {
         createNotificationTask(notification)
                 .addOnSuccessListener(aVoid -> {
@@ -184,12 +181,15 @@ public class NotificationRepository {
                         Log.e(TAG, "Error adding notification", e));
     }
 
+    /**
+     * Creates a notification only if the user can receive it.
+     */
     private Task<Void> createNotificationTask(Notification notification) {
         if (notification == null) {
             return Tasks.forException(new IllegalArgumentException("Notification cannot be null"));
         }
 
-        return canReceiveNotification(notification.getUserId(), notification.getType())
+        return canReceiveNotification(notification.getUserId(), notification.getTypeEnum())
                 .continueWithTask(task -> {
                     if (!task.isSuccessful()) {
                         Exception e = task.getException();
@@ -207,10 +207,13 @@ public class NotificationRepository {
                 });
     }
 
+    /**
+     * Sends the same notification to multiple users.
+     */
     public void sendBulkNotification(List<String> userIds,
                                      String eventId,
                                      String message,
-                                     String type) {
+                                     NotificationType type) {
         if (userIds == null || userIds.isEmpty()) return;
 
         for (String userId : userIds) {
@@ -219,35 +222,31 @@ public class NotificationRepository {
                     eventId,
                     type,
                     message,
-                    Notification.STATUS_UNREAD
+                    NotificationStatus.UNREAD
             ));
         }
     }
 
     /**
-     * Organizer notifies the waiting list
+     * Organizer notifies the waiting list.
      */
     public void sendWaitingListNotification(String eventId, String message) {
         db.collection("events").document(eventId).get()
                 .addOnSuccessListener(doc -> {
                     if (!doc.exists()) return;
 
-                    Event event = doc.toObject(Event.class);
+                    List<String> waitingList = getStringList(doc.get("waitingList"));
+                    if (waitingList.isEmpty()) return;
 
-                    if (event == null ||
-                            event.getWaitingList() == null ||
-                            event.getWaitingList().isEmpty()) return;
-
-                    List<String> waitingList = event.getWaitingList();
                     List<Task<String>> tasks = new ArrayList<>();
 
                     for (String userId : waitingList) {
                         tasks.add(createNotificationTaskWithResult(buildNotification(
                                 userId,
                                 eventId,
-                                Notification.TYPE_INFO,
+                                NotificationType.INFO,
                                 message,
-                                Notification.STATUS_UNREAD
+                                NotificationStatus.UNREAD
                         )));
                     }
 
@@ -273,7 +272,7 @@ public class NotificationRepository {
                                             senderId,
                                             eventId,
                                             successfulRecipients,
-                                            Notification.TYPE_INFO,
+                                            NotificationType.INFO,
                                             message
                                     ).addOnFailureListener(e ->
                                             Log.e(TAG, "Failed to create notification log", e));
@@ -287,56 +286,54 @@ public class NotificationRepository {
     }
 
     /**
-     * Receive notification when selected for event
-     * Organizer notifies selected entrants
+     * Organizer notifies selected entrants.
      */
     public Task<Void> sendInvitedUsersNotification(String eventId, String message) {
         return sendNotificationsToListField(
                 eventId,
                 "invitedList",
-                Notification.TYPE_INVITE,
+                NotificationType.INVITE,
                 message
         );
     }
 
     /**
-     * Receive notification when not chosen
-     * Notify cancelled entrants
+     * Organizer notifies cancelled entrants.
      */
     public Task<Void> sendCancelledEntrantsNotification(String eventId, String message) {
         return sendNotificationsToListField(
                 eventId,
                 "cancelledList",
-                Notification.TYPE_INFO,
+                NotificationType.INFO,
                 message
         );
     }
 
-    /**
-     *
-     */
     public Task<Void> sendNotSelectedEntrantsNotification(String eventId, String message) {
         return sendCancelledEntrantsNotification(eventId, message);
     }
 
     /**
-     * Send entrant notification to join private event
+     * Sends private waitlist invite notifications.
      */
     public Task<Void> sendPrivateWaitlistInviteNotification(String eventId, String message) {
         return sendNotificationsToListField(
                 eventId,
                 "privateEventInvitedList",
-                Notification.TYPE_INVITE,
+                NotificationType.INVITE,
                 message
         );
     }
 
+    /**
+     * Creates a notification task and returns the recipient ID if successful.
+     */
     private Task<String> createNotificationTaskWithResult(Notification notification) {
         if (notification == null) {
             return Tasks.forException(new IllegalArgumentException("Notification cannot be null"));
         }
 
-        return canReceiveNotification(notification.getUserId(), notification.getType())
+        return canReceiveNotification(notification.getUserId(), notification.getTypeEnum())
                 .continueWithTask(task -> {
                     if (!task.isSuccessful()) {
                         Exception e = task.getException();
@@ -345,7 +342,7 @@ public class NotificationRepository {
 
                     Boolean allowed = task.getResult();
                     if (allowed == null || !allowed) {
-                        return Tasks.forResult(null); // not sent
+                        return Tasks.forResult(null);
                     }
 
                     DocumentReference notificationRef = db.collection("notifications").document();
@@ -357,14 +354,17 @@ public class NotificationRepository {
                                     Exception e = setTask.getException();
                                     throw (e != null) ? e : new Exception("Failed to create notification");
                                 }
-                                return notification.getUserId(); // sent successfully
+                                return notification.getUserId();
                             });
                 });
     }
 
+    /**
+     * Sends notifications to every user ID stored in a given event list field.
+     */
     private Task<Void> sendNotificationsToListField(String eventId,
                                                     String fieldName,
-                                                    String type,
+                                                    NotificationType type,
                                                     String message) {
         return db.collection("events")
                 .document(eventId)
@@ -389,7 +389,7 @@ public class NotificationRepository {
                                 eventId,
                                 type,
                                 message,
-                                Notification.STATUS_UNREAD
+                                NotificationStatus.UNREAD
                         );
                         tasks.add(createNotificationTaskWithResult(notification));
                     }
@@ -428,9 +428,13 @@ public class NotificationRepository {
                 });
     }
 
-    private Task<Boolean> canReceiveNotification(String userId, String type) {
-        if (Notification.TYPE_INVITE.equals(type)
-                || Notification.TYPE_COORGANIZER_INVITE.equals(type)) {
+    /**
+     * Checks whether a user can receive a given notification type.
+     * Invite types always bypass the user preference toggle.
+     */
+    private Task<Boolean> canReceiveNotification(String userId, NotificationType type) {
+        if (type == NotificationType.INVITE
+                || type == NotificationType.COORGANIZER_INVITE) {
             return Tasks.forResult(true);
         }
 
@@ -451,13 +455,16 @@ public class NotificationRepository {
                 });
     }
 
+    /**
+     * Sends a co-organizer invite notification.
+     */
     public void sendCoOrganizerInviteNotification(String userId, String eventId, String message) {
         Notification notification = buildNotification(
                 userId,
                 eventId,
-                Notification.TYPE_COORGANIZER_INVITE,
+                NotificationType.COORGANIZER_INVITE,
                 message,
-                Notification.STATUS_UNREAD
+                NotificationStatus.UNREAD
         );
 
         createNotification(notification);
@@ -474,13 +481,16 @@ public class NotificationRepository {
                     senderId,
                     eventId,
                     recipients,
-                    Notification.TYPE_COORGANIZER_INVITE,
+                    NotificationType.COORGANIZER_INVITE,
                     message
             ).addOnFailureListener(e ->
                     Log.e(TAG, "Failed to log co-organizer invite", e));
         }
     }
 
+    /**
+     * Accepts a co-organizer invite.
+     */
     public void acceptCoOrganizerInvite(Notification notification, NotificationCallback callback) {
         if (!isValidNotification(notification)) {
             notifyFailure(callback, new RuntimeException("Invalid notification data"));
@@ -505,7 +515,7 @@ public class NotificationRepository {
                         throw new RuntimeException("Notification not found");
                     }
 
-                    transaction.update(notificationRef, "status", Notification.STATUS_ACCEPTED);
+                    transaction.update(notificationRef, "status", NotificationStatus.ACCEPTED.name());
                     transaction.update(eventRef, "coOrganizers", FieldValue.arrayUnion(notification.getUserId()));
 
                     return null;
@@ -516,6 +526,9 @@ public class NotificationRepository {
                 });
     }
 
+    /**
+     * Declines a co-organizer invite.
+     */
     public void declineCoOrganizerInvite(Notification notification, NotificationCallback callback) {
         if (!isValidNotification(notification)) {
             notifyFailure(callback, new RuntimeException("Invalid notification data"));
@@ -532,7 +545,7 @@ public class NotificationRepository {
                         throw new RuntimeException("Notification not found");
                     }
 
-                    transaction.update(notificationRef, "status", Notification.STATUS_DECLINED);
+                    transaction.update(notificationRef, "status", NotificationStatus.DECLINED.name());
                     return null;
                 }).addOnSuccessListener(aVoid -> notifySuccess(callback))
                 .addOnFailureListener(e -> {
@@ -541,10 +554,13 @@ public class NotificationRepository {
                 });
     }
 
+    /**
+     * Creates a notification log entry.
+     */
     private Task<Void> createNotificationLog(String senderId,
                                              String eventId,
                                              List<String> recipientIds,
-                                             String type,
+                                             NotificationType type,
                                              String message) {
         if (senderId == null || eventId == null || recipientIds == null) {
             return Tasks.forException(new IllegalArgumentException("Invalid log data"));
@@ -558,20 +574,21 @@ public class NotificationRepository {
         log.setEventId(eventId);
         log.setRecipientIds(new ArrayList<>(recipientIds));
         log.setRecipientCount(recipientIds.size());
-        log.setType(type);
+        log.setType(type.name());
         log.setMessage(message);
         log.setTimestamp(Timestamp.now());
 
         return logRef.set(log);
     }
 
-
-
+    /**
+     * Builds a notification object.
+     */
     private Notification buildNotification(String userId,
                                            String eventId,
-                                           String type,
+                                           NotificationType type,
                                            String message,
-                                           String status) {
+                                           NotificationStatus status) {
         Notification notification = new Notification();
         notification.setUserId(userId);
         notification.setEventId(eventId);
@@ -582,6 +599,9 @@ public class NotificationRepository {
         return notification;
     }
 
+    /**
+     * Safely converts an Object field to a list of strings.
+     */
     private List<String> getStringList(Object fieldValue) {
         List<String> result = new ArrayList<>();
 
@@ -596,6 +616,9 @@ public class NotificationRepository {
         return result;
     }
 
+    /**
+     * Checks that a notification contains the IDs required for actions.
+     */
     private boolean isValidNotification(Notification notification) {
         return notification != null
                 && notification.getNotificationId() != null

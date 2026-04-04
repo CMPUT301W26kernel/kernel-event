@@ -66,8 +66,6 @@ public class NotificationsAdapter extends RecyclerView.Adapter<NotificationsAdap
         bindItemClick(holder, notification);
         showTypeBadge(holder, notification);
 
-        // Invite notifications should show only action buttons.
-        // Non-invite notifications should show the status badge.
         if (isActionableInvite(notification)) {
             showInviteActions(holder, notification);
         } else {
@@ -98,7 +96,7 @@ public class NotificationsAdapter extends RecyclerView.Adapter<NotificationsAdap
 
     /**
      * Resets view state before binding a recycled item.
-     * Prevents old button listeners or visibility states from leaking into reused rows.
+     * Prevents recycled rows from keeping stale listeners or visibility states.
      */
     private void resetViewState(ViewHolder holder) {
         holder.layoutInviteActions.setVisibility(View.GONE);
@@ -109,18 +107,19 @@ public class NotificationsAdapter extends RecyclerView.Adapter<NotificationsAdap
 
     /**
      * Marks a notification as read when tapped, but only if it is currently unread.
-     * This updates the backend and refreshes the affected row on success.
      */
     private void bindItemClick(ViewHolder holder, Notification notification) {
         holder.itemView.setOnClickListener(v -> {
-            if (!Notification.STATUS_UNREAD.equals(notification.getStatus())) return;
+            if (notification.getStatusEnum() != NotificationStatus.UNREAD) {
+                return;
+            }
 
             repository.markAsRead(notification, new NotificationRepository.NotificationCallback() {
                 @Override
                 public void onSuccess() {
                     int pos = holder.getAdapterPosition();
                     if (pos != RecyclerView.NO_POSITION) {
-                        notification.setStatus(Notification.STATUS_READ);
+                        notification.setStatus(NotificationStatus.READ);
                         notifyItemChanged(pos);
                         Toast.makeText(v.getContext(), "Marked as read", Toast.LENGTH_SHORT).show();
                     }
@@ -139,16 +138,16 @@ public class NotificationsAdapter extends RecyclerView.Adapter<NotificationsAdap
      * and is still awaiting user action.
      */
     private boolean isActionableInvite(Notification notification) {
-        String type = notification.getType();
-        String status = notification.getStatus();
+        NotificationType type = notification.getTypeEnum();
+        NotificationStatus status = notification.getStatusEnum();
 
         boolean isInviteType =
-                Notification.TYPE_INVITE.equals(type) ||
-                        Notification.TYPE_COORGANIZER_INVITE.equals(type);
+                type == NotificationType.INVITE ||
+                        type == NotificationType.COORGANIZER_INVITE;
 
         boolean isStillActionable =
-                Notification.STATUS_UNREAD.equals(status) ||
-                        Notification.STATUS_READ.equals(status);
+                status == NotificationStatus.UNREAD ||
+                        status == NotificationStatus.READ;
 
         return isInviteType && isStillActionable;
     }
@@ -158,8 +157,6 @@ public class NotificationsAdapter extends RecyclerView.Adapter<NotificationsAdap
      */
     private void showInviteActions(ViewHolder holder, Notification notification) {
         holder.layoutInviteActions.setVisibility(View.VISIBLE);
-
-        // Always hide the status badge for actionable invites.
         holder.statusBadge.setVisibility(View.GONE);
 
         holder.btnAccept.setBackgroundTintList(
@@ -178,7 +175,6 @@ public class NotificationsAdapter extends RecyclerView.Adapter<NotificationsAdap
 
     /**
      * Handles accepting an invite or co-organizer invite.
-     * Updates the notification status and refreshes the row on success.
      */
     private void handleAccept(ViewHolder holder, Notification notification, View view) {
         if (!hasRequiredIds(notification)) {
@@ -191,7 +187,7 @@ public class NotificationsAdapter extends RecyclerView.Adapter<NotificationsAdap
             public void onSuccess() {
                 int pos = holder.getAdapterPosition();
                 if (pos != RecyclerView.NO_POSITION) {
-                    notification.setStatus(Notification.STATUS_ACCEPTED);
+                    notification.setStatus(NotificationStatus.ACCEPTED);
                     notifyItemChanged(pos);
                     Toast.makeText(view.getContext(), "Invitation accepted", Toast.LENGTH_SHORT).show();
                 }
@@ -207,7 +203,7 @@ public class NotificationsAdapter extends RecyclerView.Adapter<NotificationsAdap
             }
         };
 
-        if (Notification.TYPE_COORGANIZER_INVITE.equals(notification.getType())) {
+        if (notification.getTypeEnum() == NotificationType.COORGANIZER_INVITE) {
             repository.acceptCoOrganizerInvite(notification, callback);
         } else {
             repository.acceptInvitation(notification, callback);
@@ -216,7 +212,6 @@ public class NotificationsAdapter extends RecyclerView.Adapter<NotificationsAdap
 
     /**
      * Handles declining an invite or co-organizer invite.
-     * Updates the notification status and refreshes the row on success.
      */
     private void handleDecline(ViewHolder holder, Notification notification, View view) {
         if (!hasRequiredIds(notification)) {
@@ -229,7 +224,7 @@ public class NotificationsAdapter extends RecyclerView.Adapter<NotificationsAdap
             public void onSuccess() {
                 int pos = holder.getAdapterPosition();
                 if (pos != RecyclerView.NO_POSITION) {
-                    notification.setStatus(Notification.STATUS_DECLINED);
+                    notification.setStatus(NotificationStatus.DECLINED);
                     notifyItemChanged(pos);
                     Toast.makeText(view.getContext(), "Invitation declined", Toast.LENGTH_SHORT).show();
                 }
@@ -245,7 +240,7 @@ public class NotificationsAdapter extends RecyclerView.Adapter<NotificationsAdap
             }
         };
 
-        if (Notification.TYPE_COORGANIZER_INVITE.equals(notification.getType())) {
+        if (notification.getTypeEnum() == NotificationType.COORGANIZER_INVITE) {
             repository.declineCoOrganizerInvite(notification, callback);
         } else {
             repository.declineInvitation(notification, callback);
@@ -256,18 +251,22 @@ public class NotificationsAdapter extends RecyclerView.Adapter<NotificationsAdap
      * Displays the status badge for non-actionable notifications.
      */
     private void showStatusBadge(ViewHolder holder, Notification notification) {
-        String status = notification.getStatus();
-        holder.statusBadge.setText(status != null && !status.isEmpty() ? status : "UNKNOWN");
+        NotificationStatus status = notification.getStatusEnum();
+        String statusText = notification.getStatus();
+
+        holder.statusBadge.setText(
+                statusText != null && !statusText.isEmpty() ? statusText : "UNKNOWN"
+        );
         holder.statusBadge.setVisibility(View.VISIBLE);
 
         int color;
-        if (Notification.STATUS_ACCEPTED.equals(status)) {
+        if (status == NotificationStatus.ACCEPTED) {
             color = safeColor(holder.itemView, R.color.primary_dark);
-        } else if (Notification.STATUS_DECLINED.equals(status)) {
+        } else if (status == NotificationStatus.DECLINED) {
             color = safeColor(holder.itemView, R.color.secondary_dark);
-        } else if (Notification.STATUS_UNREAD.equals(status)) {
+        } else if (status == NotificationStatus.UNREAD) {
             color = safeColor(holder.itemView, R.color.primary_mid);
-        } else if (Notification.STATUS_READ.equals(status)) {
+        } else if (status == NotificationStatus.READ) {
             color = safeColor(holder.itemView, R.color.grey_light);
         } else {
             color = safeColor(holder.itemView, R.color.grey_light);
@@ -281,27 +280,27 @@ public class NotificationsAdapter extends RecyclerView.Adapter<NotificationsAdap
      * Displays a badge describing the notification type.
      */
     private void showTypeBadge(ViewHolder holder, Notification notification) {
-        String type = notification.getType();
+        NotificationType type = notification.getTypeEnum();
 
         String text;
         int color;
 
-        if (Notification.TYPE_COORGANIZER_INVITE.equals(type)) {
+        if (type == NotificationType.COORGANIZER_INVITE) {
             text = "CO-ORGANIZER";
             color = safeColor(holder.itemView, R.color.primary_deep);
-        } else if (Notification.TYPE_INVITE.equals(type)) {
-            if (notification.getMessage() != null &&
-                    notification.getMessage().toLowerCase().contains("private")) {
+        } else if (type == NotificationType.INVITE) {
+            if (notification.getMessage() != null
+                    && notification.getMessage().toLowerCase().contains("private")) {
                 text = "PRIVATE EVENT";
                 color = safeColor(holder.itemView, R.color.secondary_mid);
             } else {
                 text = "INVITE";
                 color = safeColor(holder.itemView, R.color.primary_mid);
             }
-        } else if (Notification.TYPE_INFO.equals(type)) {
+        } else if (type == NotificationType.INFO) {
             text = "INFO";
             color = safeColor(holder.itemView, R.color.primary_dark);
-        } else if (Notification.TYPE_ADMIN.equals(type)) {
+        } else if (type == NotificationType.ADMIN) {
             text = "ADMIN";
             color = safeColor(holder.itemView, R.color.primary_dark);
         } else {
@@ -316,7 +315,6 @@ public class NotificationsAdapter extends RecyclerView.Adapter<NotificationsAdap
 
     /**
      * Safely resolves a color resource.
-     * Returns 0 if the lookup fails.
      */
     private int safeColor(View view, int colorRes) {
         try {
@@ -365,4 +363,3 @@ public class NotificationsAdapter extends RecyclerView.Adapter<NotificationsAdap
         }
     }
 }
-

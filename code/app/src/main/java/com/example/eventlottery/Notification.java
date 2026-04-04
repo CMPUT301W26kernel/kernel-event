@@ -1,8 +1,7 @@
 package com.example.eventlottery;
 
 import com.google.firebase.Timestamp;
-import com.example.eventlottery.NotificationType;
-import com.example.eventlottery.NotificationStatus;
+
 
 /**
  * Notification Model
