@@ -43,6 +43,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.Toast;
@@ -62,6 +63,9 @@ import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeParseException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
 
 /**
@@ -86,6 +90,11 @@ public class CreateEventFragment extends Fragment {
     private EditText editRegCloseMonth;
     private EditText editRegCloseDay;
     private EditText editCapacity;
+    private EditText editVenueLatitude;
+    private EditText editVenueLongitude;
+    private EditText editGeolocationRadius;
+    private CheckBox checkboxRequireGeolocation;
+    private EditText editEventTags;
     ToggleButton visibilityToggle;
 
     private Button negativeButton;
@@ -171,6 +180,11 @@ public class CreateEventFragment extends Fragment {
         editRegCloseMonth = view.findViewById(R.id.edit_reg_close_month);
         editRegCloseDay = view.findViewById(R.id.edit_reg_close_day);
         editCapacity = view.findViewById(R.id.edit_capacity);
+        editVenueLatitude = view.findViewById(R.id.edit_venue_latitude);
+        editVenueLongitude = view.findViewById(R.id.edit_venue_longitude);
+        editGeolocationRadius = view.findViewById(R.id.edit_geolocation_radius);
+        checkboxRequireGeolocation = view.findViewById(R.id.checkbox_require_geolocation);
+        editEventTags = view.findViewById(R.id.edit_event_tags);
         visibilityToggle = view.findViewById(R.id.visibility_toggle);
 
         // GET FIRESTORE COLLECTION
@@ -205,6 +219,28 @@ public class CreateEventFragment extends Fragment {
                         }
                         if (currentEvent.getWaitingListCapacity() != null) {
                             editCapacity.setText(String.valueOf(currentEvent.getWaitingListCapacity()));
+                        }
+                        if (currentEvent.getVenueLatitude() != null) {
+                            editVenueLatitude.setText(String.valueOf(currentEvent.getVenueLatitude()));
+                        } else {
+                            editVenueLatitude.setText("");
+                        }
+                        if (currentEvent.getVenueLongitude() != null) {
+                            editVenueLongitude.setText(String.valueOf(currentEvent.getVenueLongitude()));
+                        } else {
+                            editVenueLongitude.setText("");
+                        }
+                        checkboxRequireGeolocation.setChecked(currentEvent.isRequireGeolocationForWaitlist());
+                        if (currentEvent.getGeolocationRadiusMeters() != null) {
+                            editGeolocationRadius.setText(String.valueOf(currentEvent.getGeolocationRadiusMeters()));
+                        } else {
+                            editGeolocationRadius.setText("");
+                        }
+                        List<String> existingTags = currentEvent.getTags();
+                        if (existingTags != null && !existingTags.isEmpty()) {
+                            editEventTags.setText(android.text.TextUtils.join(", ", existingTags));
+                        } else {
+                            editEventTags.setText("");
                         }
                         if (currentEvent.getPosterImage() != null) {
                             editPosterImage.setImageBitmap(currentEvent.getPosterImage());
@@ -413,8 +449,34 @@ public class CreateEventFragment extends Fragment {
                 editDescription.getText().toString(),
                 regOpen,
                 regClose,
-                editCapacity.getText().toString()
+                editCapacity.getText().toString(),
+                valueTrimmed(editVenueLatitude),
+                valueTrimmed(editVenueLongitude),
+                valueTrimmed(editGeolocationRadius),
+                checkboxRequireGeolocation.isChecked(),
+                valueTrimmed(editEventTags)
         );
+    }
+
+    private static String valueTrimmed(EditText field) {
+        if (field == null || field.getText() == null) {
+            return "";
+        }
+        return field.getText().toString().trim();
+    }
+
+    private static ArrayList<String> parseTags(String raw) {
+        ArrayList<String> out = new ArrayList<>();
+        if (raw == null || raw.isBlank()) {
+            return out;
+        }
+        for (String part : raw.split(",")) {
+            String t = part.trim().toLowerCase(Locale.US);
+            if (!t.isEmpty()) {
+                out.add(t);
+            }
+        }
+        return out;
     }
 
     /**
@@ -492,6 +554,47 @@ public class CreateEventFragment extends Fragment {
             return ValidationResult.invalid(e.getMessage());
         }
 
+        ArrayList<String> tagList = parseTags(ctx.input.tagsRaw);
+
+        String latRaw = ctx.input.venueLatitude;
+        String lonRaw = ctx.input.venueLongitude;
+        boolean hasLat = !latRaw.isEmpty();
+        boolean hasLon = !lonRaw.isEmpty();
+        if (hasLat != hasLon) {
+            return ValidationResult.invalid(getString(R.string.error_venue_coords_incomplete));
+        }
+        Double vLat = null;
+        Double vLng = null;
+        if (hasLat) {
+            try {
+                vLat = Double.parseDouble(latRaw);
+                vLng = Double.parseDouble(lonRaw);
+            } catch (NumberFormatException e) {
+                return ValidationResult.invalid(getString(R.string.error_venue_coords_invalid));
+            }
+            if (vLat < -90.0 || vLat > 90.0 || vLng < -180.0 || vLng > 180.0) {
+                return ValidationResult.invalid(getString(R.string.error_venue_coords_invalid));
+            }
+        }
+
+        if (ctx.input.requireGeolocationForWaitlist && vLat == null) {
+            return ValidationResult.invalid(getString(R.string.error_geo_requires_venue));
+        }
+
+        Double geoRadius = null;
+        if (!ctx.input.geolocationRadiusMeters.isEmpty()) {
+            try {
+                geoRadius = Double.parseDouble(ctx.input.geolocationRadiusMeters);
+                if (geoRadius <= 0) {
+                    return ValidationResult.invalid(getString(R.string.error_geo_radius_invalid));
+                }
+            } catch (NumberFormatException e) {
+                return ValidationResult.invalid(getString(R.string.error_geo_radius_invalid));
+            }
+        } else if (ctx.input.requireGeolocationForWaitlist) {
+            geoRadius = 500.0;
+        }
+
         // Generate Event depending on create/edit modes
         if (mode == EventCreationMode.CREATE) {
             returnEvent = new Event(
@@ -519,6 +622,12 @@ public class CreateEventFragment extends Fragment {
 
         // Set poster image of returnEvent
         returnEvent.setPosterImage(selectedPosterImage);
+
+        returnEvent.setTags(tagList);
+        returnEvent.setVenueLatitude(vLat);
+        returnEvent.setVenueLongitude(vLng);
+        returnEvent.setRequireGeolocationForWaitlist(ctx.input.requireGeolocationForWaitlist);
+        returnEvent.setGeolocationRadiusMeters(geoRadius);
 
         return ValidationResult.valid(returnEvent);
     }

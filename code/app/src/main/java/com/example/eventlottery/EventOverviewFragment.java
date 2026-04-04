@@ -5,6 +5,8 @@
  */
 package com.example.eventlottery;
 
+import android.Manifest;
+import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.view.LayoutInflater;
@@ -16,12 +18,19 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.google.android.gms.location.FusedLocationProviderClient;
+import com.google.android.gms.location.LocationServices;
+import com.google.android.gms.location.Priority;
+import com.google.android.gms.tasks.CancellationTokenSource;
 import com.example.eventlottery.creation.CreateEventFragment;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.Timestamp;
@@ -104,6 +113,24 @@ public class EventOverviewFragment extends Fragment implements
     private String currentUsername;
     private int waitlistCount;
     private boolean inWaitingList;
+    private boolean eventRequiresGeolocationForWaitlist;
+    private String pendingJoinEventId;
+
+    private final ActivityResultLauncher<String[]> locationPermissionLauncher =
+            registerForActivityResult(new ActivityResultContracts.RequestMultiplePermissions(), result -> {
+                boolean ok = Boolean.TRUE.equals(result.get(Manifest.permission.ACCESS_FINE_LOCATION))
+                        || Boolean.TRUE.equals(result.get(Manifest.permission.ACCESS_COARSE_LOCATION));
+                if (ok && pendingJoinEventId != null) {
+                    String id = pendingJoinEventId;
+                    pendingJoinEventId = null;
+                    joinWaitlistWithDeviceLocation(id);
+                } else {
+                    pendingJoinEventId = null;
+                    if (getContext() != null) {
+                        Toast.makeText(getContext(), R.string.location_permission_required, Toast.LENGTH_SHORT).show();
+                    }
+                }
+            });
 
     private TextView eventTitleView;
     private TextView eventOrganizerView;
@@ -286,6 +313,7 @@ public class EventOverviewFragment extends Fragment implements
                 getString(R.string.default_event_description)
         ));
         eventWaitlistView.setText(getString(R.string.event_waitlist_count_format, waitlistCount));
+        eventRequiresGeolocationForWaitlist = false;
 
         listenForComments();
         refreshActionState();
@@ -320,6 +348,8 @@ public class EventOverviewFragment extends Fragment implements
                 formatEventDate(readEventDate(documentSnapshot, "registrationClose"))
         ));
         eventDescriptionView.setText(fallbackText(description, getString(R.string.default_event_description)));
+        eventRequiresGeolocationForWaitlist = Boolean.TRUE.equals(
+                documentSnapshot.getBoolean("requireGeolocationForWaitlist"));
     }
 
     /**
@@ -479,7 +509,12 @@ public class EventOverviewFragment extends Fragment implements
      */
     private void openWaitlistDialog() {
         WaitingListDialogFragment dialog =
-                WaitingListDialogFragment.newInstance(eventId, eventTitle, waitlistCount, inWaitingList);
+                WaitingListDialogFragment.newInstance(
+                        eventId,
+                        eventTitle,
+                        waitlistCount,
+                        inWaitingList,
+                        eventRequiresGeolocationForWaitlist);
         dialog.show(getChildFragmentManager(), "WaitingListDialog");
     }
 
@@ -591,7 +626,56 @@ public class EventOverviewFragment extends Fragment implements
             return;
         }
 
-        waitlistRepo.joinWaitingList(eventId, userId).addOnSuccessListener(aVoid -> {
+        if (eventRequiresGeolocationForWaitlist) {
+            if (!hasLocationPermission()) {
+                pendingJoinEventId = eventId;
+                locationPermissionLauncher.launch(new String[]{
+                        Manifest.permission.ACCESS_FINE_LOCATION,
+                        Manifest.permission.ACCESS_COARSE_LOCATION
+                });
+                return;
+            }
+            joinWaitlistWithDeviceLocation(eventId);
+            return;
+        }
+
+        performJoinWaitlist(eventId, null, null);
+    }
+
+    private boolean hasLocationPermission() {
+        return ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
+                || ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED;
+    }
+
+    private void joinWaitlistWithDeviceLocation(String joinEventId) {
+        String userId = getCurrentUserId();
+        if (userId == null) {
+            Toast.makeText(getContext(), getString(R.string.error_must_be_signed_in), Toast.LENGTH_SHORT).show();
+            return;
+        }
+        FusedLocationProviderClient client = LocationServices.getFusedLocationProviderClient(requireActivity());
+        CancellationTokenSource cts = new CancellationTokenSource();
+        client.getCurrentLocation(Priority.PRIORITY_BALANCED_POWER_ACCURACY, cts.getToken())
+                .addOnSuccessListener(loc -> {
+                    if (!isAdded()) {
+                        return;
+                    }
+                    if (loc == null) {
+                        Toast.makeText(getContext(), R.string.location_unavailable, Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+                    performJoinWaitlist(joinEventId, loc.getLatitude(), loc.getLongitude());
+                });
+    }
+
+    private void performJoinWaitlist(String joinEventId, Double lat, Double lng) {
+        String userId = getCurrentUserId();
+        if (userId == null) {
+            Toast.makeText(getContext(), getString(R.string.error_must_be_signed_in), Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        waitlistRepo.joinWaitingList(joinEventId, userId, lat, lng).addOnSuccessListener(aVoid -> {
             inWaitingList = true;
             waitlistCount += 1;
             eventWaitlistView.setText(getString(R.string.event_waitlist_count_format, waitlistCount));
@@ -602,9 +686,21 @@ public class EventOverviewFragment extends Fragment implements
             }
         }).addOnFailureListener(e -> {
             if (getContext() != null) {
-                Toast.makeText(getContext(), getString(R.string.action_failed), Toast.LENGTH_SHORT).show();
+                Toast.makeText(getContext(), resolveJoinFailureMessage(e), Toast.LENGTH_SHORT).show();
             }
         });
+    }
+
+    private String resolveJoinFailureMessage(Exception e) {
+        Throwable t = e;
+        while (t.getCause() != null) {
+            t = t.getCause();
+        }
+        String m = t.getMessage();
+        if (m != null && !m.trim().isEmpty()) {
+            return m;
+        }
+        return getString(R.string.action_failed);
     }
 
     /**

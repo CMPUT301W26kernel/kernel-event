@@ -12,6 +12,7 @@ import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.FirebaseFirestore;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 import static org.junit.Assert.assertNotNull;
@@ -44,6 +45,7 @@ public class WaitingListRepositoryTest {
         when(mockDb.runTransaction(any())).thenReturn(mockTask);
 
         when(mockDocRef.update(anyString(), any())).thenReturn(mockTask);
+        when(mockDocRef.update(anyMap())).thenReturn(mockTask);
         when(mockTask.addOnSuccessListener(any())).thenReturn(mockTask);
         when(mockTask.addOnFailureListener(any())).thenReturn(mockTask);
         when(mockTask.continueWith(any())).thenReturn(mockTask);
@@ -68,7 +70,7 @@ public class WaitingListRepositoryTest {
     public void testLeaveWaitingListCallsUpdate() {
         Task<Void> result = repository.leaveWaitingList("testEvent", "testUser");
         assertNotNull(result);
-        verify(mockDocRef).update(anyString(), any());
+        verify(mockDocRef).update(anyMap());
     }
 
     /**
