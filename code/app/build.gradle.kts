@@ -7,6 +7,12 @@ android {
     namespace = "com.example.eventlottery"
     compileSdk = 36
 
+    // added this so the NotificationsAdapterJVMTest doesn't crash
+    // This tells Gradle that when running unit tests, also load Android resources (R files, XML, etc.)
+    testOptions {
+        unitTests.isIncludeAndroidResources = true
+    }
+
     defaultConfig {
         applicationId = "com.example.eventlottery"
         minSdk = 24
@@ -32,6 +38,7 @@ android {
         targetCompatibility = JavaVersion.VERSION_11
     }
 }
+
 
 dependencies {
     implementation(libs.appcompat)

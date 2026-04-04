@@ -4,7 +4,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="horizontal"
-    android:weightSum="5"
+    android:weightSum="6"
     android:background="#E1F5F5">
 
     <com.google.android.material.button.MaterialButton
@@ -62,6 +62,18 @@
         android:layout_height="match_parent"
         android:layout_weight="1"
         app:icon="@drawable/ic_profiles"
+        app:iconGravity="textStart"
+        app:iconPadding="0dp"
+        app:iconSize="32dp"
+        app:iconTint="#1A2F34" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btn_notification_logs"
+        style="@style/Widget.MaterialComponents.Button.TextButton"
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1"
+        app:icon="@drawable/ic_logs"
         app:iconGravity="textStart"
         app:iconPadding="0dp"
         app:iconSize="32dp"
