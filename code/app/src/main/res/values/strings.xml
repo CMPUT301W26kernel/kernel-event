@@ -27,6 +27,10 @@
     <string name="event_waitlist_count_format">Waitlist entrants: %1$d</string>
     <string name="event_unknown_organizer">Unknown organizer</string>
     <string name="delete_event">Delete Event</string>
+    <string name="clear_image">Clear Image</string>
+    <string name="visibility">Visibility</string>
+    <string name="visibility_private">Private</string>
+    <string name="visibility_public">Public</string>
 
     <string name="default_event_title">My Event</string>
     <string name="default_event_description">Describe your event here&#8230;</string>

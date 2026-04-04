@@ -52,11 +52,43 @@
                 android:layout_marginTop="5dp"
                 android:visibility="gone"
 
-                android:text="Clear Image"
+                android:text="@string/clear_image"
                 android:textSize="20sp"
 
                 android:backgroundTint="@color/primary_mid"
                 app:cornerRadius="12dp"/>
+
+            <!-- Toggle for private events -->
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginTop="30dp"
+                android:layout_marginHorizontal="30dp"
+                android:gravity="center">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="30dp"
+
+                    android:text="@string/visibility"
+                    android:textSize="20sp"
+                    android:textColor="@color/primary_deep"/>
+
+                <ToggleButton
+                    android:id="@+id/visibility_toggle"
+                    android:layout_width="110dp"
+                    android:layout_height="50dp"
+                    android:background="@drawable/toggle_background"
+
+                    android:textOn="@string/visibility_private"
+                    android:textOff="@string/visibility_public"
+                    android:textColor="@color/toggle_text_colors"
+                    android:textSize="18sp"/>
+
+            </LinearLayout>
 
             <!-- Edit Event Title -->
 
@@ -264,9 +296,6 @@
                 android:textSize="18sp"
 
                 android:background="@color/white" />
-
-            <!-- Other fields to edit... -->
-            <!-- see text input types for future EditText views. They're very useful -->
 
         </LinearLayout>
 
