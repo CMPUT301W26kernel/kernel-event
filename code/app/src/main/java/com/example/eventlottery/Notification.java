@@ -18,9 +18,6 @@ import com.example.eventlottery.NotificationStatus;
  */
 public class Notification {
 
-    /**
-     * Enum representing the type of notification
-     */
 
     // Firestore fields (stay as Strings for serialization)
     private String notificationId;
