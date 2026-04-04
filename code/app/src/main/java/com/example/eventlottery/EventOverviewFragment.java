@@ -112,6 +112,7 @@ public class EventOverviewFragment extends Fragment implements
     private TextView commentPermissionView;
     private TextView emptyCommentsView;
     private Button backButton;
+    private Button qrGenerateButton;
     private EditText commentInput;
     private Button postCommentButton;
     private Button joinWaitlistButton;
@@ -169,6 +170,7 @@ public class EventOverviewFragment extends Fragment implements
         joinWaitlistButton.setOnClickListener(v -> openWaitlistDialog());
         manageWaitlistButton.setOnClickListener(v -> openWaitlistManagementDialog());
         postCommentButton.setOnClickListener(v -> submitComment());
+        qrGenerateButton.setOnClickListener(v -> navigateToQrGeneration());
 
         if (eventId == null) {
             if (getContext() != null) {
@@ -209,6 +211,7 @@ public class EventOverviewFragment extends Fragment implements
         joinWaitlistButton = view.findViewById(R.id.btn_join_waitlist);
         manageWaitlistButton = view.findViewById(R.id.btn_manage_waitlist);
         commentComposerContainer = view.findViewById(R.id.comment_composer_container);
+        qrGenerateButton = view.findViewById(R.id.btn_qr_generate);
     }
 
     /**
@@ -387,13 +390,15 @@ public class EventOverviewFragment extends Fragment implements
 
         if (isOrganizer) {
             // Allow organizer/admin of event to manage waitlist; cannot join waitlist.
-            showManageWaitlistButton();
+            showOrganizerActions();
         } else if (isAdmin) {
             //Allow admin to both join and manage waitlists of events they're not organizing.
             joinWaitlistButton.setVisibility(View.VISIBLE);
             manageWaitlistButton.setVisibility(View.VISIBLE);
+            // Allow admin to generate a QR Code for any event
+            qrGenerateButton.setVisibility(View.VISIBLE);
         } else {
-            showJoinWaitlistButton();
+            showEntrantActions();
         }
 
         boolean canPostComment = EventCommentPolicy.canPostComment(currentUserId, currentUserRole, eventOrganizerId, eventCoOrganizers);
@@ -520,19 +525,31 @@ public class EventOverviewFragment extends Fragment implements
     }
 
     /**
-     * Shows the join/leave waitlist action and hides organizer management.
+     * Navigates to a Qr Code Generation fragment
      */
-    private void showJoinWaitlistButton() {
+    private void navigateToQrGeneration() {
+        getParentFragmentManager()
+                .beginTransaction()
+                .replace(R.id.fragment_container, QrGeneratorFragment.newInstance(eventId))
+                .commit();
+    }
+
+    /**
+     * Shows the join/leave waitlist action and hides event organizer management.
+     */
+    private void showEntrantActions() {
         manageWaitlistButton.setVisibility(View.GONE);
         joinWaitlistButton.setVisibility(View.VISIBLE);
     }
 
     /**
-     * Shows organizer/admin waitlist management and hides the entrant action.
+     * Shows event organizer/admin waitlist management and qr generation button and
+     * hides the entrant action.
      */
-    private void showManageWaitlistButton() {
+    private void showOrganizerActions() {
         joinWaitlistButton.setVisibility(View.GONE);
         manageWaitlistButton.setVisibility(View.VISIBLE);
+        qrGenerateButton.setVisibility(View.VISIBLE);
     }
 
     /**

@@ -30,12 +30,14 @@
                 android:alpha="0.4"
                 android:contentDescription="Event poster" />
 
+            <!-- A linear layout to hold Card buttons-->
+
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="vertical"
+                android:orientation="horizontal"
                 android:padding="20dp"
-                android:layout_gravity="bottom">
+                android:layout_gravity="top">
 
                 <Button
                     android:id="@+id/btn_back_to_events"
@@ -46,6 +48,31 @@
                     android:backgroundTint="@color/primary_dark"
                     android:textColor="@color/primary_light"
                     android:textSize="13sp" />
+
+                <Button
+                    android:id="@+id/btn_qr_generate"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="30dp"
+                    android:visibility="gone"
+                    android:contentDescription="@string/generate_qr_code"
+
+                    android:backgroundTint="@color/primary_dark"
+
+                    android:text="@string/generate_qr_code"
+                    android:textColor="@color/primary_light"
+                    android:textSize="13sp" />
+
+            </LinearLayout>
+
+            <!-- A Linear Layout to hold Card text-->
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="20dp"
+                android:layout_gravity="bottom">
 
                 <TextView
                     android:id="@+id/text_event_title"
