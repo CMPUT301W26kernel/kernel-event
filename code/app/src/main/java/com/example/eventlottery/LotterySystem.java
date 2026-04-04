@@ -132,7 +132,7 @@ public class LotterySystem {
                         selectedUsers,
                         eventId,
                         "Congratulations! You have been selected from the waiting list. Please accept or decline your invitation.",
-                        Notification.TYPE_INVITE
+                        NotificationType.INVITE
                 );
             }
 
@@ -141,7 +141,7 @@ public class LotterySystem {
                         notSelectedUsers,
                         eventId,
                         "You were not selected for this event.",
-                        Notification.TYPE_INFO
+                        NotificationType.INFO
                 );
             }
 

@@ -93,8 +93,8 @@ public class NotificationsAdapterJVMTest {
     public void testBindMessageAndTypeBadge_forInfoNotification() {
         Notification notification = new Notification();
         notification.setMessage("You won!");
-        notification.setType(Notification.TYPE_INFO);
-        notification.setStatus(Notification.STATUS_UNREAD);
+        notification.setType(NotificationType.INFO);
+        notification.setStatus(NotificationStatus.UNREAD);
 
         adapter = new NotificationsAdapter(
                 Collections.singletonList(notification),
@@ -122,8 +122,8 @@ public class NotificationsAdapterJVMTest {
         notification.setEventId("e1");
         notification.setUserId("u1");
         notification.setMessage("You have been invited");
-        notification.setType(Notification.TYPE_INVITE);
-        notification.setStatus(Notification.STATUS_UNREAD);
+        notification.setType(NotificationType.INVITE);
+        notification.setStatus(NotificationStatus.UNREAD);
 
         adapter = new NotificationsAdapter(
                 Collections.singletonList(notification),
@@ -149,8 +149,8 @@ public class NotificationsAdapterJVMTest {
         notification.setEventId("e2");
         notification.setUserId("u2");
         notification.setMessage("Invitation reminder");
-        notification.setType(Notification.TYPE_INVITE);
-        notification.setStatus(Notification.STATUS_READ);
+        notification.setType(NotificationType.INVITE);
+        notification.setStatus(NotificationStatus.READ);
 
         adapter = new NotificationsAdapter(
                 Collections.singletonList(notification),
@@ -177,8 +177,8 @@ public class NotificationsAdapterJVMTest {
         notification.setEventId("e3");
         notification.setUserId("u3");
         notification.setMessage("Please join as co-organizer");
-        notification.setType(Notification.TYPE_COORGANIZER_INVITE);
-        notification.setStatus(Notification.STATUS_UNREAD);
+        notification.setType(NotificationType.COORGANIZER_INVITE);
+        notification.setStatus(NotificationStatus.UNREAD);
 
         adapter = new NotificationsAdapter(
                 Collections.singletonList(notification),
@@ -202,8 +202,8 @@ public class NotificationsAdapterJVMTest {
         notification.setEventId("e4");
         notification.setUserId("u4");
         notification.setMessage("You are invited to a private event");
-        notification.setType(Notification.TYPE_INVITE);
-        notification.setStatus(Notification.STATUS_UNREAD);
+        notification.setType(NotificationType.INVITE);
+        notification.setStatus(NotificationStatus.UNREAD);
 
         adapter = new NotificationsAdapter(
                 Collections.singletonList(notification),
@@ -224,8 +224,8 @@ public class NotificationsAdapterJVMTest {
     public void testNullTimestampLeavesTimeBlank() {
         Notification notification = new Notification();
         notification.setMessage("No timestamp");
-        notification.setType(Notification.TYPE_INFO);
-        notification.setStatus(Notification.STATUS_UNREAD);
+        notification.setType(NotificationType.INFO);
+        notification.setStatus(NotificationStatus.UNREAD);
         notification.setTimestamp(null);
 
         adapter = new NotificationsAdapter(
@@ -246,8 +246,8 @@ public class NotificationsAdapterJVMTest {
     public void testNonNullTimestampDisplaysTime() {
         Notification notification = new Notification();
         notification.setMessage("Has timestamp");
-        notification.setType(Notification.TYPE_INFO);
-        notification.setStatus(Notification.STATUS_UNREAD);
+        notification.setType(NotificationType.INFO);
+        notification.setStatus(NotificationStatus.UNREAD);
         notification.setTimestamp(new Timestamp(new Date()));
 
         adapter = new NotificationsAdapter(
@@ -268,8 +268,8 @@ public class NotificationsAdapterJVMTest {
     public void testGetItemCount() {
         Notification notification = new Notification();
         notification.setMessage("Test");
-        notification.setType(Notification.TYPE_INFO);
-        notification.setStatus(Notification.STATUS_UNREAD);
+        notification.setType(NotificationType.INFO);
+        notification.setStatus(NotificationStatus.UNREAD);
 
         adapter = new NotificationsAdapter(
                 Collections.singletonList(notification),
@@ -286,8 +286,8 @@ public class NotificationsAdapterJVMTest {
     public void testUpdateListChangesItemCount() {
         Notification n1 = new Notification();
         n1.setMessage("First");
-        n1.setType(Notification.TYPE_INFO);
-        n1.setStatus(Notification.STATUS_UNREAD);
+        n1.setType(NotificationType.INFO);
+        n1.setStatus(NotificationStatus.UNREAD);
 
         adapter = new NotificationsAdapter(
                 Collections.singletonList(n1),
@@ -298,8 +298,8 @@ public class NotificationsAdapterJVMTest {
 
         Notification n2 = new Notification();
         n2.setMessage("Second");
-        n2.setType(Notification.TYPE_ADMIN);
-        n2.setStatus(Notification.STATUS_READ);
+        n2.setType(NotificationType.ADMIN);
+        n2.setStatus(NotificationStatus.READ);
 
         List<Notification> newList = new ArrayList<>();
         newList.add(n1);

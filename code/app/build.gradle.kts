@@ -45,6 +45,7 @@ dependencies {
     implementation(libs.material)
     implementation(libs.activity)
     implementation(libs.constraintlayout)
+    implementation(libs.firebase.firestore)
     testImplementation(libs.junit)
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.mockito:mockito-core:5.5.0")

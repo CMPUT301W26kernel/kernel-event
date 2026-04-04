@@ -71,7 +71,7 @@ public class NotificationRepositoryTest {
                 Collections.singletonList("user1"),
                 "event1",
                 "Test message",
-                Notification.TYPE_INFO
+                NotificationType.INFO
         );
 
         verify(repository, times(1)).createNotification(any(Notification.class));
@@ -124,7 +124,7 @@ public class NotificationRepositoryTest {
                 Collections.emptyList(),
                 "event1",
                 "Test message",
-                Notification.TYPE_INFO
+                NotificationType.INFO
         );
 
         verify(repository, never()).createNotification(any(Notification.class));
