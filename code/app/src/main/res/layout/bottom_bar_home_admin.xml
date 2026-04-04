@@ -20,6 +20,18 @@
         app:iconTint="#1A2F34" />
 
     <com.google.android.material.button.MaterialButton
+        android:id="@+id/btn_nearby_map"
+        style="@style/Widget.MaterialComponents.Button.TextButton"
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1"
+        app:icon="@drawable/ic_map"
+        app:iconGravity="textStart"
+        app:iconPadding="0dp"
+        app:iconSize="32dp"
+        app:iconTint="#1A2F34" />
+
+    <com.google.android.material.button.MaterialButton
         android:id="@+id/btn_notifications"
         style="@style/Widget.MaterialComponents.Button.TextButton"
         android:layout_width="0dp"

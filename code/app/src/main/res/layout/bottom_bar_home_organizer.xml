@@ -4,7 +4,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="horizontal"
-    android:weightSum="4"
+    android:weightSum="5"
     android:background="#E1F5F5">
 
     <com.google.android.material.button.MaterialButton
@@ -14,6 +14,18 @@
         android:layout_height="match_parent"
         android:layout_weight="1"
         app:icon="@drawable/ic_profile"
+        app:iconGravity="textStart"
+        app:iconPadding="0dp"
+        app:iconSize="32dp"
+        app:iconTint="#1A2F34" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btn_nearby_map"
+        style="@style/Widget.MaterialComponents.Button.TextButton"
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1"
+        app:icon="@drawable/ic_map"
         app:iconGravity="textStart"
         app:iconPadding="0dp"
         app:iconSize="32dp"
