@@ -113,6 +113,7 @@ public class EventOverviewFragment extends Fragment implements
     private TextView emptyCommentsView;
     private Button backButton;
     private Button qrGenerateButton;
+    private Button editButton;
     private EditText commentInput;
     private Button postCommentButton;
     private Button joinWaitlistButton;
@@ -212,6 +213,7 @@ public class EventOverviewFragment extends Fragment implements
         manageWaitlistButton = view.findViewById(R.id.btn_manage_waitlist);
         commentComposerContainer = view.findViewById(R.id.comment_composer_container);
         qrGenerateButton = view.findViewById(R.id.btn_qr_generate);
+        editButton = view.findViewById(R.id.btn_edit);
     }
 
     /**
@@ -392,11 +394,8 @@ public class EventOverviewFragment extends Fragment implements
             // Allow organizer/admin of event to manage waitlist; cannot join waitlist.
             showOrganizerActions();
         } else if (isAdmin) {
-            //Allow admin to both join and manage waitlists of events they're not organizing.
-            joinWaitlistButton.setVisibility(View.VISIBLE);
-            manageWaitlistButton.setVisibility(View.VISIBLE);
-            // Allow admin to generate a QR Code for any event
-            qrGenerateButton.setVisibility(View.VISIBLE);
+            //Allow admin to both join and manage events they're not organizing.
+            showAdminActions();
         } else {
             showEntrantActions();
         }
@@ -538,18 +537,30 @@ public class EventOverviewFragment extends Fragment implements
      * Shows the join/leave waitlist action and hides event organizer management.
      */
     private void showEntrantActions() {
-        manageWaitlistButton.setVisibility(View.GONE);
         joinWaitlistButton.setVisibility(View.VISIBLE);
+        manageWaitlistButton.setVisibility(View.GONE);
+        qrGenerateButton.setVisibility(View.GONE);
+        editButton.setVisibility(View.GONE);
     }
 
     /**
-     * Shows event organizer/admin waitlist management and qr generation button and
-     * hides the entrant action.
+     * Shows event management buttons and hides the button to join/leave the waitlist.
      */
     private void showOrganizerActions() {
         joinWaitlistButton.setVisibility(View.GONE);
         manageWaitlistButton.setVisibility(View.VISIBLE);
         qrGenerateButton.setVisibility(View.VISIBLE);
+        editButton.setVisibility(View.VISIBLE);
+    }
+
+    /**
+     * Shows join/leave waitlist, waitlist management, qr generation, and edit buttons to admin.
+     */
+    private void showAdminActions() {
+        joinWaitlistButton.setVisibility(View.VISIBLE);
+        manageWaitlistButton.setVisibility(View.VISIBLE);
+        qrGenerateButton.setVisibility(View.VISIBLE);
+        editButton.setVisibility(View.VISIBLE);
     }
 
     /**
