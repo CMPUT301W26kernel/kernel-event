@@ -96,4 +96,22 @@
     <string name="accept_invite">Accept</string>
     <string name="decline_invite">Decline</string>
     <string name="generate_qr_code">Generate QR Code</string>
+
+    <string name="venue_location">Venue coordinates (optional, for map)</string>
+    <string name="venue_latitude_hint">Latitude</string>
+    <string name="venue_longitude_hint">Longitude</string>
+    <string name="require_geolocation_waitlist">Require device location to join waitlist</string>
+    <string name="geolocation_radius_hint">Max distance from venue (meters)</string>
+    <string name="geo_verification_radius_note">Default 500 m if left empty when verification is on.</string>
+    <string name="event_tags_hint">Tags (comma-separated, for search and map)</string>
+    <string name="error_venue_coords_incomplete">Enter both latitude and longitude, or leave both empty.</string>
+    <string name="error_venue_coords_invalid">Latitude and longitude must be valid decimal numbers.</string>
+    <string name="error_geo_requires_venue">Turn off geolocation verification or set a venue location.</string>
+    <string name="error_geo_radius_invalid">Geolocation radius must be a positive number.</string>
+    <string name="waiting_list_geo_notice">Your device location will be checked against the event venue when you join.</string>
+    <string name="nearby_map_title">Nearby events</string>
+    <string name="nearby_map_tag_hint">Toggle tags to show only matching events (OpenStreetMap).</string>
+    <string name="location_permission_required">Location permission is needed for this feature.</string>
+    <string name="location_unavailable">Could not read your location. Try again or move outdoors.</string>
+    <string name="pick_event_from_cluster">Choose an event</string>
 </resources>

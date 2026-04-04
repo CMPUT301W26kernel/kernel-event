@@ -27,6 +27,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.example.eventlottery.creation.CreateEventFragment;
+import com.example.eventlottery.map.NearbyEventsMapFragment;
 import com.example.eventlottery.profiles.ProfileListFragment;
 import com.example.eventlottery.profiles.UserProfileFragment;
 import com.google.android.material.button.MaterialButton;
@@ -182,6 +183,14 @@ public class HomePageFragment extends Fragment {
                     .commit());
         }
 
+        MaterialButton nearbyMapBtn = bottomBarView.findViewById(R.id.btn_nearby_map);
+        if (nearbyMapBtn != null) {
+            nearbyMapBtn.setOnClickListener(v -> getParentFragmentManager().beginTransaction()
+                    .replace(R.id.fragment_container, new NearbyEventsMapFragment())
+                    .addToBackStack(null)
+                    .commit());
+        }
+
         // Admin Profiles button (Profiles icon)
         MaterialButton profilesBtn = bottomBarView.findViewById(R.id.btn_profiles);
         if (profilesBtn != null) {
@@ -274,7 +283,17 @@ public class HomePageFragment extends Fragment {
         if (keyword.isEmpty()) return true;
         String title = event.getTitle() == null ? "" : event.getTitle().toLowerCase(Locale.US);
         String description = event.getDescription() == null ? "" : event.getDescription().toLowerCase(Locale.US);
-        return title.contains(keyword) || description.contains(keyword);
+        if (title.contains(keyword) || description.contains(keyword)) {
+            return true;
+        }
+        if (event.getTags() != null) {
+            for (String tag : event.getTags()) {
+                if (tag != null && tag.toLowerCase(Locale.US).contains(keyword)) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     private boolean matchesAvailability(Event event, LocalDate availableDate, boolean openNowOnly, ZonedDateTime now) {
