@@ -6,15 +6,18 @@
 package com.example.eventlottery;
 
 import android.Manifest;
+import android.app.AlertDialog;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.LinearLayout;
+import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -30,6 +33,8 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.location.Priority;
+import com.google.android.gms.tasks.Task;
+import com.google.android.gms.tasks.Tasks;
 import com.google.android.gms.tasks.CancellationTokenSource;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.Timestamp;
@@ -42,8 +47,10 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 /**
  * Displays event details, waitlist actions, and the event comment thread.
@@ -55,6 +62,19 @@ import java.util.Locale;
 public class EventOverviewFragment extends Fragment implements
         WaitingListDialogFragment.WaitingListDialogListener,
         EventCommentAdapter.OnDeleteCommentListener {
+
+    /**
+     * Organizer target available for reporting from the current event.
+     */
+    static final class ReportTarget {
+        final String userId;
+        String displayName;
+
+        ReportTarget(String userId, String displayName) {
+            this.userId = userId;
+            this.displayName = displayName;
+        }
+    }
 
     /**
      * State used by instrumentation tests to bypass Firebase reads.
@@ -101,6 +121,7 @@ public class EventOverviewFragment extends Fragment implements
 
     private WaitingListRepository waitlistRepo;
     private EventCommentRepository commentRepository;
+    private OrganizerReportRepository reportRepository;
     private ListenerRegistration commentListenerRegistration;
 
     private String eventId;
@@ -138,15 +159,19 @@ public class EventOverviewFragment extends Fragment implements
     private TextView eventDescriptionView;
     private TextView commentPermissionView;
     private TextView emptyCommentsView;
+    private TextView reportStatusView;
     private Button backButton;
     private Button qrGenerateButton;
     private EditText commentInput;
     private Button postCommentButton;
     private Button joinWaitlistButton;
     private Button manageWaitlistButton;
+    private Button reportOrganizerButton;
     private LinearLayout commentComposerContainer;
     private EventCommentAdapter commentAdapter;
     private TestState testState;
+    private final List<ReportTarget> reportTargets = new ArrayList<>();
+    private final Map<String, OrganizerReport> activeReportsByOrganizerId = new HashMap<>();
 
     public EventOverviewFragment() {
         // Required empty public constructor
@@ -177,6 +202,9 @@ public class EventOverviewFragment extends Fragment implements
         if (commentRepository == null) {
             commentRepository = new EventCommentRepository();
         }
+        if (reportRepository == null) {
+            reportRepository = new OrganizerReportRepository();
+        }
         currentUserId = getCurrentUserId();
 
         if (getArguments() != null) {
@@ -198,6 +226,7 @@ public class EventOverviewFragment extends Fragment implements
         manageWaitlistButton.setOnClickListener(v -> openWaitlistManagementDialog());
         postCommentButton.setOnClickListener(v -> submitComment());
         qrGenerateButton.setOnClickListener(v -> navigateToQrGeneration());
+        reportOrganizerButton.setOnClickListener(v -> showReportDialog());
 
         if (eventId == null) {
             if (getContext() != null) {
@@ -232,11 +261,13 @@ public class EventOverviewFragment extends Fragment implements
         eventDescriptionView = view.findViewById(R.id.text_event_description);
         commentPermissionView = view.findViewById(R.id.text_comment_permissions);
         emptyCommentsView = view.findViewById(R.id.text_comments_empty);
+        reportStatusView = view.findViewById(R.id.text_report_status);
         backButton = view.findViewById(R.id.btn_back_to_events);
         commentInput = view.findViewById(R.id.edit_comment_input);
         postCommentButton = view.findViewById(R.id.btn_post_comment);
         joinWaitlistButton = view.findViewById(R.id.btn_join_waitlist);
         manageWaitlistButton = view.findViewById(R.id.btn_manage_waitlist);
+        reportOrganizerButton = view.findViewById(R.id.btn_report_organizer);
         commentComposerContainer = view.findViewById(R.id.comment_composer_container);
         qrGenerateButton = view.findViewById(R.id.btn_qr_generate);
     }
@@ -267,6 +298,7 @@ public class EventOverviewFragment extends Fragment implements
 
                     bindEvent(documentSnapshot);
                     updateWaitlistState(documentSnapshot);
+                    loadOrganizerNamesForTargets();
                     listenForComments();
 
                     if (currentUserId == null) {
@@ -310,6 +342,13 @@ public class EventOverviewFragment extends Fragment implements
         ));
         eventWaitlistView.setText(getString(R.string.event_waitlist_count_format, waitlistCount));
         eventRequiresGeolocationForWaitlist = false;
+        reportTargets.clear();
+        if (state.eventOrganizerId != null) {
+            reportTargets.add(new ReportTarget(
+                    state.eventOrganizerId,
+                    fallbackText(state.eventOrganizerId, getString(R.string.event_unknown_organizer))
+            ));
+        }
 
         listenForComments();
         refreshActionState();
@@ -325,6 +364,7 @@ public class EventOverviewFragment extends Fragment implements
         eventTitle = eventNameRaw == null ? getString(R.string.default_event_title) : eventNameRaw;
         String description = documentSnapshot.getString("description");
         eventOrganizerId = documentSnapshot.getString("organizerId");
+        bindReportTargets(documentSnapshot);
         
         List<String> rawCoOrganizers = (List<String>) documentSnapshot.get("coOrganizers");
         if (rawCoOrganizers != null) {
@@ -373,8 +413,12 @@ public class EventOverviewFragment extends Fragment implements
                     currentUserRole = userDoc.exists() ? userDoc.getString("role") : null;
                     currentUsername = userDoc.exists() ? userDoc.getString("username") : null;
                     refreshActionState();
+                    loadEntrantReports();
                 })
-                .addOnFailureListener(error -> refreshActionState());
+                .addOnFailureListener(error -> {
+                    refreshActionState();
+                    loadEntrantReports();
+                });
     }
 
     /**
@@ -441,6 +485,8 @@ public class EventOverviewFragment extends Fragment implements
             commentPermissionView.setVisibility(View.VISIBLE);
             commentPermissionView.setText(resolveCommentPermissionMessage());
         }
+
+        refreshReportUi();
     }
 
     /**
@@ -523,6 +569,144 @@ public class EventOverviewFragment extends Fragment implements
     private void openWaitlistManagementDialog() {
         WaitlistManagementFragment dialog = WaitlistManagementFragment.newInstance(eventId);
         dialog.show(getChildFragmentManager(), "WaitlistManagementDialog");
+    }
+
+    /**
+     * Opens the entrant organizer report editor for the current event.
+     */
+    private void showReportDialog() {
+        if (getContext() == null
+                || !OrganizerReportPolicy.canCreateReport(currentUserId, currentUserRole)
+                || reportTargets.isEmpty()) {
+            return;
+        }
+
+        View dialogView = LayoutInflater.from(getContext()).inflate(R.layout.dialog_organizer_report, null);
+        TextView targetLabel = dialogView.findViewById(R.id.text_report_target_label);
+        Spinner targetSpinner = dialogView.findViewById(R.id.spinner_report_target);
+        Spinner reasonSpinner = dialogView.findViewById(R.id.spinner_report_reason);
+        EditText noteInput = dialogView.findViewById(R.id.edit_report_note);
+
+        List<String> targetLabels = new ArrayList<>();
+        for (ReportTarget target : reportTargets) {
+            targetLabels.add(target.displayName);
+        }
+
+        ArrayAdapter<String> targetAdapter = new ArrayAdapter<>(
+                requireContext(),
+                android.R.layout.simple_spinner_item,
+                targetLabels
+        );
+        targetAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        targetSpinner.setAdapter(targetAdapter);
+
+        List<String> reasonLabels = OrganizerReportPolicy.getReasonLabels();
+        List<String> reasonCodes = OrganizerReportPolicy.getReasonCodes();
+        ArrayAdapter<String> reasonAdapter = new ArrayAdapter<>(
+                requireContext(),
+                android.R.layout.simple_spinner_item,
+                reasonLabels
+        );
+        reasonAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        reasonSpinner.setAdapter(reasonAdapter);
+
+        if (reportTargets.size() == 1) {
+            targetSpinner.setVisibility(View.GONE);
+            targetLabel.setText(getString(R.string.event_organizer_format, reportTargets.get(0).displayName));
+        }
+
+        final ReportTarget[] selectedTarget = {reportTargets.get(0)};
+        final OrganizerReport[] selectedReport = {findActiveReport(selectedTarget[0].userId)};
+
+        AlertDialog dialog = new AlertDialog.Builder(requireContext())
+                .setTitle(selectedReport[0] == null ? R.string.report_dialog_title : R.string.report_dialog_update_title)
+                .setView(dialogView)
+                .setNegativeButton(R.string.cancel, null)
+                .setPositiveButton(
+                        selectedReport[0] == null ? R.string.report_dialog_submit : R.string.report_dialog_update,
+                        null
+                )
+                .setNeutralButton(R.string.report_dialog_delete, null)
+                .create();
+
+        Runnable refreshDialogState = () -> {
+            selectedReport[0] = findActiveReport(selectedTarget[0].userId);
+            OrganizerReport report = selectedReport[0];
+            boolean canEdit = report == null
+                    || OrganizerReportPolicy.canEditOrDeleteReport(report, currentUserId, currentUserRole);
+
+            dialog.setTitle(report == null
+                    ? getString(R.string.report_dialog_title)
+                    : getString(R.string.report_dialog_update_title));
+            reasonSpinner.setEnabled(canEdit);
+            noteInput.setEnabled(canEdit);
+            if (report != null) {
+                int reasonIndex = Math.max(0, reasonCodes.indexOf(report.getReason()));
+                reasonSpinner.setSelection(reasonIndex);
+                noteInput.setText(report.getNote() == null ? "" : report.getNote());
+            } else {
+                reasonSpinner.setSelection(0);
+                noteInput.setText("");
+            }
+
+            Button positiveButton = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
+            Button neutralButton = dialog.getButton(AlertDialog.BUTTON_NEUTRAL);
+            if (positiveButton != null) {
+                positiveButton.setText(report == null
+                        ? getString(R.string.report_dialog_submit)
+                        : getString(R.string.report_dialog_update));
+                positiveButton.setVisibility(canEdit ? View.VISIBLE : View.GONE);
+            }
+            if (neutralButton != null) {
+                neutralButton.setVisibility(report != null && canEdit ? View.VISIBLE : View.GONE);
+            }
+        };
+
+        targetSpinner.setOnItemSelectedListener(new android.widget.AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(android.widget.AdapterView<?> parent, View view, int position, long id) {
+                selectedTarget[0] = reportTargets.get(position);
+                if (dialog.isShowing()) {
+                    refreshDialogState.run();
+                }
+            }
+
+            @Override
+            public void onNothingSelected(android.widget.AdapterView<?> parent) {
+                // Keep the current selection.
+            }
+        });
+
+        dialog.setOnShowListener(unused -> {
+            refreshDialogState.run();
+
+            Button positiveButton = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
+            Button neutralButton = dialog.getButton(AlertDialog.BUTTON_NEUTRAL);
+            if (positiveButton != null) {
+                positiveButton.setOnClickListener(v -> {
+                    String selectedReasonCode = reasonCodes.get(reasonSpinner.getSelectedItemPosition());
+                    String note = noteInput.getText().toString();
+                    String validationError = OrganizerReportPolicy.validateReasonAndNote(selectedReasonCode, note);
+                    if (validationError != null) {
+                        noteInput.setError(validationError);
+                        return;
+                    }
+                    noteInput.setError(null);
+                    saveReport(selectedTarget[0], selectedReasonCode, note, dialog);
+                });
+            }
+
+            if (neutralButton != null) {
+                neutralButton.setOnClickListener(v -> {
+                    OrganizerReport report = selectedReport[0];
+                    if (report != null) {
+                        deleteReport(report, dialog);
+                    }
+                });
+            }
+        });
+
+        dialog.show();
     }
 
     /**
@@ -823,5 +1007,195 @@ public class EventOverviewFragment extends Fragment implements
      */
     private String fallbackText(String value, String fallback) {
         return value == null || value.trim().isEmpty() ? fallback : value;
+    }
+
+    private void bindReportTargets(DocumentSnapshot documentSnapshot) {
+        reportTargets.clear();
+        String primaryOrganizerId = documentSnapshot.getString("organizerId");
+        if (primaryOrganizerId != null && !primaryOrganizerId.trim().isEmpty()) {
+            reportTargets.add(new ReportTarget(primaryOrganizerId, primaryOrganizerId));
+        }
+
+        List<String> coOrganizerIds = extractStringList(documentSnapshot.get("coOrganizers"));
+        for (String coOrganizerId : coOrganizerIds) {
+            if (!containsReportTarget(coOrganizerId)) {
+                reportTargets.add(new ReportTarget(coOrganizerId, coOrganizerId));
+            }
+        }
+    }
+
+    private boolean containsReportTarget(String organizerId) {
+        for (ReportTarget target : reportTargets) {
+            if (target.userId.equals(organizerId)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private String resolvePrimaryOrganizerName() {
+        return reportTargets.isEmpty() ? eventOrganizerId : reportTargets.get(0).displayName;
+    }
+
+    private void loadOrganizerNamesForTargets() {
+        if (reportTargets.isEmpty()) {
+            refreshReportUi();
+            return;
+        }
+
+        List<Task<DocumentSnapshot>> tasks = new ArrayList<>();
+        for (ReportTarget target : reportTargets) {
+            tasks.add(FirebaseFirestore.getInstance()
+                    .collection("users")
+                    .document(target.userId)
+                    .get());
+        }
+
+        Tasks.whenAllSuccess(tasks).addOnSuccessListener(results -> {
+            for (int index = 0; index < results.size() && index < reportTargets.size(); index++) {
+                Object result = results.get(index);
+                if (result instanceof DocumentSnapshot) {
+                    DocumentSnapshot userDoc = (DocumentSnapshot) result;
+                    String username = userDoc.getString("username");
+                    if (username != null && !username.trim().isEmpty()) {
+                        reportTargets.get(index).displayName = username;
+                    }
+                }
+            }
+
+            if (eventOrganizerView != null) {
+                eventOrganizerView.setText(getString(
+                        R.string.event_organizer_format,
+                        fallbackText(resolvePrimaryOrganizerName(), getString(R.string.event_unknown_organizer))
+                ));
+            }
+            refreshReportUi();
+        }).addOnFailureListener(error -> refreshReportUi());
+    }
+
+    private void loadEntrantReports() {
+        if (!OrganizerReportPolicy.canCreateReport(currentUserId, currentUserRole) || eventId == null) {
+            activeReportsByOrganizerId.clear();
+            refreshReportUi();
+            return;
+        }
+
+        reportRepository.getActiveReportsForReporterAndEvent(currentUserId, eventId)
+                .addOnSuccessListener(reports -> {
+                    activeReportsByOrganizerId.clear();
+                    for (OrganizerReport report : reports) {
+                        if (report.getOrganizerId() != null) {
+                            activeReportsByOrganizerId.put(report.getOrganizerId(), report);
+                        }
+                    }
+                    refreshReportUi();
+                })
+                .addOnFailureListener(error -> refreshReportUi());
+    }
+
+    private OrganizerReport findActiveReport(String organizerId) {
+        return organizerId == null ? null : activeReportsByOrganizerId.get(organizerId);
+    }
+
+    private void refreshReportUi() {
+        if (reportOrganizerButton == null || reportStatusView == null) {
+            return;
+        }
+
+        boolean canCreate = OrganizerReportPolicy.canCreateReport(currentUserId, currentUserRole) && !reportTargets.isEmpty();
+        if (!canCreate) {
+            reportOrganizerButton.setVisibility(View.GONE);
+            reportStatusView.setVisibility(View.GONE);
+            return;
+        }
+
+        reportOrganizerButton.setVisibility(View.VISIBLE);
+        int activeReportCount = activeReportsByOrganizerId.size();
+        if (activeReportCount == 0) {
+            reportOrganizerButton.setEnabled(true);
+            reportOrganizerButton.setText(R.string.report_button_label);
+            reportStatusView.setVisibility(View.GONE);
+            return;
+        }
+
+        boolean anyEditable = false;
+        OrganizerReport primaryReport = findActiveReport(eventOrganizerId);
+        for (OrganizerReport report : activeReportsByOrganizerId.values()) {
+            if (OrganizerReportPolicy.canEditOrDeleteReport(report, currentUserId, currentUserRole)) {
+                anyEditable = true;
+                break;
+            }
+        }
+
+        reportOrganizerButton.setEnabled(anyEditable);
+        reportOrganizerButton.setText(R.string.report_button_edit_label);
+        reportStatusView.setVisibility(View.VISIBLE);
+        if (activeReportCount > 1) {
+            reportStatusView.setText(getString(R.string.report_status_multiple_format, activeReportCount));
+            return;
+        }
+
+        OrganizerReport currentReport = primaryReport != null
+                ? primaryReport
+                : activeReportsByOrganizerId.values().iterator().next();
+        if (OrganizerReport.STATUS_DISMISSED.equals(currentReport.getStatus())) {
+            reportStatusView.setText(R.string.report_status_dismissed);
+        } else if (OrganizerReport.STATUS_ACTION_TAKEN.equals(currentReport.getStatus())) {
+            reportStatusView.setText(R.string.report_status_action_taken);
+        } else {
+            reportStatusView.setText(R.string.report_status_pending);
+        }
+    }
+
+    private void saveReport(
+            ReportTarget target,
+            String reasonCode,
+            String note,
+            AlertDialog dialog
+    ) {
+        OrganizerReport draft = new OrganizerReport();
+        draft.setReason(reasonCode);
+        draft.setNote(note);
+        draft.setReporterUserId(currentUserId);
+        draft.setReporterUsernameSnapshot(fallbackText(currentUsername, currentUserId));
+        draft.setOrganizerId(target.userId);
+        draft.setOrganizerNameSnapshot(fallbackText(target.displayName, target.userId));
+        draft.setEventId(eventId);
+        draft.setEventTitleSnapshot(eventTitle);
+
+        reportRepository.savePendingReport(draft)
+                .addOnSuccessListener(unused -> {
+                    if (getContext() != null) {
+                        Toast.makeText(getContext(), R.string.report_saved_success, Toast.LENGTH_SHORT).show();
+                    }
+                    dialog.dismiss();
+                    loadEntrantReports();
+                })
+                .addOnFailureListener(error -> {
+                    if (getContext() != null) {
+                        String message = error.getMessage();
+                        if (message != null && message.contains("no longer exists")) {
+                            Toast.makeText(getContext(), R.string.report_no_longer_exists, Toast.LENGTH_SHORT).show();
+                        } else {
+                            Toast.makeText(getContext(), R.string.report_submit_failed, Toast.LENGTH_SHORT).show();
+                        }
+                    }
+                });
+    }
+
+    private void deleteReport(OrganizerReport report, AlertDialog dialog) {
+        reportRepository.anonymizePendingReport(report, currentUserId)
+                .addOnSuccessListener(unused -> {
+                    if (getContext() != null) {
+                        Toast.makeText(getContext(), R.string.report_deleted_success, Toast.LENGTH_SHORT).show();
+                    }
+                    dialog.dismiss();
+                    loadEntrantReports();
+                })
+                .addOnFailureListener(error -> {
+                    if (getContext() != null) {
+                        Toast.makeText(getContext(), R.string.report_delete_failed, Toast.LENGTH_SHORT).show();
+                    }
+                });
     }
 }

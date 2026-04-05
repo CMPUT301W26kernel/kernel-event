@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <TextView
+            android:id="@+id/text_report_detail_title"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/report_detail_title"
+            android:textColor="@color/primary_deep"
+            android:textSize="24sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/text_report_detail_status"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:textColor="@color/primary_dark"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/text_report_detail_summary"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:textColor="@color/black" />
+
+        <TextView
+            android:id="@+id/text_report_detail_note"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:textColor="@color/black" />
+
+        <TextView
+            android:id="@+id/text_report_detail_resolution"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:textColor="@android:color/darker_gray" />
+
+        <EditText
+            android:id="@+id/edit_admin_resolution_note"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:gravity="top|start"
+            android:hint="@string/report_admin_note_hint"
+            android:inputType="textCapSentences|textMultiLine"
+            android:maxLines="5"
+            android:minHeight="96dp"
+            android:padding="12dp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_dismiss_report"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="@string/report_action_dismiss"
+            android:textAllCaps="false"
+            app:backgroundTint="@color/primary_dark" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_remove_organizer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:text="@string/report_action_remove_organizer"
+            android:textAllCaps="false"
+            app:backgroundTint="#C2554B" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_done_report_detail"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:text="@string/done"
+            android:textAllCaps="false" />
+    </LinearLayout>
+</ScrollView>
