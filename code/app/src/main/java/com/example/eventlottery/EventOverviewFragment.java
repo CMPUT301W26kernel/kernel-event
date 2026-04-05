@@ -235,6 +235,26 @@ public class EventOverviewFragment extends Fragment implements
         loadEventData();
     }
 
+    /**
+     * A custom implementation of the onResume() method which reloads the event data in the
+     * EventOverviewFragment if returning from a fragment which updates the event data
+     * (e.g. the CreateEventFragment in edit mode).
+     */
+    @Override
+    public void onResume() {
+        super.onResume();
+
+        getParentFragmentManager().setFragmentResultListener(
+                "editEventResult",
+                this,
+                (requestKey, bundle) -> {
+                    if (bundle.getBoolean("eventUpdated", false)) {
+                        loadEventData(); // reload updated event from Firestore
+                    }
+                }
+        );
+    }
+
     @Override
     public void onDestroyView() {
         super.onDestroyView();
