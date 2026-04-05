@@ -298,4 +298,15 @@ public class Event {
     public void setTags(java.util.List<String> tags) {
         this.tags = tags != null ? tags : new java.util.ArrayList<>();
     }
+
+    // METHODS
+
+    /**
+     * Checks if a user is an organizer or coorganizer of this event.
+     * @param userId the id of the user to check membership of.
+     * @return true if user is an organizer or coorganizer of this event, false otherwise.
+     */
+    public boolean isOrganizer(String userId) {
+        return (userId.equals(this.organizerId) || this.coOrganizers.contains(userId));
+    }
 }
