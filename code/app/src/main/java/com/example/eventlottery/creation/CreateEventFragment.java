@@ -94,7 +94,7 @@ public class CreateEventFragment extends Fragment {
     private EditText editGeolocationRadius;
     private CheckBox checkboxRequireGeolocation;
     private EditText editEventTags;
-    ToggleButton visibilityToggle;
+    private ToggleButton visibilityToggle;
 
     private Button negativeButton;
     private Button clearImageButton;
@@ -243,6 +243,8 @@ public class CreateEventFragment extends Fragment {
                         }
                         if (currentEvent.getPosterImage() != null) {
                             editPosterImage.setImageBitmap(currentEvent.getPosterImage());
+                            // Prevent poster image from being overwritten with null when not altered
+                            selectedPosterImage = currentEvent.getPosterImage();
                         }
 
                         // Change negative button appearance
