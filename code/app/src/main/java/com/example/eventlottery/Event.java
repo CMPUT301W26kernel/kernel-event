@@ -26,6 +26,7 @@ import android.util.Base64;
 import androidx.annotation.Nullable;
 
 import com.google.firebase.firestore.Exclude;
+import com.google.firebase.firestore.PropertyName;
 
 import java.io.ByteArrayOutputStream;
 import java.time.ZonedDateTime;
@@ -39,6 +40,9 @@ public class Event {
     private String description;
     private String organizerId; // Read only
     private Integer waitingListCapacity;
+
+    // firebase automatically sets 'isX' fields to 'x', but 'private' is a reserved keyword.
+    @PropertyName("private")
     private boolean isPrivate = false;
 
     @Exclude
@@ -241,6 +245,7 @@ public class Event {
      * Events are public by default.
      * @return true if event is private, false otherwise.
      */
+    @PropertyName("private")
     public boolean isPrivate() {
         return this.isPrivate;
     }

@@ -148,7 +148,7 @@ public class HomePageFragment extends Fragment {
                             Event event = document.toObject(Event.class);
                             boolean isPublic = !event.isPrivate();
                             boolean isOrganizer = event.isOrganizer(currentUser.getUserId());
-                            boolean isAdmin = "admin".equalsIgnoreCase(currentUser.getUserId());
+                            boolean isAdmin = "admin".equalsIgnoreCase(currentUser.getRole());
                             Log.d("HomePageFragment", String.format("Event: %s, public: %b, admin: %b, is organizer: %b",
                                     event.getTitle(), isPublic, isAdmin, isOrganizer));
                             if (isPublic || isOrganizer || isAdmin) {
