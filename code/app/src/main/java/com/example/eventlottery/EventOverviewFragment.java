@@ -14,6 +14,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -112,6 +113,7 @@ public class EventOverviewFragment extends Fragment implements
     private String currentUserId;
     private String currentUserRole;
     private String currentUsername;
+    private Event currentEvent;
     private int waitlistCount;
     private boolean inWaitingList;
     private boolean eventRequiresGeolocationForWaitlist;
@@ -140,6 +142,7 @@ public class EventOverviewFragment extends Fragment implements
     private TextView eventDescriptionView;
     private TextView commentPermissionView;
     private TextView emptyCommentsView;
+    private ImageView posterImageView;
     private Button backButton;
     private Button qrGenerateButton;
     private Button editButton;
@@ -236,6 +239,7 @@ public class EventOverviewFragment extends Fragment implements
         eventDescriptionView = view.findViewById(R.id.text_event_description);
         commentPermissionView = view.findViewById(R.id.text_comment_permissions);
         emptyCommentsView = view.findViewById(R.id.text_comments_empty);
+        posterImageView = view.findViewById(R.id.image_event_poster);
         backButton = view.findViewById(R.id.btn_back_to_events);
         commentInput = view.findViewById(R.id.edit_comment_input);
         postCommentButton = view.findViewById(R.id.btn_post_comment);
@@ -263,14 +267,18 @@ public class EventOverviewFragment extends Fragment implements
      * actions should be available on the screen.
      */
     private void loadEventData() {
-        FirebaseFirestore.getInstance().collection("events").document(eventId).get()
+        FirebaseFirestore.getInstance().collection("events")
+                .document(eventId)
+                .get()
                 .addOnSuccessListener(documentSnapshot -> {
-                    if (!documentSnapshot.exists()) {
+                    // Deserialize event. Load error if it doesn't exist.
+                    currentEvent = documentSnapshot.toObject(Event.class);
+                    if (currentEvent == null) {
                         showLoadError();
                         return;
                     }
 
-                    bindEvent(documentSnapshot);
+                    bindEvent(currentEvent);
                     updateWaitlistState(documentSnapshot);
                     listenForComments();
 
@@ -306,8 +314,8 @@ public class EventOverviewFragment extends Fragment implements
         ));
         eventDateView.setText(getString(
                 R.string.event_registration_window_format,
-                formatEventDate(state.registrationOpen),
-                formatEventDate(state.registrationClose)
+                state.registrationOpen.format(EVENT_DATE_FORMATTER),
+                state.registrationClose.format(EVENT_DATE_FORMATTER)
         ));
         eventDescriptionView.setText(fallbackText(
                 state.eventDescription,
@@ -323,15 +331,13 @@ public class EventOverviewFragment extends Fragment implements
     /**
      * Copies event-level display data from Firestore into the UI.
      *
-     * @param documentSnapshot The Firestore event document.
+     * @param event The current event being overviewed
      */
-    private void bindEvent(DocumentSnapshot documentSnapshot) {
-        String eventNameRaw = documentSnapshot.getString("title");
-        eventTitle = eventNameRaw == null ? getString(R.string.default_event_title) : eventNameRaw;
-        String description = documentSnapshot.getString("description");
-        eventOrganizerId = documentSnapshot.getString("organizerId");
+    private void bindEvent(Event event) {
+        eventTitle = event.getTitle();
+        eventOrganizerId = event.getOrganizerId();
         
-        List<String> rawCoOrganizers = (List<String>) documentSnapshot.get("coOrganizers");
+        List<String> rawCoOrganizers = (List<String>) event.getCoOrganizers();
         if (rawCoOrganizers != null) {
             eventCoOrganizers = new ArrayList<>(rawCoOrganizers);
         } else {
@@ -345,12 +351,12 @@ public class EventOverviewFragment extends Fragment implements
         ));
         eventDateView.setText(getString(
                 R.string.event_registration_window_format,
-                formatEventDate(readEventDate(documentSnapshot, "registrationOpen")),
-                formatEventDate(readEventDate(documentSnapshot, "registrationClose"))
+                event.getRegistrationOpen().format(EVENT_DATE_FORMATTER),
+                event.getRegistrationClose().format(EVENT_DATE_FORMATTER)
         ));
-        eventDescriptionView.setText(fallbackText(description, getString(R.string.default_event_description)));
-        eventRequiresGeolocationForWaitlist = Boolean.TRUE.equals(
-                documentSnapshot.getBoolean("requireGeolocationForWaitlist"));
+        eventDescriptionView.setText(fallbackText(event.getDescription(), getString(R.string.default_event_description)));
+        posterImageView.setImageBitmap(event.getPosterImage());
+        eventRequiresGeolocationForWaitlist = event.isRequireGeolocationForWaitlist();
     }
 
     /**
@@ -823,16 +829,6 @@ public class EventOverviewFragment extends Fragment implements
             }
         }
         return ZonedDateTime.now();
-    }
-
-    /**
-     * Formats a zoned date for concise event display.
-     *
-     * @param date Date to format.
-     * @return Localized short date string.
-     */
-    private String formatEventDate(ZonedDateTime date) {
-        return EVENT_DATE_FORMATTER.format(date);
     }
 
     /**
