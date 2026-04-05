@@ -1,3 +1,8 @@
+/**
+ * Event Adapter.
+ * Adapter used to display Event objects in the home page ListView.
+ * Last modified: 2026-04-04 by Grace MacKenzie
+ */
 package com.example.eventlottery;
 
 import android.content.Context;
@@ -5,6 +10,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
+import android.widget.ImageView;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -33,6 +39,7 @@ public class EventAdapter extends ArrayAdapter<Event> {
         TextView titleText = convertView.findViewById(R.id.text_event_title);
         TextView organizerText = convertView.findViewById(R.id.text_event_organizer);
         TextView dateText = convertView.findViewById(R.id.text_event_date);
+        ImageView posterImage = convertView.findViewById(R.id.image_event_poster);
 
         if (event != null) {
             titleText.setText(event.getTitle());
@@ -41,6 +48,11 @@ public class EventAdapter extends ArrayAdapter<Event> {
                     event.getRegistrationOpen().getYear(),
                     event.getRegistrationOpen().getMonthValue(),
                     event.getRegistrationOpen().getDayOfMonth()));
+            if (event.getPosterImage() != null) {
+                posterImage.setImageBitmap(event.getPosterImage());
+            } else {
+                posterImage.setImageResource(R.drawable.default_image);
+            }
         }
 
         return convertView;

@@ -1,8 +1,8 @@
 /**
  * Home page fragment that displays a list of events fetched from Firestore.
  * This fragment acts as the main entry point for entrants to browse and select events.
+ * Last Modified: 2026-04-04 by Grace MacKenzie
  *
- * Last Modified: 2026-03-31 by Radwa Sheikhdon
  * @author Pierce
  * @author Rebecca OluwaBiyi
  * @author Grace MacKenzie
@@ -145,7 +145,6 @@ public class HomePageFragment extends Fragment {
                     for (QueryDocumentSnapshot document : queryDocumentSnapshots) {
                         try {
                             Event event = document.toObject(Event.class);
-                            event.setEventId(document.getId());
                             allEvents.add(event);
                         } catch (Exception e) {
                             Log.e("HomePageFragment", "Error parsing event: " + document.getId(), e);

@@ -243,6 +243,7 @@ public class CreateEventFragment extends Fragment {
                         }
                         if (currentEvent.getPosterImage() != null) {
                             editPosterImage.setImageBitmap(currentEvent.getPosterImage());
+                            clearImageButton.setVisibility(View.VISIBLE);
                             // Prevent poster image from being overwritten with null when not altered
                             selectedPosterImage = currentEvent.getPosterImage();
                         }

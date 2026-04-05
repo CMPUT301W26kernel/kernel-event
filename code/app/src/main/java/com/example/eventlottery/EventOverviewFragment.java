@@ -1,7 +1,7 @@
 /**
  * Event Overview Fragment
  * Displays the details of an event.
- * Last Modified: 2026-03-25
+ * Last Modified: 2026-04-04 by Grace MacKenzie
  */
 package com.example.eventlottery;
 
@@ -49,11 +49,24 @@ import java.util.List;
 import java.util.Locale;
 
 /**
- * Displays event details, waitlist actions, and the event comment thread.
- *
- * <p>The fragment normally loads its event, role, and comments from Firebase. Tests may inject
- * a {@link TestState} and a fake {@link EventCommentRepository} to test the UI without
- * depending on Firebase state.</p>
+ * A fragment which displays the details of a particular event and allows users to
+ * interact with events.
+ * <p>
+ *     Allows Entrants to join/leave a waitlist and comment on events.
+ * </p>
+ * <p>
+ *     Allows Organizers of the event to manage their waitlist, post comments,
+ *     moderate comments, edit their event, and generate an event QR code.
+ *     Organizers who are not contributors of an event are treated as Entrants.
+ * </p>
+ * <p>
+ *     Allows Admin to act as both an Entrant and an Organizer of the Event.
+ * </p>
+ * <p>
+ *     The fragment normally loads its event, role, and comments from Firebase.
+ *     Tests may inject a {@link TestState} and a fake {@link EventCommentRepository}
+ *     to test the UI without depending on Firebase state.
+ * </p>
  */
 public class EventOverviewFragment extends Fragment implements
         WaitingListDialogFragment.WaitingListDialogListener,
