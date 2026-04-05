@@ -24,6 +24,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentTransaction;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -564,17 +565,17 @@ public class EventOverviewFragment extends Fragment implements
      * Navigates to a Qr Code Generation fragment
      */
     private void navigateToQrGeneration() {
-        getParentFragmentManager()
-                .beginTransaction()
-                .replace(R.id.fragment_container, QrGeneratorFragment.newInstance(eventId))
-                .commit();
+        FragmentTransaction transaction = getParentFragmentManager().beginTransaction();
+        transaction.add(R.id.fragment_container, QrGeneratorFragment.newInstance(eventId));
+        transaction.addToBackStack("qr_generation");
+        transaction.commit();
     }
 
     private void navigateToEditFragment() {
-        getParentFragmentManager()
-                .beginTransaction()
-                .replace(R.id.fragment_container, CreateEventFragment.newInstanceEditMode(eventId))
-                .commit();
+        FragmentTransaction transaction = getParentFragmentManager().beginTransaction();
+        transaction.add(R.id.fragment_container, CreateEventFragment.newInstanceEditMode(eventId));
+        transaction.addToBackStack("edit_event");
+        transaction.commit();
     }
 
     /**

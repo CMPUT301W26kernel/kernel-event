@@ -50,7 +50,6 @@ import android.widget.Toast;
 import android.widget.ToggleButton;
 
 import com.example.eventlottery.Event;
-import com.example.eventlottery.EventOverviewFragment;
 import com.example.eventlottery.HomePageFragment;
 import com.example.eventlottery.R;
 import com.google.firebase.firestore.CollectionReference;
@@ -269,15 +268,10 @@ public class CreateEventFragment extends Fragment {
                     updateEvent(Objects.requireNonNull(validationResult.event));
                 }
 
-                // Navigate to EventOverviewFragment
-                EventOverviewFragment fragment = new EventOverviewFragment();
-                Bundle bundle = new Bundle();
-                bundle.putString("eventId", validationResult.event.getEventId());
-                fragment.setArguments(bundle);
-                requireActivity().getSupportFragmentManager()
-                        .beginTransaction()
-                        .replace(R.id.fragment_container, fragment)
-                        .commit();
+                // Navigate back to EventOverviewFragment
+                if (getParentFragmentManager().getBackStackEntryCount() > 0) {
+                    getParentFragmentManager().popBackStack();
+                }
             } else {
                 Toast.makeText(requireContext(), validationResult.errorMessage, Toast.LENGTH_SHORT).show();
             }
@@ -289,6 +283,7 @@ public class CreateEventFragment extends Fragment {
                 // TODO: Set up confirmation dialog fragment
             }
 
+            // Navigate back to HomePageFragment
             HomePageFragment fragment = new HomePageFragment();
             requireActivity().getSupportFragmentManager()
                     .beginTransaction()
@@ -623,6 +618,7 @@ public class CreateEventFragment extends Fragment {
         // Set poster image of returnEvent
         returnEvent.setPosterImage(selectedPosterImage);
 
+        // Set location support for returnEvent
         returnEvent.setTags(tagList);
         returnEvent.setVenueLatitude(vLat);
         returnEvent.setVenueLongitude(vLng);

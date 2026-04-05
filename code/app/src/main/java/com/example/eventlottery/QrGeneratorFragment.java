@@ -91,14 +91,9 @@ public class QrGeneratorFragment extends Fragment {
         Button backButton = view.findViewById(R.id.back_button);
         backButton.setOnClickListener( v -> {
             // Navigate back to EventOverviewFragment
-            EventOverviewFragment fragment = new EventOverviewFragment();
-            Bundle bundle = new Bundle();
-            bundle.putString("eventId", eventId);
-            fragment.setArguments(bundle);
-            requireActivity().getSupportFragmentManager()
-                    .beginTransaction()
-                    .replace(R.id.fragment_container, fragment)
-                    .commit();
+            if (getParentFragmentManager().getBackStackEntryCount() > 0) {
+                getParentFragmentManager().popBackStack();
+            }
         });
 
         if (qrCode!= null) {
