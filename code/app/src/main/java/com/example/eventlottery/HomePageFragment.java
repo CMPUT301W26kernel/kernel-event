@@ -198,6 +198,19 @@ public class HomePageFragment extends Fragment {
                     .commit());
         }
 
+        MaterialButton notificationsBtn = bottomBarView.findViewById(R.id.btn_notifications);
+        if (notificationsBtn != null) {
+            notificationsBtn.setOnClickListener(v -> {
+                Fragment destination = "admin".equalsIgnoreCase(role)
+                        ? new OrganizerReportCenterFragment()
+                        : new NotificationsFragment();
+                getParentFragmentManager().beginTransaction()
+                        .replace(R.id.fragment_container, destination)
+                        .addToBackStack(null)
+                        .commit();
+            });
+        }
+
         // Admin Profiles button (Profiles icon)
         MaterialButton profilesBtn = bottomBarView.findViewById(R.id.btn_profiles);
         if (profilesBtn != null) {
