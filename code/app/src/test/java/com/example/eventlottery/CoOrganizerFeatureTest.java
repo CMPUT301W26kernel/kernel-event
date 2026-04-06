@@ -81,16 +81,29 @@ public class CoOrganizerFeatureTest {
                 coOrganizers
         ));
 
-        // Ensure the Co-Organizer cannot delete their OWN comments using the delete button
+        // A Co-Organizer should be allowed to delete their OWN comments
         EventComment ownComment = new EventComment();
         ownComment.setAuthorId("co-organizer-user");
         ownComment.setStatus(EventComment.STATUS_ACTIVE);
 
-        assertFalse(EventCommentPolicy.canDeleteComment(
+        assertTrue(EventCommentPolicy.canDeleteComment(
                 ownComment, 
                 "co-organizer-user", 
                 "organizer", 
                 "main-organizer", 
+                coOrganizers
+        ));
+
+        // A Co-Organizer should NOT be allowed to delete the main organizer's comment
+        EventComment mainOrgComment = new EventComment();
+        mainOrgComment.setAuthorId("main-organizer");
+        mainOrgComment.setStatus(EventComment.STATUS_ACTIVE);
+
+        assertFalse(EventCommentPolicy.canDeleteComment(
+                mainOrgComment,
+                "co-organizer-user",
+                "organizer",
+                "main-organizer",
                 coOrganizers
         ));
     }
