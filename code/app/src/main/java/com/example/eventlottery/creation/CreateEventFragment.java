@@ -50,7 +50,6 @@ import android.widget.Toast;
 import android.widget.ToggleButton;
 
 import com.example.eventlottery.Event;
-import com.example.eventlottery.EventOverviewFragment;
 import com.example.eventlottery.HomePageFragment;
 import com.example.eventlottery.R;
 import com.google.firebase.firestore.CollectionReference;
@@ -95,7 +94,7 @@ public class CreateEventFragment extends Fragment {
     private EditText editGeolocationRadius;
     private CheckBox checkboxRequireGeolocation;
     private EditText editEventTags;
-    ToggleButton visibilityToggle;
+    private ToggleButton visibilityToggle;
 
     private Button negativeButton;
     private Button clearImageButton;
@@ -244,6 +243,9 @@ public class CreateEventFragment extends Fragment {
                         }
                         if (currentEvent.getPosterImage() != null) {
                             editPosterImage.setImageBitmap(currentEvent.getPosterImage());
+                            clearImageButton.setVisibility(View.VISIBLE);
+                            // Prevent poster image from being overwritten with null when not altered
+                            selectedPosterImage = currentEvent.getPosterImage();
                         }
 
                         // Change negative button appearance
@@ -269,15 +271,13 @@ public class CreateEventFragment extends Fragment {
                     updateEvent(Objects.requireNonNull(validationResult.event));
                 }
 
-                // Navigate to EventOverviewFragment
-                EventOverviewFragment fragment = new EventOverviewFragment();
-                Bundle bundle = new Bundle();
-                bundle.putString("eventId", validationResult.event.getEventId());
-                fragment.setArguments(bundle);
-                requireActivity().getSupportFragmentManager()
-                        .beginTransaction()
-                        .replace(R.id.fragment_container, fragment)
-                        .commit();
+                // Navigate back to EventOverviewFragment
+                Bundle result = new Bundle();
+                result.putBoolean("eventUpdated", true); // Tells the destination fragment that the event has been edited
+                getParentFragmentManager().setFragmentResult("editEventResult", result);
+                if (getParentFragmentManager().getBackStackEntryCount() > 0) {
+                    getParentFragmentManager().popBackStack();
+                }
             } else {
                 Toast.makeText(requireContext(), validationResult.errorMessage, Toast.LENGTH_SHORT).show();
             }
@@ -289,6 +289,7 @@ public class CreateEventFragment extends Fragment {
                 // TODO: Set up confirmation dialog fragment
             }
 
+            // Navigate back to HomePageFragment
             HomePageFragment fragment = new HomePageFragment();
             requireActivity().getSupportFragmentManager()
                     .beginTransaction()
@@ -623,6 +624,7 @@ public class CreateEventFragment extends Fragment {
         // Set poster image of returnEvent
         returnEvent.setPosterImage(selectedPosterImage);
 
+        // Set location support for returnEvent
         returnEvent.setTags(tagList);
         returnEvent.setVenueLatitude(vLat);
         returnEvent.setVenueLongitude(vLng);

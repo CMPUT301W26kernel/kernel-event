@@ -26,7 +26,7 @@ public class EventCommentPolicyTest {
     }
 
     @Test
-    public void organizerCanDeleteEntrantCommentsButNotOwnComments() {
+    public void organizerCanDeleteAnyCommentOnTheirEvent() {
         EventComment entrantComment = new EventComment();
         entrantComment.setAuthorId("entrant-1");
         entrantComment.setStatus(EventComment.STATUS_ACTIVE);
@@ -35,6 +35,7 @@ public class EventCommentPolicyTest {
         organizerComment.setAuthorId("organizer-1");
         organizerComment.setStatus(EventComment.STATUS_ACTIVE);
 
+        // Can delete others
         assertTrue(EventCommentPolicy.canDeleteComment(
                 entrantComment,
                 "organizer-1",
@@ -42,7 +43,8 @@ public class EventCommentPolicyTest {
                 "organizer-1",
                 null
         ));
-        assertFalse(EventCommentPolicy.canDeleteComment(
+        // Can delete own
+        assertTrue(EventCommentPolicy.canDeleteComment(
                 organizerComment,
                 "organizer-1",
                 "organizer",

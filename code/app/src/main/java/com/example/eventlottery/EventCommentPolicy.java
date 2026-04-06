@@ -72,8 +72,26 @@ public final class EventCommentPolicy {
             return true;
         }
 
-        boolean isOrganizerOfEvent = currentUserId.equals(organizerId) || (coOrganizers != null && coOrganizers.contains(currentUserId));
+        boolean isMainOrganizer = currentUserId.equals(organizerId);
+        boolean isCoOrganizer = coOrganizers != null && coOrganizers.contains(currentUserId);
 
-        return isOrganizerOfEvent && !currentUserId.equals(comment.getAuthorId());
+        if (isMainOrganizer) {
+            return true; // Main organizer can delete any comment on their event
+        }
+
+        if (isCoOrganizer) {
+            String authorId = comment.getAuthorId();
+            // Can delete their own comment
+            if (currentUserId.equals(authorId)) {
+                return true;
+            }
+            // Can delete entrant comments (author is neither main nor co-organizer)
+            boolean authorIsCoOrganizer = coOrganizers != null && coOrganizers.contains(authorId);
+            if (!organizerId.equals(authorId) && !authorIsCoOrganizer) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

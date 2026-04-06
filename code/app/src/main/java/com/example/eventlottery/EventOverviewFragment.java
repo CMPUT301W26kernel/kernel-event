@@ -1,7 +1,7 @@
 /**
  * Event Overview Fragment
  * Displays the details of an event.
- * Last Modified: 2026-03-25
+ * Last Modified: 2026-04-04 by Grace MacKenzie
  */
 package com.example.eventlottery;
 
@@ -16,6 +16,7 @@ import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.Spinner;
 import android.widget.TextView;
@@ -27,6 +28,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentTransaction;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -36,6 +38,7 @@ import com.google.android.gms.location.Priority;
 import com.google.android.gms.tasks.Task;
 import com.google.android.gms.tasks.Tasks;
 import com.google.android.gms.tasks.CancellationTokenSource;
+import com.example.eventlottery.creation.CreateEventFragment;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.Timestamp;
 import com.google.firebase.firestore.DocumentSnapshot;
@@ -53,11 +56,24 @@ import java.util.Locale;
 import java.util.Map;
 
 /**
- * Displays event details, waitlist actions, and the event comment thread.
- *
- * <p>The fragment normally loads its event, role, and comments from Firebase. Tests may inject
- * a {@link TestState} and a fake {@link EventCommentRepository} to test the UI without
- * depending on Firebase state.</p>
+ * A fragment which displays the details of a particular event and allows users to
+ * interact with events.
+ * <p>
+ *     Allows Entrants to join/leave a waitlist and comment on events.
+ * </p>
+ * <p>
+ *     Allows Organizers of the event to manage their waitlist, post comments,
+ *     moderate comments, edit their event, and generate an event QR code.
+ *     Organizers who are not contributors of an event are treated as Entrants.
+ * </p>
+ * <p>
+ *     Allows Admin to act as both an Entrant and an Organizer of the Event.
+ * </p>
+ * <p>
+ *     The fragment normally loads its event, role, and comments from Firebase.
+ *     Tests may inject a {@link TestState} and a fake {@link EventCommentRepository}
+ *     to test the UI without depending on Firebase state.
+ * </p>
  */
 public class EventOverviewFragment extends Fragment implements
         WaitingListDialogFragment.WaitingListDialogListener,
@@ -131,6 +147,7 @@ public class EventOverviewFragment extends Fragment implements
     private String currentUserId;
     private String currentUserRole;
     private String currentUsername;
+    private Event currentEvent;
     private int waitlistCount;
     private boolean inWaitingList;
     private boolean eventRequiresGeolocationForWaitlist;
@@ -160,8 +177,10 @@ public class EventOverviewFragment extends Fragment implements
     private TextView commentPermissionView;
     private TextView emptyCommentsView;
     private TextView reportStatusView;
+    private ImageView posterImageView;
     private Button backButton;
     private Button qrGenerateButton;
+    private Button editButton;
     private EditText commentInput;
     private Button postCommentButton;
     private Button joinWaitlistButton;
@@ -227,6 +246,7 @@ public class EventOverviewFragment extends Fragment implements
         postCommentButton.setOnClickListener(v -> submitComment());
         qrGenerateButton.setOnClickListener(v -> navigateToQrGeneration());
         reportOrganizerButton.setOnClickListener(v -> showReportDialog());
+        editButton.setOnClickListener(v -> navigateToEditFragment());
 
         if (eventId == null) {
             if (getContext() != null) {
@@ -242,6 +262,26 @@ public class EventOverviewFragment extends Fragment implements
         }
 
         loadEventData();
+    }
+
+    /**
+     * A custom implementation of the onResume() method which reloads the event data in the
+     * EventOverviewFragment if returning from a fragment which updates the event data
+     * (e.g. the CreateEventFragment in edit mode).
+     */
+    @Override
+    public void onResume() {
+        super.onResume();
+
+        getParentFragmentManager().setFragmentResultListener(
+                "editEventResult",
+                this,
+                (requestKey, bundle) -> {
+                    if (bundle.getBoolean("eventUpdated", false)) {
+                        loadEventData(); // reload updated event from Firestore
+                    }
+                }
+        );
     }
 
     @Override
@@ -262,6 +302,7 @@ public class EventOverviewFragment extends Fragment implements
         commentPermissionView = view.findViewById(R.id.text_comment_permissions);
         emptyCommentsView = view.findViewById(R.id.text_comments_empty);
         reportStatusView = view.findViewById(R.id.text_report_status);
+        posterImageView = view.findViewById(R.id.image_event_poster);
         backButton = view.findViewById(R.id.btn_back_to_events);
         commentInput = view.findViewById(R.id.edit_comment_input);
         postCommentButton = view.findViewById(R.id.btn_post_comment);
@@ -270,6 +311,7 @@ public class EventOverviewFragment extends Fragment implements
         reportOrganizerButton = view.findViewById(R.id.btn_report_organizer);
         commentComposerContainer = view.findViewById(R.id.comment_composer_container);
         qrGenerateButton = view.findViewById(R.id.btn_qr_generate);
+        editButton = view.findViewById(R.id.btn_edit);
     }
 
     /**
@@ -289,14 +331,19 @@ public class EventOverviewFragment extends Fragment implements
      * actions should be available on the screen.
      */
     private void loadEventData() {
-        FirebaseFirestore.getInstance().collection("events").document(eventId).get()
+        FirebaseFirestore.getInstance().collection("events")
+                .document(eventId)
+                .get()
                 .addOnSuccessListener(documentSnapshot -> {
-                    if (!documentSnapshot.exists()) {
+                    // Deserialize event. Load error if it doesn't exist.
+                    currentEvent = documentSnapshot.toObject(Event.class);
+                    if (currentEvent == null) {
                         showLoadError();
                         return;
                     }
 
-                    bindEvent(documentSnapshot);
+                    bindEvent(currentEvent);
+                    bindReportTargets(documentSnapshot);
                     updateWaitlistState(documentSnapshot);
                     loadOrganizerNamesForTargets();
                     listenForComments();
@@ -333,8 +380,8 @@ public class EventOverviewFragment extends Fragment implements
         ));
         eventDateView.setText(getString(
                 R.string.event_registration_window_format,
-                formatEventDate(state.registrationOpen),
-                formatEventDate(state.registrationClose)
+                state.registrationOpen.format(EVENT_DATE_FORMATTER),
+                state.registrationClose.format(EVENT_DATE_FORMATTER)
         ));
         eventDescriptionView.setText(fallbackText(
                 state.eventDescription,
@@ -357,16 +404,13 @@ public class EventOverviewFragment extends Fragment implements
     /**
      * Copies event-level display data from Firestore into the UI.
      *
-     * @param documentSnapshot The Firestore event document.
+     * @param event The current event being overviewed
      */
-    private void bindEvent(DocumentSnapshot documentSnapshot) {
-        String eventNameRaw = documentSnapshot.getString("title");
-        eventTitle = eventNameRaw == null ? getString(R.string.default_event_title) : eventNameRaw;
-        String description = documentSnapshot.getString("description");
-        eventOrganizerId = documentSnapshot.getString("organizerId");
-        bindReportTargets(documentSnapshot);
-        
-        List<String> rawCoOrganizers = (List<String>) documentSnapshot.get("coOrganizers");
+    private void bindEvent(Event event) {
+        eventTitle = fallbackText(event.getTitle(), getString(R.string.default_event_title));
+        eventOrganizerId = event.getOrganizerId();
+
+        List<String> rawCoOrganizers = (List<String>) event.getCoOrganizers();
         if (rawCoOrganizers != null) {
             eventCoOrganizers = new ArrayList<>(rawCoOrganizers);
         } else {
@@ -380,12 +424,12 @@ public class EventOverviewFragment extends Fragment implements
         ));
         eventDateView.setText(getString(
                 R.string.event_registration_window_format,
-                formatEventDate(readEventDate(documentSnapshot, "registrationOpen")),
-                formatEventDate(readEventDate(documentSnapshot, "registrationClose"))
+                event.getRegistrationOpen().format(EVENT_DATE_FORMATTER),
+                event.getRegistrationClose().format(EVENT_DATE_FORMATTER)
         ));
-        eventDescriptionView.setText(fallbackText(description, getString(R.string.default_event_description)));
-        eventRequiresGeolocationForWaitlist = Boolean.TRUE.equals(
-                documentSnapshot.getBoolean("requireGeolocationForWaitlist"));
+        eventDescriptionView.setText(fallbackText(event.getDescription(), getString(R.string.default_event_description)));
+        posterImageView.setImageBitmap(event.getPosterImage());
+        eventRequiresGeolocationForWaitlist = event.isRequireGeolocationForWaitlist();
     }
 
     /**
@@ -459,18 +503,15 @@ public class EventOverviewFragment extends Fragment implements
     private void refreshActionState() {
         commentAdapter.setViewerContext(currentUserId, currentUserRole, eventOrganizerId, eventCoOrganizers);
 
-        boolean isOrganizer = currentUserId != null && (currentUserId.equals(eventOrganizerId) || eventCoOrganizers.contains(currentUserId));
+        boolean isOrganizer = currentUserId != null && currentEvent.isOrganizer(currentUserId);
         boolean isAdmin = "admin".equalsIgnoreCase(currentUserRole);
 
         if (isOrganizer) {
             // Allow organizer/admin of event to manage waitlist; cannot join waitlist.
             showOrganizerActions();
         } else if (isAdmin) {
-            //Allow admin to both join and manage waitlists of events they're not organizing.
-            joinWaitlistButton.setVisibility(View.VISIBLE);
-            manageWaitlistButton.setVisibility(View.VISIBLE);
-            // Allow admin to generate a QR Code for any event
-            qrGenerateButton.setVisibility(View.VISIBLE);
+            //Allow admin to both join and manage events they're not organizing.
+            showAdminActions();
         } else {
             showEntrantActions();
         }
@@ -747,28 +788,55 @@ public class EventOverviewFragment extends Fragment implements
      * Navigates to a Qr Code Generation fragment
      */
     private void navigateToQrGeneration() {
-        getParentFragmentManager()
-                .beginTransaction()
-                .replace(R.id.fragment_container, QrGeneratorFragment.newInstance(eventId))
-                .commit();
+        FragmentTransaction transaction = getParentFragmentManager().beginTransaction();
+        transaction.add(R.id.fragment_container, QrGeneratorFragment.newInstance(eventId));
+        transaction.addToBackStack("qr_generation");
+        transaction.commit();
+    }
+
+    private void navigateToEditFragment() {
+        FragmentTransaction transaction = getParentFragmentManager().beginTransaction();
+        transaction.add(R.id.fragment_container, CreateEventFragment.newInstanceEditMode(eventId));
+        transaction.addToBackStack("edit_event");
+        transaction.commit();
     }
 
     /**
      * Shows the join/leave waitlist action and hides event organizer management.
      */
     private void showEntrantActions() {
-        manageWaitlistButton.setVisibility(View.GONE);
         joinWaitlistButton.setVisibility(View.VISIBLE);
+        manageWaitlistButton.setVisibility(View.GONE);
+        qrGenerateButton.setVisibility(View.GONE);
+        editButton.setVisibility(View.GONE);
     }
 
     /**
-     * Shows event organizer/admin waitlist management and qr generation button and
-     * hides the entrant action.
+     * Shows event management buttons and hides the button to join/leave the waitlist.
      */
     private void showOrganizerActions() {
         joinWaitlistButton.setVisibility(View.GONE);
         manageWaitlistButton.setVisibility(View.VISIBLE);
-        qrGenerateButton.setVisibility(View.VISIBLE);
+        if (!currentEvent.isPrivate()) {
+            qrGenerateButton.setVisibility(View.VISIBLE);
+        } else {
+            qrGenerateButton.setVisibility(View.GONE);
+        }
+        editButton.setVisibility(View.VISIBLE);
+    }
+
+    /**
+     * Shows join/leave waitlist, waitlist management, qr generation, and edit buttons to admin.
+     */
+    private void showAdminActions() {
+        joinWaitlistButton.setVisibility(View.VISIBLE);
+        manageWaitlistButton.setVisibility(View.VISIBLE);
+        if (!currentEvent.isPrivate()) {
+            qrGenerateButton.setVisibility(View.VISIBLE);
+        } else {
+            qrGenerateButton.setVisibility(View.GONE);
+        }
+        editButton.setVisibility(View.VISIBLE);
     }
 
     /**
@@ -986,16 +1054,6 @@ public class EventOverviewFragment extends Fragment implements
             }
         }
         return ZonedDateTime.now();
-    }
-
-    /**
-     * Formats a zoned date for concise event display.
-     *
-     * @param date Date to format.
-     * @return Localized short date string.
-     */
-    private String formatEventDate(ZonedDateTime date) {
-        return EVENT_DATE_FORMATTER.format(date);
     }
 
     /**

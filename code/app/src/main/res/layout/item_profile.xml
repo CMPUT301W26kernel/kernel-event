@@ -45,7 +45,7 @@
         <ImageView
             android:layout_width="48dp"
             android:layout_height="48dp"
-            android:src="@drawable/ic_edit_profile"
+            android:src="@drawable/ic_edit"
             android:background="@android:color/white"
             android:padding="8dp"
             app:tint="#3F7E8A" />
