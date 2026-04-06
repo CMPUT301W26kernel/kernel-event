@@ -243,6 +243,7 @@ public class CreateEventFragment extends Fragment {
                         }
                         if (currentEvent.getPosterImage() != null) {
                             editPosterImage.setImageBitmap(currentEvent.getPosterImage());
+                            clearImageButton.setVisibility(View.VISIBLE);
                             // Prevent poster image from being overwritten with null when not altered
                             selectedPosterImage = currentEvent.getPosterImage();
                         }
@@ -271,6 +272,9 @@ public class CreateEventFragment extends Fragment {
                 }
 
                 // Navigate back to EventOverviewFragment
+                Bundle result = new Bundle();
+                result.putBoolean("eventUpdated", true); // Tells the destination fragment that the event has been edited
+                getParentFragmentManager().setFragmentResult("editEventResult", result);
                 if (getParentFragmentManager().getBackStackEntryCount() > 0) {
                     getParentFragmentManager().popBackStack();
                 }
