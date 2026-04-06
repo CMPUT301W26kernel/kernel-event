@@ -459,7 +459,7 @@ public class EventOverviewFragment extends Fragment implements
     private void refreshActionState() {
         commentAdapter.setViewerContext(currentUserId, currentUserRole, eventOrganizerId, eventCoOrganizers);
 
-        boolean isOrganizer = currentUserId != null && (currentUserId.equals(eventOrganizerId) || eventCoOrganizers.contains(currentUserId));
+        boolean isOrganizer = currentUserId != null && currentEvent.isOrganizer(currentUserId);
         boolean isAdmin = "admin".equalsIgnoreCase(currentUserRole);
 
         if (isOrganizer) {
@@ -633,7 +633,11 @@ public class EventOverviewFragment extends Fragment implements
     private void showOrganizerActions() {
         joinWaitlistButton.setVisibility(View.GONE);
         manageWaitlistButton.setVisibility(View.VISIBLE);
-        qrGenerateButton.setVisibility(View.VISIBLE);
+        if (!currentEvent.isPrivate()) {
+            qrGenerateButton.setVisibility(View.VISIBLE);
+        } else {
+            qrGenerateButton.setVisibility(View.GONE);
+        }
         editButton.setVisibility(View.VISIBLE);
     }
 
@@ -643,7 +647,11 @@ public class EventOverviewFragment extends Fragment implements
     private void showAdminActions() {
         joinWaitlistButton.setVisibility(View.VISIBLE);
         manageWaitlistButton.setVisibility(View.VISIBLE);
-        qrGenerateButton.setVisibility(View.VISIBLE);
+        if (!currentEvent.isPrivate()) {
+            qrGenerateButton.setVisibility(View.VISIBLE);
+        } else {
+            qrGenerateButton.setVisibility(View.GONE);
+        }
         editButton.setVisibility(View.VISIBLE);
     }
 
