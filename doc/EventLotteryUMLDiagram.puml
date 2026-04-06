@@ -1,0 +1,1201 @@
+@startuml
+class com.example.eventlottery.profiles.SetUpFragment {
+- TextInputLayout usernameLayout
+- TextInputLayout emailLayout
+- TextInputLayout phoneLayout
+- TextInputLayout passwordLayout
+- TextInputEditText usernameInput
+- TextInputEditText emailInput
+- TextInputEditText phoneInput
+- TextInputEditText passwordInput
+- RadioGroup roleGroup
+- View roleLabel
+- TextView errorText
+- ProgressBar progressBar
+- Button createAccountButton
+- Button toggleAuthModeButton
+- FirebaseAuth auth
+- FirebaseFirestore firestore
+- boolean signInMode
+- {static} Pattern NAME_PATTERN
+- {static} Pattern PHONE_PATTERN
++ View onCreateView(LayoutInflater,ViewGroup,Bundle)
++ void onViewCreated(View,Bundle)
+- void attemptCreateAccount()
+- void attemptSignIn()
+- void navigateToHome()
+- String resolveSelectedRole()
+- void clearErrors()
+- void showError(String)
+- void setLoading(boolean)
+- String getText(TextInputEditText)
+- void updateAuthModeUi()
+}
+
+
+class com.example.eventlottery.InvitationFragment {
++ void onCreate(Bundle)
++ View onCreateView(LayoutInflater,ViewGroup,Bundle)
++ void onViewCreated(View,Bundle)
+}
+
+class com.example.eventlottery.creation.ValidationContext {
++ EventCreationMode mode
++ EventInput input
++ Event event
++ String organizerId
+}
+
+class com.example.eventlottery.OrganizerReportPolicy {
+- {static} LinkedHashMap<String,String> REASON_LABELS
++ {static} boolean canCreateReport(String,String)
++ {static} boolean canEditOrDeleteReport(OrganizerReport,String,String)
++ {static} boolean canAdminResolve(String,OrganizerReport)
++ {static} String normalizeNote(String)
++ {static} String validateReasonAndNote(String,String)
++ {static} List<String> getReasonCodes()
++ {static} List<String> getReasonLabels()
++ {static} String reasonCodeFromLabel(String)
++ {static} String getReasonLabel(String)
++ {static} String getStatusLabel(String)
++ {static} boolean matchesSearchText(OrganizerReport,String)
+- {static} boolean contains(String,String)
+}
+
+
+class com.example.eventlottery.MockEventData {
++ {static} ArrayList<Event> getSampleEvents()
+}
+
+class com.example.eventlottery.OrganizerReportRepository {
+- {static} String TAG
+- {static} String REPORTS_COLLECTION
+- {static} String ACTIVE_KEYS_COLLECTION
+- {static} String EVENTS_COLLECTION
+- {static} String USERS_COLLECTION
+- FirebaseFirestore db
++ ListenerRegistration listenForActiveReports(ReportListener)
++ Task<List<OrganizerReport>> getActiveReportsForReporterAndEvent(String,String)
++ Task<OrganizerReport> getReportById(String)
++ Task<Void> savePendingReport(OrganizerReport)
++ Task<Void> anonymizePendingReport(OrganizerReport,String)
++ Task<Void> resolveReport(String,String,String,String,String,String)
+~ {static} String buildActiveKey(String,String,String)
+~ {static} Map<String,Object> buildAnonymizedUpdates(Timestamp)
+- {static} String sanitize(String)
+- Map<String,Object> buildActiveKeyDocument(String,OrganizerReport,Timestamp)
+- List<OrganizerReport> mapReports(QuerySnapshot)
+- CollectionReference reportsCollection()
+- CollectionReference activeKeysCollection()
+}
+
+
+interface com.example.eventlottery.OrganizerReportRepository$ReportListener {
+~ void onReportsChanged(List<OrganizerReport>)
+~ void onError(Exception)
+}
+
+class com.example.eventlottery.NotificationRepository {
+- {static} String TAG
+- FirebaseFirestore db
++ void markAsRead(Notification,NotificationCallback)
++ void acceptInvitation(Notification,NotificationCallback)
++ void declineInvitation(Notification,NotificationCallback)
++ void createNotification(Notification)
+- Task<Void> createNotificationTask(Notification)
++ void sendBulkNotification(List<String>,String,String,NotificationType)
++ void sendWaitingListNotification(String,String)
++ Task<Void> sendInvitedUsersNotification(String,String)
++ Task<Void> sendCancelledEntrantsNotification(String,String)
++ Task<Void> sendNotSelectedEntrantsNotification(String,String)
++ Task<Void> sendPrivateWaitlistInviteNotification(String,String)
+- Task<String> createNotificationTaskWithResult(Notification)
+- Task<Void> sendNotificationsToListField(String,String,NotificationType,String)
+- Task<Boolean> canReceiveNotification(String,NotificationType)
++ void sendCoOrganizerInviteNotification(String,String,String)
++ void acceptCoOrganizerInvite(Notification,NotificationCallback)
++ void declineCoOrganizerInvite(Notification,NotificationCallback)
+- Task<Void> createNotificationLog(String,String,List<String>,NotificationType,String)
+- Notification buildNotification(String,String,NotificationType,String,NotificationStatus)
+- List<String> getStringList(Object)
+- boolean isValidNotification(Notification)
+- void notifySuccess(NotificationCallback)
+- void notifyFailure(NotificationCallback,Exception)
+}
+
+
+interface com.example.eventlottery.NotificationRepository$NotificationCallback {
+~ void onSuccess()
+~ void onFailure(Exception)
+}
+
+class com.example.eventlottery.profiles.Admin {
+}
+class com.example.eventlottery.EventHistoryStatusUtils {
++ {static} String determineStatus(String,List<String>,List<String>,List<String>,List<String>)
+}
+
+class com.example.eventlottery.GeoUtils {
+- {static} double EARTH_RADIUS_M
++ {static} double haversineMeters(Double,Double,Double,Double)
+}
+
+
+class com.example.eventlottery.EventComment {
++ {static} String STATUS_ACTIVE
++ {static} String STATUS_REMOVED
+- String commentId
+- String authorId
+- String authorName
+- String authorRole
+- String text
+- Timestamp createdAt
+- String status
+- boolean isPinned
+- String removedReason
++ String getCommentId()
++ void setCommentId(String)
++ String getAuthorId()
++ void setAuthorId(String)
++ String getAuthorName()
++ void setAuthorName(String)
++ String getAuthorRole()
++ void setAuthorRole(String)
++ String getText()
++ void setText(String)
++ Timestamp getCreatedAt()
++ void setCreatedAt(Timestamp)
++ void setStatus(String)
++ boolean isPinned()
++ void setPinned(boolean)
++ String getRemovedReason()
++ void setRemovedReason(String)
++ boolean hasBeenRemoved()
+}
+
+
+class com.example.eventlottery.NotificationLogsFragment {
+- RecyclerView recyclerView
+- TextView emptyText
+- NotificationLogsAdapter adapter
+- List<NotificationLog> logList
+- FirebaseFirestore db
+- ListenerRegistration logsListener
++ View onCreateView(LayoutInflater,ViewGroup,Bundle)
++ void onViewCreated(View,Bundle)
+- void loadLogs()
++ void onDestroyView()
+}
+
+
+class com.example.eventlottery.creation.ValidationResult {
++ boolean isValid
+~ String errorMessage
+~ Event event
++ {static} ValidationResult valid(Event)
++ {static} ValidationResult invalid(String)
+}
+
+
+class com.example.eventlottery.EventCommentRepository {
+- {static} String TAG
+- {static} String EVENTS_COLLECTION
+- {static} String COMMENTS_COLLECTION
+- FirebaseFirestore db
++ ListenerRegistration listenForComments(String,CommentListener)
++ Task<Void> postComment(String,EventComment)
++ Task<Void> removeComment(String,String,String)
+~ {static} List<EventComment> sortComments(List<EventComment>)
+- {static} int compareCreatedAtDescending(EventComment,EventComment)
+- List<EventComment> mapComments(QuerySnapshot)
+- CollectionReference commentsCollection(String)
+}
+
+
+interface com.example.eventlottery.EventCommentRepository$CommentListener {
+~ void onCommentsChanged(List<EventComment>)
+~ void onError(Exception)
+}
+
+class com.example.eventlottery.QrScannerFragment {
+- ActivityResultLauncher<String> requestCameraPermission
+- DecoratedBarcodeView barcodeView
++ void onCreate(Bundle)
++ View onCreateView(LayoutInflater,ViewGroup,Bundle)
++ void onViewCreated(View,Bundle)
++ void onResume()
++ void onPause()
++ {static} QrScannerFragment newInstance()
+- void startScanner()
+- boolean isFirebaseId(String)
+- void handleFirebaseId(String)
+- void goToEventOverview(String)
+}
+
+
+class com.example.eventlottery.NotificationsFragment {
+- {static} String TAG
+- RecyclerView recyclerView
+- NotificationsAdapter adapter
+- ListenerRegistration notificationsListener
+- FirebaseFirestore db
+- NotificationRepository repository
++ View onCreateView(LayoutInflater,ViewGroup,Bundle)
++ void onViewCreated(View,Bundle)
+- void loadNotifications(String)
+- String getCurrentUserId()
++ void onDestroyView()
+}
+
+
+class com.example.eventlottery.QrGeneratorFragment {
+- String eventId
++ void onCreate(Bundle)
++ View onCreateView(LayoutInflater,ViewGroup,Bundle)
++ void onViewCreated(View,Bundle)
++ {static} QrGeneratorFragment newInstance(String)
+- Bitmap generateQrCode(String)
+- void saveBitmapToGallery(Bitmap)
+}
+
+
+class com.example.eventlottery.EventHistoryFragment {
+- ListView listView
+- HistoryAdapter adapter
+- List<HistoryItem> historyItems
+- FirebaseFirestore db
+- String currentUserId
++ void onCreate(Bundle)
++ View onCreateView(LayoutInflater,ViewGroup,Bundle)
++ void onViewCreated(View,Bundle)
+- void loadEventHistory()
+- void navigateToEventOverview(String)
+}
+
+
+class com.example.eventlottery.EventHistoryFragment$HistoryItem {
+~ String eventId
+~ String title
+~ String status
+}
+
+class com.example.eventlottery.EventHistoryFragment$HistoryAdapter {
++ View getView(int,View,ViewGroup)
+}
+
+class com.example.eventlottery.NotificationsAdapter {
+- List<Notification> notificationList
+- NotificationRepository repository
++ void updateList(List<Notification>)
++ ViewHolder onCreateViewHolder(ViewGroup,int)
++ void onBindViewHolder(ViewHolder,int)
+- void bindMessage(ViewHolder,Notification)
+- void bindTimestamp(ViewHolder,Notification)
+- void resetViewState(ViewHolder)
+- void bindItemClick(ViewHolder,Notification)
+- boolean isActionableInvite(Notification)
+- void showInviteActions(ViewHolder,Notification)
+- void handleAccept(ViewHolder,Notification,View)
+- void handleDecline(ViewHolder,Notification,View)
+- void showStatusBadge(ViewHolder,Notification)
+- void showTypeBadge(ViewHolder,Notification)
+- int safeColor(View,int)
+- boolean hasRequiredIds(Notification)
++ int getItemCount()
+}
+
+
+class com.example.eventlottery.NotificationsAdapter$ViewHolder {
+~ TextView message
+~ TextView time
+~ TextView statusBadge
+~ TextView typeBadge
+~ Button btnAccept
+~ Button btnDecline
+~ View layoutInviteActions
+}
+
+class com.example.eventlottery.map.NearbyEventsMapFragment {
+- MapView mapView
+- ArrayList<Event> allEvents
+- Handler debounce
+- Runnable refreshRunnable
+- ActivityResultLauncher<String[]> permissionLauncher
++ View onCreateView(LayoutInflater,ViewGroup,Bundle)
++ void onViewCreated(View,Bundle)
+- boolean hasLocationPermission()
+- void scheduleRefreshMarkers()
+- void loadEventsFromFirestore()
+- {static} boolean isDrawPoolEligible(Event)
+- void buildTagChips(View)
+- Set<String> getSelectedTags()
+- {static} boolean passesTagFilter(Event,Set<String>)
+- void refreshMarkers()
+- void onMarkerGroupClicked(MapMarkerGrouper.Group)
+- void openEvent(String)
+- void centerOnUserLocation()
++ void onResume()
++ void onPause()
++ void onDestroyView()
+}
+
+
+enum com.example.eventlottery.creation.EventCreationMode {
++  CREATE
++  EDIT
+}
+
+class com.example.eventlottery.WaitingListDialogFragment {
+- WaitingListDialogListener listener
+- {static} String ARG_EVENT_ID
+- {static} String ARG_EVENT_NAME
+- {static} String ARG_ENTRANT_COUNT
+- {static} String ARG_IN_WAITING_LIST
+- {static} String ARG_REQUIRE_GEO
++ void onAttach(Context)
++ void onCreate(Bundle)
++ View onCreateView(LayoutInflater,ViewGroup,Bundle)
++ void onViewCreated(View,Bundle)
++ void onStart()
++ {static} WaitingListDialogFragment newInstance(String,String,int,boolean)
++ {static} WaitingListDialogFragment newInstance(String,String,int,boolean,boolean)
+}
+
+
+interface com.example.eventlottery.WaitingListDialogFragment$WaitingListDialogListener {
+~ void onJoinWaitingList(String)
+~ void onLeaveWaitingList(String)
+~ void onViewWaitingList(String)
+}
+
+class com.example.eventlottery.EventCommentPolicy {
++ {static} boolean canPostComment(String,String,String,List<String>)
++ {static} boolean shouldPinComment(String,String,List<String>)
++ {static} boolean canDeleteComment(EventComment,String,String,String,List<String>)
+}
+
+class com.example.eventlottery.profiles.UserProfileFragment {
+- EditText usernameView
+- EditText emailView
+- EditText phoneView
+- TextView roleView
+- Button deleteButton
+- TextView deviceIdText
+- String targetUserId
+- boolean isAdminMode
+- String originalUsername
+- String originalEmail
+- String originalPhone
+- String originalRole
+- {static} String ARG_USER_ID
+- {static} String ARG_IS_ADMIN_MODE
++ {static} UserProfileFragment newInstance(String,boolean)
++ void onCreate(Bundle)
++ View onCreateView(LayoutInflater,ViewGroup,Bundle)
++ void onViewCreated(View,Bundle)
+- void bindProfile(DocumentSnapshot)
++ String capitalize(String)
++ String valueOrEmpty(String)
+- void validateAndSave()
+- void saveUserProfile(String,String,String)
+- void updateFirestoreProfile(Map<String,Object>)
+- void loadPendingCoOrganizerInvites()
+- void navigateBack()
+- void showDeleteConfirmation()
+- void deleteUserProfile()
+- void removeUserFromEvents(String)
+- void signOut()
+- void navigateToSetUpFragment()
+}
+
+
+enum com.example.eventlottery.NotificationStatus {
++  UNREAD
++  ACCEPTED
++  DECLINED
++  EXPIRED
++  READ
+}
+
+enum com.example.eventlottery.NotificationType {
++  INVITE
++  ADMIN
++  INFO
++  COORGANIZER_INVITE
+}
+
+class com.example.eventlottery.EventOverviewFragment {
+- {static} DateTimeFormatter EVENT_DATE_FORMATTER
+- WaitingListRepository waitlistRepo
+- EventCommentRepository commentRepository
+- OrganizerReportRepository reportRepository
+- ListenerRegistration commentListenerRegistration
+- String eventId
+- String eventTitle
+- String eventOrganizerId
+- List<String> eventCoOrganizers
+- String currentUserId
+- String currentUserRole
+- String currentUsername
+- Event currentEvent
+- int waitlistCount
+- boolean inWaitingList
+- boolean eventRequiresGeolocationForWaitlist
+- String pendingJoinEventId
+- ActivityResultLauncher<String[]> locationPermissionLauncher
+- TextView eventTitleView
+- TextView eventOrganizerView
+- TextView eventDateView
+- TextView eventWaitlistView
+- TextView eventDescriptionView
+- TextView commentPermissionView
+- TextView emptyCommentsView
+- TextView reportStatusView
+- ImageView posterImageView
+- Button backButton
+- Button qrGenerateButton
+- Button editButton
+- EditText commentInput
+- Button postCommentButton
+- Button joinWaitlistButton
+- Button manageWaitlistButton
+- Button reportOrganizerButton
+- LinearLayout commentComposerContainer
+- EventCommentAdapter commentAdapter
+- TestState testState
+- List<ReportTarget> reportTargets
+- Map<String,OrganizerReport> activeReportsByOrganizerId
+~ void setCommentRepositoryForTesting(EventCommentRepository)
+~ void setTestState(TestState)
++ void onCreate(Bundle)
++ View onCreateView(LayoutInflater,ViewGroup,Bundle)
++ void onViewCreated(View,Bundle)
++ void onResume()
++ void onDestroyView()
+- void bindViews(View)
+- void setupCommentsList(View)
+- void loadEventData()
+- void applyTestState(TestState)
+- void bindEvent(Event)
+- void updateWaitlistState(DocumentSnapshot)
+- void loadCurrentUserProfile()
+- void listenForComments()
+- void refreshActionState()
+- String resolveCommentPermissionMessage()
+- void submitComment()
+- void openWaitlistDialog()
+- void openWaitlistManagementDialog()
+- void showReportDialog()
+- void navigateToFallbackScreen()
+- void navigateBackToPreviousScreen()
+- void navigateToQrGeneration()
+- void navigateToEditFragment()
+- void showEntrantActions()
+- void showOrganizerActions()
+- void showAdminActions()
+- String getCurrentUserId()
++ void onJoinWaitingList(String)
+- boolean hasLocationPermission()
+- void joinWaitlistWithDeviceLocation(String)
+- void performJoinWaitlist(String,Double,Double)
+- String resolveJoinFailureMessage(Exception)
++ void onLeaveWaitingList(String)
++ void onViewWaitingList(String)
++ void onDeleteComment(EventComment)
+- void showLoadError()
+- List<String> extractStringList(Object)
+- ZonedDateTime readEventDate(DocumentSnapshot,String)
+- String fallbackText(String,String)
+- void bindReportTargets(DocumentSnapshot)
+- boolean containsReportTarget(String)
+- String resolvePrimaryOrganizerName()
+- void loadOrganizerNamesForTargets()
+- void loadEntrantReports()
+- OrganizerReport findActiveReport(String)
+- void refreshReportUi()
+- void saveReport(ReportTarget,String,String,AlertDialog)
+- void deleteReport(OrganizerReport,AlertDialog)
+}
+
+
+class com.example.eventlottery.EventOverviewFragment$ReportTarget {
+~ String userId
+~ String displayName
+}
+
+class com.example.eventlottery.EventOverviewFragment$TestState {
+~ String eventTitle
+~ String eventOrganizerId
+~ String eventDescription
+~ ZonedDateTime registrationOpen
+~ ZonedDateTime registrationClose
+~ int waitlistCount
+~ boolean inWaitingList
+~ String currentUserId
+~ String currentUserRole
+~ String currentUsername
+}
+
+class com.example.eventlottery.profiles.Organizer {
+}
+class com.example.eventlottery.OrganizerReportUiUtils {
+- {static} DateTimeFormatter DATE_TIME_FORMATTER
++ {static} String formatTimestamp(Timestamp)
++ {static} String formatResolutionAction(String)
+}
+
+
+class com.example.eventlottery.WaitingListRepository {
+- {static} String TAG
+- FirebaseFirestore db
+- {static} String EVENTS_COLLECTION
+- {static} String WAITING_LIST_FIELD
+- {static} String WAITING_LIST_JOIN_GEO
+- {static} double DEFAULT_RADIUS_METERS
++ Task<Void> joinWaitingList(String,String)
++ Task<Void> joinWaitingList(String,String,Double,Double)
+- {static} Double readNumericField(DocumentSnapshot,String)
++ Task<Void> leaveWaitingList(String,String)
++ Task<List<String>> getWaitingList(String)
+}
+
+
+class com.example.eventlottery.Event {
+- String eventId
+- String title
+- String description
+- String organizerId
+- Integer waitingListCapacity
+- boolean isPrivate
+- Bitmap posterImage
+- String encodedPosterImage
+- ZonedDateTime registrationOpen
+- String registrationOpenIso
+- ZonedDateTime registrationClose
+- String registrationCloseIso
+- java.util.List<String> coOrganizers
+- java.util.List<String> pendingCoOrganizers
+- Double venueLatitude
+- Double venueLongitude
+- boolean requireGeolocationForWaitlist
+- Double geolocationRadiusMeters
+- java.util.List<String> tags
++ String getEventId()
++ void setEventId(String)
++ String getTitle()
++ void setTitle(String)
++ String getDescription()
++ void setDescription(String)
++ String getOrganizerId()
++ String getEncodedPosterImage()
++ Bitmap getPosterImage()
++ void setPosterImage(Bitmap)
++ String getRegistrationOpenIso()
++ ZonedDateTime getRegistrationOpen()
++ void setRegistrationOpen(ZonedDateTime)
++ String getRegistrationCloseIso()
++ ZonedDateTime getRegistrationClose()
++ void setRegistrationClose(ZonedDateTime)
++ Integer getWaitingListCapacity()
++ void setWaitingListCapacity(Integer)
++ java.util.List<String> getCoOrganizers()
++ void setCoOrganizers(java.util.List<String>)
++ java.util.List<String> getPendingCoOrganizers()
++ void setPendingCoOrganizers(java.util.List<String>)
++ boolean isPrivate()
++ void setToPrivate()
++ void setToPublic()
++ Double getVenueLatitude()
++ void setVenueLatitude(Double)
++ Double getVenueLongitude()
++ void setVenueLongitude(Double)
++ boolean isRequireGeolocationForWaitlist()
++ void setRequireGeolocationForWaitlist(boolean)
++ Double getGeolocationRadiusMeters()
++ void setGeolocationRadiusMeters(Double)
++ java.util.List<String> getTags()
++ void setTags(java.util.List<String>)
++ boolean isOrganizer(String)
+}
+
+
+class com.example.eventlottery.profiles.AdminNotificationLogsFragment {
++ View onCreateView(LayoutInflater,ViewGroup,Bundle)
++ void onViewCreated(View,Bundle)
+}
+
+class com.example.eventlottery.NotificationLogsAdapter {
+- List<NotificationLog> logs
++ ViewHolder onCreateViewHolder(ViewGroup,int)
++ void onBindViewHolder(ViewHolder,int)
++ int getItemCount()
+- String safe(String)
+}
+
+
+class com.example.eventlottery.NotificationLogsAdapter$ViewHolder {
+~ TextView message
+~ TextView type
+~ TextView sender
+~ TextView event
+~ TextView recipients
+~ TextView time
+}
+
+class com.example.eventlottery.NotificationLog {
+- String logId
+- String senderId
+- String eventId
+- List<String> recipientIds
+- int recipientCount
+- String type
+- String message
+- Timestamp timestamp
++ String getLogId()
++ void setLogId(String)
++ String getSenderId()
++ void setSenderId(String)
++ String getEventId()
++ void setEventId(String)
++ List<String> getRecipientIds()
++ void setRecipientIds(List<String>)
++ int getRecipientCount()
++ void setRecipientCount(int)
++ String getType()
++ void setType(String)
++ String getMessage()
++ void setMessage(String)
++ Timestamp getTimestamp()
++ void setTimestamp(Timestamp)
+}
+
+
+class com.example.eventlottery.HomePageFragment {
+- ArrayList<Event> allEvents
+- ArrayList<Event> filteredEvents
+- EventAdapter adapter
+- TextInputLayout keywordLayout
+- TextInputLayout availableDateLayout
+- TextInputLayout minCapacityLayout
+- TextInputEditText keywordInput
+- TextInputEditText availableDateInput
+- TextInputEditText minCapacityInput
+- CheckBox openNowOnlyCheckbox
+- User currentUser
++ View onCreateView(LayoutInflater,ViewGroup,Bundle)
++ void onViewCreated(View,Bundle)
+- void fetchEventsFromFirestore()
+- void loadBottomBar(FrameLayout,String)
+- void navigateToEventOverview(String)
+- void clearFilterErrors()
+- void applyFilters()
+- boolean matchesKeyword(Event,String)
+- boolean matchesAvailability(Event,LocalDate,boolean,ZonedDateTime)
+- boolean matchesCapacity(Event,Integer)
+- String valueOf(TextInputEditText)
+}
+
+
+class com.example.eventlottery.coorganizers.EntrantListFragment {
+- ListView listView
+- List<User> allEntrants
+- List<User> filteredEntrants
+- EntrantAdapter adapter
+- String currentUserId
++ View onCreateView(LayoutInflater,ViewGroup,Bundle)
++ void onViewCreated(View,Bundle)
+- void loadEntrants()
+- void filterEntrants(String)
+- void showEventSelectionDialog(User)
+- void inviteToEvent(String,String)
+}
+
+
+class com.example.eventlottery.coorganizers.EntrantListFragment$EntrantAdapter {
++ View getView(int,View,ViewGroup)
+}
+
+class com.example.eventlottery.OrganizerReport {
++ {static} String STATUS_PENDING
++ {static} String STATUS_DISMISSED
++ {static} String STATUS_ACTION_TAKEN
++ {static} String ACTION_DISMISSED
++ {static} String ACTION_REMOVE_ORGANIZER
++ {static} String REASON_HARASSMENT_OR_HATE
++ {static} String REASON_SEXUAL_OR_EXPLICIT_CONTENT
++ {static} String REASON_VIOLENCE_OR_THREATS
++ {static} String REASON_SCAM_OR_FRAUD
++ {static} String REASON_ILLEGAL_ACTIVITY
++ {static} String REASON_SPAM_OR_PROMOTION
++ {static} String REASON_UNSAFE_EVENT_CONDITIONS
++ {static} String REASON_IMPERSONATION_OR_FALSE_IDENTITY
++ {static} String REASON_OTHER_POLICY_VIOLATION
+- String reportId
+- boolean active
+- String activeKey
+- String status
+- String reason
+- String note
+- String reporterUserId
+- String reporterUsernameSnapshot
+- String organizerId
+- String organizerNameSnapshot
+- String eventId
+- String eventTitleSnapshot
+- Timestamp createdAt
+- Timestamp updatedAt
+- Timestamp resolvedAt
+- String resolvedByAdminId
+- String resolvedByAdminNameSnapshot
+- String resolutionAction
+- String resolutionNote
+- Timestamp deletedByReporterAt
+- Timestamp anonymizedAt
++ String getReportId()
++ void setReportId(String)
++ boolean isActive()
++ void setActive(boolean)
++ String getActiveKey()
++ void setActiveKey(String)
++ String getStatus()
++ void setStatus(String)
++ String getReason()
++ void setReason(String)
++ String getNote()
++ void setNote(String)
++ String getReporterUserId()
++ void setReporterUserId(String)
++ String getReporterUsernameSnapshot()
++ void setReporterUsernameSnapshot(String)
++ String getOrganizerId()
++ void setOrganizerId(String)
++ String getOrganizerNameSnapshot()
++ void setOrganizerNameSnapshot(String)
++ String getEventId()
++ void setEventId(String)
++ String getEventTitleSnapshot()
++ void setEventTitleSnapshot(String)
++ Timestamp getCreatedAt()
++ void setCreatedAt(Timestamp)
++ Timestamp getUpdatedAt()
++ void setUpdatedAt(Timestamp)
++ Timestamp getResolvedAt()
++ void setResolvedAt(Timestamp)
++ String getResolvedByAdminId()
++ void setResolvedByAdminId(String)
++ String getResolvedByAdminNameSnapshot()
++ void setResolvedByAdminNameSnapshot(String)
++ String getResolutionAction()
++ void setResolutionAction(String)
++ String getResolutionNote()
++ void setResolutionNote(String)
++ Timestamp getDeletedByReporterAt()
++ void setDeletedByReporterAt(Timestamp)
++ Timestamp getAnonymizedAt()
++ void setAnonymizedAt(Timestamp)
++ boolean isPending()
+}
+
+
+class com.example.eventlottery.map.MapMarkerGrouper {
++ {static} double cellSizeDegreesForZoom(double)
++ {static} List<Group> groupEvents(List<Event>,double)
++ {static} String titleForGroup(Group)
+}
+
+class com.example.eventlottery.map.MapMarkerGrouper$Group {
++ double centroidLat
++ double centroidLon
++ List<Event> events
+}
+
+class com.example.eventlottery.EventCommentAdapter {
+- {static} DateTimeFormatter COMMENT_TIME_FORMATTER
+- List<EventComment> comments
+- OnDeleteCommentListener deleteListener
+- String currentUserId
+- String currentUserRole
+- String organizerId
+- List<String> eventCoOrganizers
++ void setComments(List<EventComment>)
++ void setViewerContext(String,String,String,List<String>)
++ ViewHolder onCreateViewHolder(ViewGroup,int)
++ void onBindViewHolder(ViewHolder,int)
++ int getItemCount()
+- String buildAuthorLine(EventComment)
+- String buildMetaLine(EventComment)
+- String formatRole(String)
+- boolean isBlank(String)
+}
+
+
+interface com.example.eventlottery.EventCommentAdapter$OnDeleteCommentListener {
+~ void onDeleteComment(EventComment)
+}
+
+class com.example.eventlottery.EventCommentAdapter$ViewHolder {
+~ TextView authorView
+~ TextView metaView
+~ TextView bodyView
+~ TextView pinBadgeView
+~ Button deleteButton
+}
+
+class com.example.eventlottery.OrganizerReportCenterFragment {
+- {static} int MODE_SUMMARY
+- {static} int MODE_REPORTS
+- List<OrganizerReport> allReports
+- List<OrganizerSummaryItem> summaryItems
+- List<OrganizerReport> reportItems
+- OrganizerReportRepository reportRepository
+- ListenerRegistration reportListenerRegistration
+- int currentMode
+- String selectedOrganizerId
+- MaterialButton organizersTabButton
+- MaterialButton reportsTabButton
+- EditText searchInput
+- Spinner summaryStatusSpinner
+- Spinner reportStatusSpinner
+- Spinner reportReasonSpinner
+- EditText minReportCountInput
+- EditText startDateInput
+- EditText endDateInput
+- View summaryFilters
+- View reportFilters
+- TextView subtitleView
+- TextView emptyView
+- ListView listView
+- SummaryAdapter summaryAdapter
+- ReportAdapter reportAdapter
++ void onCreate(Bundle)
++ View onCreateView(LayoutInflater,ViewGroup,Bundle)
++ void onViewCreated(View,Bundle)
++ void onDestroyView()
+- void bindViews(View)
+- void setupSpinners()
+- void setupButtons()
+- void setupList()
+- void startListeningForReports()
+- void updateModeUi()
+- void applyFilters()
+- void renderSummaryMode()
+- void renderReportsMode()
+- boolean matchesDateRange(Timestamp,LocalDate,LocalDate)
+- String selectedStatus(Spinner)
+- String selectedReasonCode()
+- boolean matchesStatus(String,String)
+- Integer parseOptionalInteger(EditText)
+- LocalDate parseOptionalDate(EditText)
+- String valueOf(EditText)
+- boolean containsIgnoreCase(String,String)
+- String fallback(String,String)
+- List<String> buildStatusOptions()
+}
+
+
+class com.example.eventlottery.OrganizerReportCenterFragment$OrganizerSummaryItem {
+~ String organizerId
+~ String organizerName
+~ int totalReports
+~ int pendingReports
+~ int dismissedReports
+~ int actionTakenReports
+}
+
+class com.example.eventlottery.OrganizerReportCenterFragment$SummaryAdapter {
++ View getView(int,View,ViewGroup)
+}
+
+class com.example.eventlottery.OrganizerReportCenterFragment$ReportAdapter {
++ View getView(int,View,ViewGroup)
+}
+
+class com.example.eventlottery.WaitlistManagementFragment {
+- {static} String TAG
+- {static} String ARG_EVENT_ID
+- String eventId
+- EntrantAdapter adapter
+- FirebaseFirestore db
+- LotterySystem lotterySystem
+- List<User> currentDisplayList
++ {static} WaitlistManagementFragment newInstance(String)
++ void onCreate(Bundle)
++ View onCreateView(LayoutInflater,ViewGroup,Bundle)
++ void onStart()
+- void fetchEventData()
+- void fetchUsersByIds(List<String>)
+- void promptDrawLottery()
+- void drawEntrants(int)
+}
+
+
+class com.example.eventlottery.WaitlistManagementFragment$EntrantAdapter {
++ ViewHolder onCreateViewHolder(ViewGroup,int)
++ void onBindViewHolder(ViewHolder,int)
++ int getItemCount()
+}
+
+class com.example.eventlottery.WaitlistManagementFragment$EntrantAdapter$ViewHolder {
+~ TextView tvName
+}
+
+class com.example.eventlottery.creation.EventInput {
++ String title
++ String description
++ String registrationOpen
++ String registrationClose
++ String waitingListCapacity
++ String venueLatitude
++ String venueLongitude
++ String geolocationRadiusMeters
++ boolean requireGeolocationForWaitlist
++ String tagsRaw
+}
+
+class com.example.eventlottery.creation.CreateEventFragment {
+- EventCreationMode mode
+- FirebaseFirestore db
+- CollectionReference eventsRef
+- ImageView editPosterImage
+- EditText editTitle
+- EditText editDescription
+- EditText editRegOpenYear
+- EditText editRegOpenMonth
+- EditText editRegOpenDay
+- EditText editRegCloseYear
+- EditText editRegCloseMonth
+- EditText editRegCloseDay
+- EditText editCapacity
+- EditText editVenueLatitude
+- EditText editVenueLongitude
+- EditText editGeolocationRadius
+- CheckBox checkboxRequireGeolocation
+- EditText editEventTags
+- ToggleButton visibilityToggle
+- Button negativeButton
+- Button clearImageButton
+- Event currentEvent
+- Bitmap selectedPosterImage
+- ActivityResultLauncher<Intent> imagePickerLauncher
++ void onCreate(Bundle)
++ View onCreateView(LayoutInflater,ViewGroup,Bundle)
++ void onViewCreated(View,Bundle)
++ {static} CreateEventFragment newInstanceCreateMode(String)
++ {static} CreateEventFragment newInstanceEditMode(String)
+- void addEvent(Event)
+- void updateEvent(Event)
+- void deleteEvent(String)
+- void openImagePicker()
+- Integer parseWaitingListCapacity(String)
+- EventInput getInput()
+- {static} String valueTrimmed(EditText)
+- {static} ArrayList<String> parseTags(String)
+- ZonedDateTime parseRegistrationDate(String)
+- ValidationResult validateInput(ValidationContext)
+}
+
+
+class com.example.eventlottery.Notification {
+- String notificationId
+- String userId
+- String eventId
+- String type
+- String message
+- String status
+- Timestamp timestamp
++ NotificationType getTypeEnum()
++ void setType(NotificationType)
++ NotificationStatus getStatusEnum()
++ void setStatus(NotificationStatus)
++ String getNotificationId()
++ void setNotificationId(String)
++ String getUserId()
++ void setUserId(String)
++ String getEventId()
++ void setEventId(String)
++ String getType()
++ void setType(String)
++ String getMessage()
++ void setMessage(String)
++ String getStatus()
++ void setStatus(String)
++ Timestamp getTimestamp()
++ void setTimestamp(Timestamp)
+}
+
+
+class com.example.eventlottery.profiles.ProfileListFragment {
+- ListView listView
+- List<User> userList
+- ProfileAdapter adapter
++ View onCreateView(LayoutInflater,ViewGroup,Bundle)
++ void onViewCreated(View,Bundle)
+- void loadAllProfiles()
+- void setupBottomBar(FrameLayout)
+- void navigateToProfileReview(String)
+}
+
+
+class com.example.eventlottery.profiles.ProfileListFragment$ProfileAdapter {
++ View getView(int,View,ViewGroup)
+}
+
+class com.example.eventlottery.OrganizerReportDetailFragment {
+- {static} String ARG_REPORT_ID
+- OrganizerReportRepository reportRepository
+- String reportId
+- String currentAdminId
+- String currentAdminRole
+- String currentAdminName
+- OrganizerReport currentReport
+- TextView statusView
+- TextView summaryView
+- TextView noteView
+- TextView resolutionView
+- EditText resolutionNoteInput
+- MaterialButton dismissButton
+- MaterialButton removeOrganizerButton
++ {static} OrganizerReportDetailFragment newInstance(String)
++ void onCreate(Bundle)
++ View onCreateView(LayoutInflater,ViewGroup,Bundle)
++ void onViewCreated(View,Bundle)
+- void loadCurrentAdmin()
+- void loadReport()
+- void bindReport(OrganizerReport)
+- void resolveAsDismissed()
+- void resolveWithOrganizerRemoval()
+- void showMissingReport()
+- String fallback(String,String)
+}
+
+
+class com.example.eventlottery.LotterySystem {
+- {static} String TAG
+- FirebaseFirestore db
+- NotificationRepository notificationRepository
+- {static} String EVENTS_COLLECTION
+- {static} String WAITING_LIST_FIELD
+- {static} String INVITED_LIST_FIELD
+- {static} String ACCEPTED_LIST_FIELD
+- {static} String CANCELLED_LIST_FIELD
+- List<String> getListSafely(DocumentSnapshot,String)
++ Task<List<String>> drawEntrants(String,int)
++ Task<Void> acceptInvitation(String,String)
++ Task<Void> declineOrCancelInvitation(String,String)
+}
+
+
+class com.example.eventlottery.profiles.Entrant {
+}
+class com.example.eventlottery.MainActivity {
+# void onCreate(Bundle)
+- void showSetUpFragment()
+- void showHomePageFragment()
+}
+
+enum com.example.eventlottery.StartDestination {
++  SETUP
++  HOME
+}
+
+class com.example.eventlottery.MainActivity$StartDestinationResolver {
++ {static} StartDestination resolve()
+}
+
+class com.example.eventlottery.coorganizers.PendingInvitesFragment {
+- LinearLayout pendingInvitesList
+- String currentUserId
++ View onCreateView(LayoutInflater,ViewGroup,Bundle)
++ void onViewCreated(View,Bundle)
+- void loadPendingCoOrganizerInvites()
+- void handleInviteResponse(String,boolean)
+- void removeUserFromWaitlist(String,String)
+}
+
+
+class com.example.eventlottery.profiles.User {
+- String userId
+- String username
+- String email
+- String role
+- String phoneNumber
++ String getUserId()
++ void setUserId(String)
++ String getUsername()
++ void setUsername(String)
++ String getEmail()
++ void setEmail(String)
++ String getRole()
++ void setRole(String)
++ String getPhoneNumber()
++ void setPhoneNumber(String)
+}
+
+
+class com.example.eventlottery.EventAdapter {
++ View getView(int,View,ViewGroup)
+}
+
+
+
+androidx.fragment.app.Fragment <|-- com.example.eventlottery.profiles.SetUpFragment
+androidx.fragment.app.Fragment <|-- com.example.eventlottery.InvitationFragment
+com.example.eventlottery.OrganizerReportRepository +.. com.example.eventlottery.OrganizerReportRepository$ReportListener
+com.example.eventlottery.NotificationRepository +.. com.example.eventlottery.NotificationRepository$NotificationCallback
+com.example.eventlottery.profiles.Entrant <|-- com.example.eventlottery.profiles.Admin
+androidx.fragment.app.Fragment <|-- com.example.eventlottery.NotificationLogsFragment
+com.example.eventlottery.EventCommentRepository +.. com.example.eventlottery.EventCommentRepository$CommentListener
+androidx.fragment.app.Fragment <|-- com.example.eventlottery.QrScannerFragment
+androidx.fragment.app.Fragment <|-- com.example.eventlottery.NotificationsFragment
+androidx.fragment.app.Fragment <|-- com.example.eventlottery.QrGeneratorFragment
+androidx.fragment.app.Fragment <|-- com.example.eventlottery.EventHistoryFragment
+com.example.eventlottery.EventHistoryFragment +.. com.example.eventlottery.EventHistoryFragment$HistoryItem
+com.example.eventlottery.EventHistoryFragment +.. com.example.eventlottery.EventHistoryFragment$HistoryAdapter
+com.example.eventlottery.ArrayAdapter <|-- com.example.eventlottery.EventHistoryFragment$HistoryAdapter
+com.example.eventlottery.Adapter <|-- com.example.eventlottery.NotificationsAdapter
+com.example.eventlottery.NotificationsAdapter +.. com.example.eventlottery.NotificationsAdapter$ViewHolder
+com.example.eventlottery.ViewHolder <|-- com.example.eventlottery.NotificationsAdapter$ViewHolder
+androidx.fragment.app.Fragment <|-- com.example.eventlottery.map.NearbyEventsMapFragment
+androidx.fragment.app.DialogFragment <|-- com.example.eventlottery.WaitingListDialogFragment
+com.example.eventlottery.WaitingListDialogFragment +.. com.example.eventlottery.WaitingListDialogFragment$WaitingListDialogListener
+androidx.fragment.app.Fragment <|-- com.example.eventlottery.profiles.UserProfileFragment
+com.example.eventlottery.WaitingListDialogListener <|.. com.example.eventlottery.EventOverviewFragment
+com.example.eventlottery.OnDeleteCommentListener <|.. com.example.eventlottery.EventOverviewFragment
+androidx.fragment.app.Fragment <|-- com.example.eventlottery.EventOverviewFragment
+com.example.eventlottery.EventOverviewFragment +.. com.example.eventlottery.EventOverviewFragment$ReportTarget
+com.example.eventlottery.EventOverviewFragment +.. com.example.eventlottery.EventOverviewFragment$TestState
+com.example.eventlottery.profiles.Entrant <|-- com.example.eventlottery.profiles.Organizer
+androidx.fragment.app.Fragment <|-- com.example.eventlottery.profiles.AdminNotificationLogsFragment
+com.example.eventlottery.Adapter <|-- com.example.eventlottery.NotificationLogsAdapter
+com.example.eventlottery.NotificationLogsAdapter +.. com.example.eventlottery.NotificationLogsAdapter$ViewHolder
+com.example.eventlottery.ViewHolder <|-- com.example.eventlottery.NotificationLogsAdapter$ViewHolder
+androidx.fragment.app.Fragment <|-- com.example.eventlottery.HomePageFragment
+androidx.fragment.app.Fragment <|-- com.example.eventlottery.coorganizers.EntrantListFragment
+com.example.eventlottery.coorganizers.EntrantListFragment +.. com.example.eventlottery.coorganizers.EntrantListFragment$EntrantAdapter
+com.example.eventlottery.coorganizers.ArrayAdapter <|-- com.example.eventlottery.coorganizers.EntrantListFragment$EntrantAdapter
+com.example.eventlottery.map.MapMarkerGrouper +.. com.example.eventlottery.map.MapMarkerGrouper$Group
+com.example.eventlottery.Adapter <|-- com.example.eventlottery.EventCommentAdapter
+com.example.eventlottery.EventCommentAdapter +.. com.example.eventlottery.EventCommentAdapter$OnDeleteCommentListener
+com.example.eventlottery.EventCommentAdapter +.. com.example.eventlottery.EventCommentAdapter$ViewHolder
+com.example.eventlottery.ViewHolder <|-- com.example.eventlottery.EventCommentAdapter$ViewHolder
+androidx.fragment.app.Fragment <|-- com.example.eventlottery.OrganizerReportCenterFragment
+com.example.eventlottery.OrganizerReportCenterFragment +.. com.example.eventlottery.OrganizerReportCenterFragment$OrganizerSummaryItem
+com.example.eventlottery.OrganizerReportCenterFragment +.. com.example.eventlottery.OrganizerReportCenterFragment$SummaryAdapter
+com.example.eventlottery.ArrayAdapter <|-- com.example.eventlottery.OrganizerReportCenterFragment$SummaryAdapter
+com.example.eventlottery.OrganizerReportCenterFragment +.. com.example.eventlottery.OrganizerReportCenterFragment$ReportAdapter
+com.example.eventlottery.ArrayAdapter <|-- com.example.eventlottery.OrganizerReportCenterFragment$ReportAdapter
+androidx.fragment.app.DialogFragment <|-- com.example.eventlottery.WaitlistManagementFragment
+com.example.eventlottery.WaitlistManagementFragment +.. com.example.eventlottery.WaitlistManagementFragment$EntrantAdapter
+com.example.eventlottery.Adapter <|-- com.example.eventlottery.WaitlistManagementFragment$EntrantAdapter
+com.example.eventlottery.WaitlistManagementFragment$EntrantAdapter +.. com.example.eventlottery.WaitlistManagementFragment$EntrantAdapter$ViewHolder
+com.example.eventlottery.ViewHolder <|-- com.example.eventlottery.WaitlistManagementFragment$EntrantAdapter$ViewHolder
+androidx.fragment.app.Fragment <|-- com.example.eventlottery.creation.CreateEventFragment
+androidx.fragment.app.Fragment <|-- com.example.eventlottery.profiles.ProfileListFragment
+com.example.eventlottery.profiles.ProfileListFragment +.. com.example.eventlottery.profiles.ProfileListFragment$ProfileAdapter
+com.example.eventlottery.profiles.ArrayAdapter <|-- com.example.eventlottery.profiles.ProfileListFragment$ProfileAdapter
+androidx.fragment.app.Fragment <|-- com.example.eventlottery.OrganizerReportDetailFragment
+androidx.appcompat.app.AppCompatActivity <|-- com.example.eventlottery.MainActivity
+com.example.eventlottery.MainActivity +.. com.example.eventlottery.MainActivity$StartDestinationResolver
+androidx.fragment.app.Fragment <|-- com.example.eventlottery.coorganizers.PendingInvitesFragment
+android.widget.ArrayAdapter <|-- com.example.eventlottery.EventAdapter
+@enduml
