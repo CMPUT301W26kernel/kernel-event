@@ -10,6 +10,7 @@ import android.app.AlertDialog;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.text.TextUtils;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -78,6 +79,8 @@ import java.util.Map;
 public class EventOverviewFragment extends Fragment implements
         WaitingListDialogFragment.WaitingListDialogListener,
         EventCommentAdapter.OnDeleteCommentListener {
+
+    private static final String TAG = "EventOverviewFragment";
 
     /**
      * Organizer target available for reporting from the current event.
@@ -188,6 +191,7 @@ public class EventOverviewFragment extends Fragment implements
     private Button reportOrganizerButton;
     private LinearLayout commentComposerContainer;
     private EventCommentAdapter commentAdapter;
+    private RecyclerView commentsRecyclerView;
     private TestState testState;
     private final List<ReportTarget> reportTargets = new ArrayList<>();
     private final Map<String, OrganizerReport> activeReportsByOrganizerId = new HashMap<>();
@@ -203,6 +207,15 @@ public class EventOverviewFragment extends Fragment implements
      */
     void setCommentRepositoryForTesting(@NonNull EventCommentRepository commentRepository) {
         this.commentRepository = commentRepository;
+    }
+
+    /**
+     * Injects an organizer report repository for tests before the fragment is attached.
+     *
+     * @param reportRepository Repository implementation to use for report actions and lookups.
+     */
+    void setReportRepositoryForTesting(@NonNull OrganizerReportRepository reportRepository) {
+        this.reportRepository = reportRepository;
     }
 
     /**
@@ -320,10 +333,11 @@ public class EventOverviewFragment extends Fragment implements
      * @param view Fragment root view.
      */
     private void setupCommentsList(@NonNull View view) {
-        RecyclerView commentsRecyclerView = view.findViewById(R.id.rv_event_comments);
+        commentsRecyclerView = view.findViewById(R.id.rv_event_comments);
         commentsRecyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
         commentAdapter = new EventCommentAdapter(this);
         commentsRecyclerView.setAdapter(commentAdapter);
+        commentsRecyclerView.setNestedScrollingEnabled(false);
     }
 
     /**
@@ -483,6 +497,7 @@ public class EventOverviewFragment extends Fragment implements
                         }
 
                         commentAdapter.setComments(comments);
+                        resizeCommentsListToContent();
                         emptyCommentsView.setVisibility(comments.isEmpty() ? View.VISIBLE : View.GONE);
                     }
 
@@ -503,7 +518,9 @@ public class EventOverviewFragment extends Fragment implements
     private void refreshActionState() {
         commentAdapter.setViewerContext(currentUserId, currentUserRole, eventOrganizerId, eventCoOrganizers);
 
-        boolean isOrganizer = currentUserId != null && currentEvent.isOrganizer(currentUserId);
+        boolean isOrganizer = currentEvent != null
+                && currentUserId != null
+                && currentEvent.isOrganizer(currentUserId);
         boolean isAdmin = "admin".equalsIgnoreCase(currentUserRole);
 
         if (isOrganizer) {
@@ -528,6 +545,65 @@ public class EventOverviewFragment extends Fragment implements
         }
 
         refreshReportUi();
+    }
+
+    /**
+     * Expands the embedded RecyclerView so every comment row is visible inside the parent
+     * ScrollView. Without this, Android may only measure the first row.
+     */
+    private void resizeCommentsListToContent() {
+        if (commentsRecyclerView == null || commentAdapter == null) {
+            return;
+        }
+
+        commentsRecyclerView.post(() -> {
+            if (!isAdded() || commentsRecyclerView == null || commentAdapter == null) {
+                return;
+            }
+
+            int adapterWidth = commentsRecyclerView.getWidth();
+            if (adapterWidth <= 0) {
+                adapterWidth = requireView().getWidth() - commentsRecyclerView.getPaddingLeft() - commentsRecyclerView.getPaddingRight();
+            }
+            if (adapterWidth <= 0) {
+                return;
+            }
+
+            int widthSpec = View.MeasureSpec.makeMeasureSpec(adapterWidth, View.MeasureSpec.EXACTLY);
+            int totalHeight = commentsRecyclerView.getPaddingTop() + commentsRecyclerView.getPaddingBottom();
+
+            for (int position = 0; position < commentAdapter.getItemCount(); position++) {
+                RecyclerView.ViewHolder viewHolder = commentAdapter.createViewHolder(
+                        commentsRecyclerView,
+                        commentAdapter.getItemViewType(position)
+                );
+                commentAdapter.bindViewHolder((EventCommentAdapter.ViewHolder) viewHolder, position);
+                viewHolder.itemView.measure(
+                        widthSpec,
+                        View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
+                );
+                totalHeight += viewHolder.itemView.getMeasuredHeight();
+            }
+
+            RecyclerView.LayoutParams itemLayoutParams = null;
+            if (commentAdapter.getItemCount() > 0) {
+                RecyclerView.ViewHolder probeHolder = commentAdapter.createViewHolder(
+                        commentsRecyclerView,
+                        commentAdapter.getItemViewType(0)
+                );
+                itemLayoutParams = (RecyclerView.LayoutParams) probeHolder.itemView.getLayoutParams();
+            }
+            if (itemLayoutParams != null) {
+                totalHeight += itemLayoutParams.topMargin * commentAdapter.getItemCount();
+                totalHeight += itemLayoutParams.bottomMargin * commentAdapter.getItemCount();
+            }
+
+            ViewGroup.LayoutParams params = commentsRecyclerView.getLayoutParams();
+            if (params.height != totalHeight) {
+                params.height = totalHeight;
+                commentsRecyclerView.setLayoutParams(params);
+            }
+        });
     }
 
     /**
@@ -817,7 +893,7 @@ public class EventOverviewFragment extends Fragment implements
     private void showOrganizerActions() {
         joinWaitlistButton.setVisibility(View.GONE);
         manageWaitlistButton.setVisibility(View.VISIBLE);
-        if (!currentEvent.isPrivate()) {
+        if (currentEvent != null && !currentEvent.isPrivate()) {
             qrGenerateButton.setVisibility(View.VISIBLE);
         } else {
             qrGenerateButton.setVisibility(View.GONE);
@@ -831,7 +907,7 @@ public class EventOverviewFragment extends Fragment implements
     private void showAdminActions() {
         joinWaitlistButton.setVisibility(View.VISIBLE);
         manageWaitlistButton.setVisibility(View.VISIBLE);
-        if (!currentEvent.isPrivate()) {
+        if (currentEvent != null && !currentEvent.isPrivate()) {
             qrGenerateButton.setVisibility(View.VISIBLE);
         } else {
             qrGenerateButton.setVisibility(View.GONE);
@@ -1211,6 +1287,13 @@ public class EventOverviewFragment extends Fragment implements
             String note,
             AlertDialog dialog
     ) {
+        if (target == null || TextUtils.isEmpty(target.userId)) {
+            if (getContext() != null) {
+                Toast.makeText(getContext(), R.string.report_missing_target, Toast.LENGTH_SHORT).show();
+            }
+            return;
+        }
+
         OrganizerReport draft = new OrganizerReport();
         draft.setReason(reasonCode);
         draft.setNote(note);
@@ -1231,12 +1314,8 @@ public class EventOverviewFragment extends Fragment implements
                 })
                 .addOnFailureListener(error -> {
                     if (getContext() != null) {
-                        String message = error.getMessage();
-                        if (message != null && message.contains("no longer exists")) {
-                            Toast.makeText(getContext(), R.string.report_no_longer_exists, Toast.LENGTH_SHORT).show();
-                        } else {
-                            Toast.makeText(getContext(), R.string.report_submit_failed, Toast.LENGTH_SHORT).show();
-                        }
+                        Log.e(TAG, "Failed to save organizer report", error);
+                        Toast.makeText(getContext(), resolveReportSaveFailureMessage(error), Toast.LENGTH_LONG).show();
                     }
                 });
     }
@@ -1255,5 +1334,32 @@ public class EventOverviewFragment extends Fragment implements
                         Toast.makeText(getContext(), R.string.report_delete_failed, Toast.LENGTH_SHORT).show();
                     }
                 });
+    }
+
+    private String resolveReportSaveFailureMessage(Exception error) {
+        if (error == null) {
+            return getString(R.string.report_submit_failed);
+        }
+
+        String message = error.getMessage();
+        if (message == null || message.trim().isEmpty()) {
+            return getString(R.string.report_submit_failed);
+        }
+
+        if (message.contains("event no longer exists")) {
+            return getString(R.string.report_no_longer_exists);
+        }
+        if (message.contains("Only signed-in entrants can submit reports.")) {
+            return message;
+        }
+        if (message.contains("Resolved reports cannot be edited by entrants.")) {
+            return message;
+        }
+        if (message.contains("Select a valid report reason.")
+                || message.contains("Add a short note when reporting another policy violation.")) {
+            return message;
+        }
+
+        return getString(R.string.report_submit_failed) + ": " + message;
     }
 }

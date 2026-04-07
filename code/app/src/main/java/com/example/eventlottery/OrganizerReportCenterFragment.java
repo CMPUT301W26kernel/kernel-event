@@ -185,7 +185,10 @@ public class OrganizerReportCenterFragment extends Fragment {
                 applyFilters();
             } else {
                 OrganizerReport report = reportItems.get(position);
-                OrganizerReportDetailFragment fragment = OrganizerReportDetailFragment.newInstance(report.getReportId());
+                OrganizerReportDetailFragment fragment = OrganizerReportDetailFragment.newInstance(
+                        report.getEventId(),
+                        report.getReportId()
+                );
                 getParentFragmentManager().beginTransaction()
                         .replace(R.id.fragment_container, fragment)
                         .addToBackStack(null)
