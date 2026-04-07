@@ -119,7 +119,7 @@ public class NotificationsAdapter extends RecyclerView.Adapter<NotificationsAdap
                 public void onSuccess() {
                     int pos = holder.getAdapterPosition();
                     if (pos != RecyclerView.NO_POSITION) {
-                        notification.setStatus(NotificationStatus.READ);
+                        notification.setStatusEnum(NotificationStatus.READ);
                         notifyItemChanged(pos);
                         Toast.makeText(v.getContext(), "Marked as read", Toast.LENGTH_SHORT).show();
                     }
@@ -187,7 +187,7 @@ public class NotificationsAdapter extends RecyclerView.Adapter<NotificationsAdap
             public void onSuccess() {
                 int pos = holder.getAdapterPosition();
                 if (pos != RecyclerView.NO_POSITION) {
-                    notification.setStatus(NotificationStatus.ACCEPTED);
+                    notification.setStatusEnum(NotificationStatus.ACCEPTED);
                     notifyItemChanged(pos);
                     Toast.makeText(view.getContext(), "Invitation accepted", Toast.LENGTH_SHORT).show();
                 }
@@ -224,7 +224,7 @@ public class NotificationsAdapter extends RecyclerView.Adapter<NotificationsAdap
             public void onSuccess() {
                 int pos = holder.getAdapterPosition();
                 if (pos != RecyclerView.NO_POSITION) {
-                    notification.setStatus(NotificationStatus.DECLINED);
+                    notification.setStatusEnum(NotificationStatus.DECLINED);
                     notifyItemChanged(pos);
                     Toast.makeText(view.getContext(), "Invitation declined", Toast.LENGTH_SHORT).show();
                 }
@@ -363,3 +363,4 @@ public class NotificationsAdapter extends RecyclerView.Adapter<NotificationsAdap
         }
     }
 }
+
