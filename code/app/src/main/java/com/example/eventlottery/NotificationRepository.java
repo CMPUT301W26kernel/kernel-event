@@ -380,6 +380,14 @@ public class NotificationRepository {
                         throw new Exception("Event not found");
                     }
 
+                    String eventTitle = snapshot.getString("title");
+
+                    final String finalMessage =
+                            (eventTitle != null && type == NotificationType.INVITE)
+                                    ? "You have been selected for " + eventTitle
+                                    + ". Please accept or decline your invitation."
+                                    : message;
+
                     List<String> userIds = getStringList(snapshot.get(fieldName));
                     List<Task<String>> tasks = new ArrayList<>();
 
@@ -388,7 +396,7 @@ public class NotificationRepository {
                                 userId,
                                 eventId,
                                 type,
-                                message,
+                                finalMessage,
                                 NotificationStatus.UNREAD
                         );
                         tasks.add(createNotificationTaskWithResult(notification));
@@ -419,7 +427,7 @@ public class NotificationRepository {
                                     eventId,
                                     successfulRecipients,
                                     type,
-                                    message
+                                    finalMessage
                             );
                         }
 
@@ -592,9 +600,9 @@ public class NotificationRepository {
         Notification notification = new Notification();
         notification.setUserId(userId);
         notification.setEventId(eventId);
-        notification.setType(type);
+        notification.setTypeEnum(type);
         notification.setMessage(message);
-        notification.setStatus(status);
+        notification.setStatusEnum(status);
         notification.setTimestamp(Timestamp.now());
         return notification;
     }
