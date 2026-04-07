@@ -185,12 +185,10 @@ public class LotterySystem {
             Log.d(TAG, "Successfully drew " + selectedUsers.size() + " entrants for event: " + eventId);
 
             if (!selectedUsers.isEmpty()) {
-                notificationRepository.sendBulkNotification(
-                        selectedUsers,
+                notificationRepository.sendInvitedUsersNotification(
                         eventId,
-                        "Congratulations! You have been selected from the waiting list. Please accept or decline your invitation.",
-                        NotificationType.INVITE
-                );
+                        "Congratulations! You have been selected from the waiting list. Please accept or decline your invitation."
+                        );
             }
 
             if (!notSelectedUsers.isEmpty()) {

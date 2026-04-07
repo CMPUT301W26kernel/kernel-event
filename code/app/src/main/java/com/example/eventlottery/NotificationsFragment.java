@@ -90,6 +90,10 @@ public class NotificationsFragment extends Fragment {
 
         // Load notifications for the user
         loadNotifications(currentUserId);
+        View backBtn = view.findViewById(R.id.btn_back);
+        if (backBtn != null) {
+            backBtn.setOnClickListener(v -> getParentFragmentManager().popBackStack());
+        }
     }
 
     /**
