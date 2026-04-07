@@ -3,7 +3,8 @@ package com.example.eventlottery;
 import static androidx.test.espresso.Espresso.onView;
 import static androidx.test.espresso.action.ViewActions.click;
 import static androidx.test.espresso.action.ViewActions.closeSoftKeyboard;
-import static androidx.test.espresso.action.ViewActions.typeText;
+import static androidx.test.espresso.action.ViewActions.replaceText;
+import static androidx.test.espresso.action.ViewActions.scrollTo;
 import static androidx.test.espresso.assertion.ViewAssertions.matches;
 import static androidx.test.espresso.matcher.ViewMatchers.isDisplayed;
 import static androidx.test.espresso.matcher.ViewMatchers.withEffectiveVisibility;
@@ -28,6 +29,7 @@ import com.google.firebase.firestore.ListenerRegistration;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
 import org.hamcrest.TypeSafeMatcher;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -48,6 +50,11 @@ public class EventOverviewCommentsUITest {
     public ActivityScenarioRule<MainActivity> activityRule =
             new ActivityScenarioRule<>(MainActivity.class);
 
+    @Before
+    public void configureDevice() {
+        AndroidTestDeviceUtil.disableSystemAnimations();
+    }
+
     /**
      * Verifies that an entrant can view the existing thread and submit a new comment.
      */
@@ -62,11 +69,14 @@ public class EventOverviewCommentsUITest {
         onView(withText("Welcome")).check(matches(isDisplayed()));
         onView(withId(R.id.comment_composer_container))
                 .check(matches(withEffectiveVisibility(Visibility.VISIBLE)));
+        onView(withId(R.id.comment_composer_container)).perform(scrollTo());
 
-        onView(withId(R.id.edit_comment_input)).perform(typeText("Looking forward to it"), closeSoftKeyboard());
+        onView(withId(R.id.edit_comment_input))
+                .perform(replaceText("Looking forward to it"), closeSoftKeyboard());
         onView(withId(R.id.btn_post_comment)).perform(click());
-
-        onView(withText("Looking forward to it")).check(matches(isDisplayed()));
+        onView(withText("Looking forward to it"))
+                .perform(scrollTo())
+                .check(matches(isDisplayed()));
     }
 
     /**
@@ -80,7 +90,11 @@ public class EventOverviewCommentsUITest {
 
         launchFragment(buildTestState("organizer-1", "organizer", "Olivia"), repository);
 
-        onView(withId(R.id.edit_comment_input)).perform(typeText("Organizer update"), closeSoftKeyboard());
+        onView(withId(R.id.comment_composer_container))
+                .check(matches(withEffectiveVisibility(Visibility.VISIBLE)))
+                .perform(scrollTo());
+        onView(withId(R.id.edit_comment_input))
+                .perform(replaceText("Organizer update"), closeSoftKeyboard());
         onView(withId(R.id.btn_post_comment)).perform(click());
 
         onView(nthChildOfRecyclerView(R.id.rv_event_comments, 0, R.id.tv_comment_author))
@@ -101,6 +115,7 @@ public class EventOverviewCommentsUITest {
 
         launchFragment(buildTestState("organizer-1", "organizer", "Olivia"), repository);
 
+        onView(withText("Needs moderation")).perform(scrollTo());
         onView(withId(R.id.btn_delete_comment)).perform(click());
 
         onView(withText(R.string.comment_removed_text)).check(matches(isDisplayed()));
@@ -123,6 +138,7 @@ public class EventOverviewCommentsUITest {
         onView(withId(R.id.text_comment_permissions))
                 .check(matches(withText(R.string.comment_admin_read_only)));
 
+        onView(withText("Bad comment")).perform(scrollTo());
         onView(withId(R.id.btn_delete_comment)).perform(click());
 
         onView(withText(R.string.comment_removed_text)).check(matches(isDisplayed()));

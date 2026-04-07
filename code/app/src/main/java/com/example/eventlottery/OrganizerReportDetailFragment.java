@@ -22,9 +22,11 @@ import com.google.firebase.firestore.FirebaseFirestore;
  */
 public class OrganizerReportDetailFragment extends Fragment {
 
+    private static final String ARG_EVENT_ID = "event_id";
     private static final String ARG_REPORT_ID = "report_id";
 
     private OrganizerReportRepository reportRepository;
+    private String eventId;
     private String reportId;
     private String currentAdminId;
     private String currentAdminRole;
@@ -39,9 +41,10 @@ public class OrganizerReportDetailFragment extends Fragment {
     private MaterialButton dismissButton;
     private MaterialButton removeOrganizerButton;
 
-    public static OrganizerReportDetailFragment newInstance(String reportId) {
+    public static OrganizerReportDetailFragment newInstance(String eventId, String reportId) {
         OrganizerReportDetailFragment fragment = new OrganizerReportDetailFragment();
         Bundle args = new Bundle();
+        args.putString(ARG_EVENT_ID, eventId);
         args.putString(ARG_REPORT_ID, reportId);
         fragment.setArguments(args);
         return fragment;
@@ -56,6 +59,7 @@ public class OrganizerReportDetailFragment extends Fragment {
         reportRepository = new OrganizerReportRepository();
         currentAdminId = FirebaseAuth.getInstance().getUid();
         if (getArguments() != null) {
+            eventId = getArguments().getString(ARG_EVENT_ID);
             reportId = getArguments().getString(ARG_REPORT_ID);
         }
     }
@@ -101,12 +105,12 @@ public class OrganizerReportDetailFragment extends Fragment {
     }
 
     private void loadReport() {
-        if (reportId == null) {
+        if (eventId == null || reportId == null) {
             showMissingReport();
             return;
         }
 
-        reportRepository.getReportById(reportId)
+        reportRepository.getReportById(eventId, reportId)
                 .addOnSuccessListener(report -> {
                     currentReport = report;
                     if (report == null) {
@@ -166,6 +170,7 @@ public class OrganizerReportDetailFragment extends Fragment {
         }
 
         reportRepository.resolveReport(
+                        eventId,
                         reportId,
                         OrganizerReport.STATUS_DISMISSED,
                         OrganizerReport.ACTION_DISMISSED,
@@ -192,6 +197,7 @@ public class OrganizerReportDetailFragment extends Fragment {
         }
 
         reportRepository.resolveReport(
+                        eventId,
                         reportId,
                         OrganizerReport.STATUS_ACTION_TAKEN,
                         OrganizerReport.ACTION_REMOVE_ORGANIZER,

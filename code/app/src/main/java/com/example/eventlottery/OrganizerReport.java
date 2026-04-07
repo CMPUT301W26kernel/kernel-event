@@ -7,6 +7,8 @@ import com.google.firebase.Timestamp;
  */
 public class OrganizerReport {
 
+    public static final String ENTRY_TYPE_REPORT = "organizer_report";
+
     public static final String STATUS_PENDING = "pending";
     public static final String STATUS_DISMISSED = "dismissed";
     public static final String STATUS_ACTION_TAKEN = "action_taken";
@@ -25,6 +27,8 @@ public class OrganizerReport {
     public static final String REASON_OTHER_POLICY_VIOLATION = "OTHER_POLICY_VIOLATION";
 
     private String reportId;
+    private String entryType = ENTRY_TYPE_REPORT;
+    private String userId;
     private boolean active = true;
     private String activeKey;
     private String status = STATUS_PENDING;
@@ -55,6 +59,22 @@ public class OrganizerReport {
 
     public void setReportId(String reportId) {
         this.reportId = reportId;
+    }
+
+    public String getEntryType() {
+        return entryType;
+    }
+
+    public void setEntryType(String entryType) {
+        this.entryType = entryType;
+    }
+
+    public String getUserId() {
+        return userId;
+    }
+
+    public void setUserId(String userId) {
+        this.userId = userId;
     }
 
     public boolean isActive() {
