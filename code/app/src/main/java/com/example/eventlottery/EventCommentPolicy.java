@@ -17,7 +17,8 @@ public final class EventCommentPolicy {
      * @param currentUserRole Viewer role from the user profile.
      * @param organizerId Owner of the event.
      * @param coOrganizers List of co-organizers for the event.
-     * @return True when the viewer is an entrant or the organizer of the event.
+     * @return True when the viewer is signed in and can participate as an entrant, organizer,
+     * or admin.
      */
     public static boolean canPostComment(String currentUserId, String currentUserRole, String organizerId, List<String> coOrganizers) {
         if (currentUserId == null || currentUserRole == null) {
@@ -25,7 +26,7 @@ public final class EventCommentPolicy {
         }
 
         if ("admin".equalsIgnoreCase(currentUserRole)) {
-            return false;
+            return true;
         }
 
         if ("organizer".equalsIgnoreCase(currentUserRole)) {

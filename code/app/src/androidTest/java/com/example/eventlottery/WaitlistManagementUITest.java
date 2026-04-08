@@ -32,7 +32,7 @@ public class WaitlistManagementUITest {
         // we programmatically launch it using the test activity's FragmentManager.
         
         activityRule.getScenario().onActivity(activity -> {
-            WaitlistManagementFragment fragment = WaitlistManagementFragment.newInstance("testEventId");
+            WaitlistManagementFragment fragment = WaitlistManagementFragment.newInstance("testEventId", true);
             fragment.show(activity.getSupportFragmentManager(), "WaitlistManagement");
         });
         

@@ -33,17 +33,7 @@ public class EventHistoryStatusUtils {
         } else if (invitedList != null && invitedList.contains(userId)) {
             return "Lottery results:\nSelected (Waiting on your response)";
         } else if (waitingList != null && waitingList.contains(userId)) {
-            // If anyone has been invited, accepted, or cancelled, a draw happened.
-            // Therefore, anyone still in the waiting list was NOT selected.
-            boolean drawHappened = (invitedList != null && !invitedList.isEmpty()) ||
-                                   (acceptedList != null && !acceptedList.isEmpty()) ||
-                                   (cancelledList != null && !cancelledList.isEmpty());
-            
-            if (drawHappened) {
-                return "Lottery results:\nNot selected";
-            } else {
-                return "Lottery results:\nPending...";
-            }
+            return "Lottery results:\nStill on waiting list";
         }
         return "Unknown status";
     }

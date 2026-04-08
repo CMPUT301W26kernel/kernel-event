@@ -13,44 +13,43 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * LotterySystem
+ * Handles organizer lottery draws and invitation state transitions.
  *
- * Handles the logic for drawing entrants from an event's waiting list.
- *
- * UPDATED DESIGN (04-03):
- * - Separates entrants into two groups:
- *   1. Selected entrants are added to invitedList
- *   2. Non-selected entrants are added to cancelledList
- *
- * WHY:
- * - The notification system requires both groups to be explicitly known so that:
- *     - selected users receive invitation notifications
- *     - non-selected users receive "not selected" notifications
- *
- * NOTE:
- * - This introduces a dependency between lottery logic and notifications.
- *
- * @author Radwa Sheikhdon
+ * Waiting-list state model:
+ * - Selected entrants move from waitingList to invitedList.
+ * - Entrants not selected in a draw stay on waitingList for future replacement draws.
+ * - cancelledList is reserved for entrants who were previously invited and then declined
+ *   or were cancelled later.
  */
 public class LotterySystem {
 
     private static final String TAG = "LotterySystem";
-    private final FirebaseFirestore db;
-    private final NotificationRepository notificationRepository;
-    
+
     private static final String EVENTS_COLLECTION = "events";
     private static final String WAITING_LIST_FIELD = "waitingList";
     private static final String INVITED_LIST_FIELD = "invitedList";
     private static final String ACCEPTED_LIST_FIELD = "acceptedList";
     private static final String CANCELLED_LIST_FIELD = "cancelledList";
 
+    private final FirebaseFirestore db;
+    private final NotificationRepository notificationRepository;
+
+    private static final class DrawResult {
+        final List<String> selectedUsers;
+        final List<String> notSelectedUsers;
+
+        DrawResult(List<String> selectedUsers, List<String> notSelectedUsers) {
+            this.selectedUsers = selectedUsers;
+            this.notSelectedUsers = notSelectedUsers;
+        }
+    }
+
     public LotterySystem() {
         this(FirebaseFirestore.getInstance());
     }
 
     private LotterySystem(FirebaseFirestore db) {
-        this.db = db;
-        this.notificationRepository = new NotificationRepository(this.db);
+        this(db, new NotificationRepository(db));
     }
 
     LotterySystem(FirebaseFirestore db, NotificationRepository notificationRepository) {
@@ -59,19 +58,13 @@ public class LotterySystem {
     }
 
     /**
-     * Safely extracts a list of Strings from a Firestore document field.
-     *
-     * Prevents ClassCastException by validating types at runtime.
-     *
-     * @param snapshot Firestore document snapshot
-     * @param field the field name to extract
-     * @return a list of strings (empty if field is missing or invalid)
+     * Safely extracts a list of strings from a Firestore document field.
      */
     private List<String> getListSafely(DocumentSnapshot snapshot, String field) {
         List<String> result = new ArrayList<>();
-        Object obj = snapshot.get(field);
-        if (obj instanceof List<?>) {
-            for (Object item : (List<?>) obj) {
+        Object value = snapshot.get(field);
+        if (value instanceof List<?>) {
+            for (Object item : (List<?>) value) {
                 if (item instanceof String) {
                     result.add((String) item);
                 }
@@ -81,41 +74,17 @@ public class LotterySystem {
     }
 
     /**
-     * Draws entrants from the waiting list using a randomized selection.
+     * Randomly selects up to {@code count} entrants from the current waiting list.
      *
-     * Behavior:
-     * - Randomly selects up to `count` users from the waiting list
-     * - Splits users into:
-     *   - selectedUsers → added to invitedList
-     *   - notSelectedUsers → added to cancelledList
-     * - Clears the waiting list after the draw
+     * Selected entrants are moved into invitedList. Everyone else stays on waitingList so the
+     * organizer can draw replacements later if invitations are declined.
      *
-     * Firestore updates:
-     * - waitingList → cleared
-     * - invitedList → updated with selected users
-     * - cancelledList → updated with non-selected users
-     *
-     * Notification integration:
-     * - Selected users receive invitation notifications
-     * - Non-selected users receive "not selected" notifications
-     *
-     * Return value:
-     * - Returns a combined list containing:
-     *     [selectedUsers, "__LOSERS_SEPARATOR__", notSelectedUsers]
-     * - This is used internally to separate results after transaction completion
-     *
-     * NOTE:
-     * - The separator approach is a temporary design to return both groups
-     * - A structured result object would be a cleaner long term solution
-     *
-     * @param eventId the event to perform the draw on
-     * @param count the number of users to select
-     * @return a Task containing both selected and non-selected users
+     * @return a task containing only the entrants selected in this draw
      */
     public Task<List<String>> drawEntrants(String eventId, int count) {
         DocumentReference eventRef = db.collection(EVENTS_COLLECTION).document(eventId);
 
-        return db.<List<String>>runTransaction(transaction -> {
+        Task<DrawResult> drawTask = db.<DrawResult>runTransaction(transaction -> {
             DocumentSnapshot snapshot = transaction.get(eventRef);
 
             if (!snapshot.exists()) {
@@ -124,19 +93,16 @@ public class LotterySystem {
 
             List<String> waitingList = getListSafely(snapshot, WAITING_LIST_FIELD);
             if (waitingList.isEmpty()) {
-                return new ArrayList<>();
+                return new DrawResult(new ArrayList<>(), new ArrayList<>());
             }
-            // Separates the lists in the transaction to distinguish between winners and losers
+
             List<String> invitedList = getListSafely(snapshot, INVITED_LIST_FIELD);
-            List<String> cancelledList = getListSafely(snapshot, CANCELLED_LIST_FIELD);
-
-            List<String> selectedUsers = new ArrayList<>();
-            List<String> notSelectedUsers = new ArrayList<>();
-
             List<String> shuffledList = new ArrayList<>(waitingList);
             Collections.shuffle(shuffledList);
 
             int actualCount = Math.min(count, shuffledList.size());
+            List<String> selectedUsers = new ArrayList<>();
+            List<String> notSelectedUsers = new ArrayList<>();
 
             for (int i = 0; i < actualCount; i++) {
                 String userId = shuffledList.get(i);
@@ -147,102 +113,89 @@ public class LotterySystem {
             }
 
             for (int i = actualCount; i < shuffledList.size(); i++) {
-                String userId = shuffledList.get(i);
-                notSelectedUsers.add(userId);
-                if (!cancelledList.contains(userId)) {
-                    cancelledList.add(userId);
-                }
+                notSelectedUsers.add(shuffledList.get(i));
             }
 
-            waitingList.clear();
-
-            transaction.update(eventRef, WAITING_LIST_FIELD, waitingList);
+            transaction.update(eventRef, WAITING_LIST_FIELD, new ArrayList<>(notSelectedUsers));
             transaction.update(eventRef, INVITED_LIST_FIELD, invitedList);
-            transaction.update(eventRef, CANCELLED_LIST_FIELD, cancelledList);
 
-            // Returns both groups in one list. winners first, then a separator marker, then losers.
-            List<String> result = new ArrayList<>();
-            result.addAll(selectedUsers);
-            result.add("__LOSERS_SEPARATOR__");
-            result.addAll(notSelectedUsers);
+            return new DrawResult(selectedUsers, notSelectedUsers);
+        });
 
-            return result;
-
-        }).addOnSuccessListener(result -> {
-            int separatorIndex = result.indexOf("__LOSERS_SEPARATOR__");
-
-            List<String> selectedUsers;
-            List<String> notSelectedUsers;
-
-            if (separatorIndex >= 0) {
-                selectedUsers = new ArrayList<>(result.subList(0, separatorIndex));
-                notSelectedUsers = new ArrayList<>(result.subList(separatorIndex + 1, result.size()));
-            } else {
-                selectedUsers = result;
-                notSelectedUsers = new ArrayList<>();
+        drawTask.addOnSuccessListener(result -> {
+            if (result == null) {
+                return;
             }
 
-            Log.d(TAG, "Successfully drew " + selectedUsers.size() + " entrants for event: " + eventId);
+            Log.d(TAG, "Successfully drew " + result.selectedUsers.size() + " entrants for event: " + eventId);
 
-            if (!selectedUsers.isEmpty()) {
-                notificationRepository.sendInvitedUsersNotification(
-                        eventId,
-                        "Congratulations! You have been selected from the waiting list. Please accept or decline your invitation."
-                        );
-            }
-
-            if (!notSelectedUsers.isEmpty()) {
+            if (!result.selectedUsers.isEmpty()) {
                 notificationRepository.sendBulkNotification(
-                        notSelectedUsers,
+                        result.selectedUsers,
+                        eventId,
+                        "Congratulations! You have been selected from the waiting list. Please accept or decline your invitation.",
+                        NotificationType.INVITE
+                );
+            }
+
+            if (!result.notSelectedUsers.isEmpty()) {
+                notificationRepository.sendBulkNotification(
+                        result.notSelectedUsers,
                         eventId,
                         "You were not selected for this event.",
                         NotificationType.INFO
                 );
             }
+        }).addOnFailureListener(e -> Log.e(TAG, "Failed to execute lottery draw", e));
 
-        }).addOnFailureListener(e ->
-                Log.e(TAG, "Failed to execute lottery draw: ", e)
-        );
+        return drawTask.continueWith(task -> {
+            if (!task.isSuccessful()) {
+                Exception error = task.getException();
+                throw error != null ? error : new RuntimeException("Failed to draw entrants.");
+            }
+
+            DrawResult result = task.getResult();
+            return result != null ? result.selectedUsers : new ArrayList<>();
+        });
     }
 
     /**
-     * Moves a user from invitedList → acceptedList.
-     *
-     * Called when a user accepts an invitation.
+     * Moves a user from invitedList to acceptedList.
      */
     public Task<Void> acceptInvitation(String eventId, String userId) {
         DocumentReference eventRef = db.collection(EVENTS_COLLECTION).document(eventId);
-        
+
         return db.<Void>runTransaction(transaction -> {
             DocumentSnapshot snapshot = transaction.get(eventRef);
-            if (!snapshot.exists()) throw new RuntimeException("Event does not exist.");
-            
+            if (!snapshot.exists()) {
+                throw new RuntimeException("Event does not exist.");
+            }
+
             transaction.update(eventRef, INVITED_LIST_FIELD, FieldValue.arrayRemove(userId));
             transaction.update(eventRef, ACCEPTED_LIST_FIELD, FieldValue.arrayUnion(userId));
             return null;
         }).addOnSuccessListener(aVoid -> Log.d(TAG, "User " + userId + " accepted invitation to " + eventId))
-          .addOnFailureListener(e -> Log.e(TAG, "Failed to accept invitation", e));
+                .addOnFailureListener(e -> Log.e(TAG, "Failed to accept invitation", e));
     }
 
     /**
-     * Removes a user from all active lists and adds them to cancelledList.
-     *
-     * Called when a user declines an invitation or is removed.
+     * Removes a user from invitation-related lists and adds them to cancelledList.
      */
     public Task<Void> declineOrCancelInvitation(String eventId, String userId) {
         DocumentReference eventRef = db.collection(EVENTS_COLLECTION).document(eventId);
-        
+
         return db.<Void>runTransaction(transaction -> {
             DocumentSnapshot snapshot = transaction.get(eventRef);
-            if (!snapshot.exists()) throw new RuntimeException("Event does not exist.");
+            if (!snapshot.exists()) {
+                throw new RuntimeException("Event does not exist.");
+            }
 
             transaction.update(eventRef, WAITING_LIST_FIELD, FieldValue.arrayRemove(userId));
             transaction.update(eventRef, INVITED_LIST_FIELD, FieldValue.arrayRemove(userId));
             transaction.update(eventRef, ACCEPTED_LIST_FIELD, FieldValue.arrayRemove(userId));
-            
             transaction.update(eventRef, CANCELLED_LIST_FIELD, FieldValue.arrayUnion(userId));
             return null;
         }).addOnSuccessListener(aVoid -> Log.d(TAG, "User " + userId + " declined/was cancelled from " + eventId))
-          .addOnFailureListener(e -> Log.e(TAG, "Failed to decline/cancel invitation", e));
+                .addOnFailureListener(e -> Log.e(TAG, "Failed to decline/cancel invitation", e));
     }
 }

@@ -45,6 +45,7 @@ public class LotterySystemTest {
 
         when(mockTask.addOnSuccessListener(any())).thenReturn(mockTask);
         when(mockTask.addOnFailureListener(any())).thenReturn(mockTask);
+        when(mockTask.continueWith(any())).thenReturn(mockTask);
 
         lotterySystem = new LotterySystem(mockDb, mockNotificationRepo);
     }

@@ -29,7 +29,9 @@ public final class OrganizerReportPolicy {
     }
 
     public static boolean canCreateReport(String currentUserId, String currentUserRole) {
-        return currentUserId != null && "entrant".equalsIgnoreCase(currentUserRole);
+        return currentUserId != null
+                && ("entrant".equalsIgnoreCase(currentUserRole)
+                || "admin".equalsIgnoreCase(currentUserRole));
     }
 
     public static boolean canEditOrDeleteReport(
@@ -42,7 +44,8 @@ public final class OrganizerReportPolicy {
                 && report.isPending()
                 && currentUserId != null
                 && currentUserId.equals(report.getReporterUserId())
-                && "entrant".equalsIgnoreCase(currentUserRole);
+                && ("entrant".equalsIgnoreCase(currentUserRole)
+                || "admin".equalsIgnoreCase(currentUserRole));
     }
 
     public static boolean canAdminResolve(String currentUserRole, OrganizerReport report) {

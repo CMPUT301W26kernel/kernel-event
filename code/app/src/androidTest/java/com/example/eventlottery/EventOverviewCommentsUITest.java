@@ -123,10 +123,10 @@ public class EventOverviewCommentsUITest {
     }
 
     /**
-     * Verifies that admins cannot post comments but can remove violating comments.
+     * Verifies that admins can post comments and can remove violating comments.
      */
     @Test
-    public void adminCanRemoveCommentButCannotPost() {
+    public void adminCanPostAndRemoveComment() {
         FakeCommentRepository repository = new FakeCommentRepository(Arrays.asList(
                 buildComment("comment-1", "entrant-1", "Evan", "entrant", "Bad comment", 100, false)
         ));
@@ -134,9 +134,14 @@ public class EventOverviewCommentsUITest {
         launchFragment(buildTestState("admin-1", "admin", "Ada"), repository);
 
         onView(withId(R.id.comment_composer_container))
-                .check(matches(withEffectiveVisibility(Visibility.GONE)));
-        onView(withId(R.id.text_comment_permissions))
-                .check(matches(withText(R.string.comment_admin_read_only)));
+                .check(matches(withEffectiveVisibility(Visibility.VISIBLE)))
+                .perform(scrollTo());
+        onView(withId(R.id.edit_comment_input))
+                .perform(replaceText("Admin note"), closeSoftKeyboard());
+        onView(withId(R.id.btn_post_comment)).perform(click());
+        onView(withText("Admin note"))
+                .perform(scrollTo())
+                .check(matches(isDisplayed()));
 
         onView(withText("Bad comment")).perform(scrollTo());
         onView(withId(R.id.btn_delete_comment)).perform(click());

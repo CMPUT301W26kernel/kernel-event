@@ -16,6 +16,11 @@ import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+
+import java.util.Arrays;
+import java.util.Collections;
 
 /**
  * Unit tests for the WaitingListRepository class.
@@ -85,5 +90,76 @@ public class WaitingListRepositoryTest {
         Task<?> result = repository.getWaitingList("testEvent");
         assertNotNull(result);
         verify(mockDocRef).get();
+    }
+
+    @Test
+    public void testValidateJoinEligibility_allowsFreshEntrant() {
+        String error = WaitingListRepository.validateJoinEligibility(
+                "entrant-1",
+                "organizer-1",
+                Collections.emptyList(),
+                Collections.emptyList(),
+                Collections.emptyList(),
+                Collections.emptyList(),
+                Collections.emptyList()
+        );
+
+        assertNull(error);
+    }
+
+    @Test
+    public void testValidateJoinEligibility_rejectsAlreadyInvitedEntrant() {
+        String error = WaitingListRepository.validateJoinEligibility(
+                "entrant-1",
+                "organizer-1",
+                Collections.emptyList(),
+                Collections.singletonList("entrant-1"),
+                Collections.emptyList(),
+                Collections.emptyList(),
+                Collections.emptyList()
+        );
+
+        assertEquals("User has already been invited to this event.", error);
+    }
+
+    @Test
+    public void testValidateJoinEligibility_rejectsCancelledEntrant() {
+        String error = WaitingListRepository.validateJoinEligibility(
+                "entrant-1",
+                "organizer-1",
+                Collections.emptyList(),
+                Collections.emptyList(),
+                Collections.emptyList(),
+                Collections.singletonList("entrant-1"),
+                Collections.emptyList()
+        );
+
+        assertEquals("User has already responded to this event and cannot rejoin.", error);
+    }
+
+    @Test
+    public void testValidateJoinEligibility_rejectsOrganizerAndCoOrganizer() {
+        String organizerError = WaitingListRepository.validateJoinEligibility(
+                "organizer-1",
+                "organizer-1",
+                Collections.emptyList(),
+                Collections.emptyList(),
+                Collections.emptyList(),
+                Collections.emptyList(),
+                Collections.emptyList()
+        );
+
+        String coOrganizerError = WaitingListRepository.validateJoinEligibility(
+                "co-organizer-1",
+                "organizer-1",
+                Collections.emptyList(),
+                Collections.emptyList(),
+                Collections.emptyList(),
+                Collections.emptyList(),
+                Arrays.asList("co-organizer-1")
+        );
+
+        assertEquals("Organizers cannot join their own event's waiting list.", organizerError);
+        assertEquals("Organizers cannot join their own event's waiting list.", coOrganizerError);
     }
 }

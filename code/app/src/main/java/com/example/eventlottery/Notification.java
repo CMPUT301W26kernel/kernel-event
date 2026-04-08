@@ -69,6 +69,13 @@ public class Notification {
     }
 
     /**
+     * Backward-compatible enum setter kept for tests and older call sites.
+     */
+    public void setType(NotificationType type) {
+        setTypeEnum(type);
+    }
+
+    /**
      * Converts stored String status to enum safely.
      */
     public NotificationStatus getStatusEnum() {
@@ -86,6 +93,13 @@ public class Notification {
      */
     public void setStatusEnum(NotificationStatus status) {
         this.status = (status == null) ? null : status.name();
+    }
+
+    /**
+     * Backward-compatible enum setter kept for tests and older call sites.
+     */
+    public void setStatus(NotificationStatus status) {
+        setStatusEnum(status);
     }
 
     public String getNotificationId() {

@@ -25,6 +25,9 @@ public class WaitingListRepository {
     private final FirebaseFirestore db;
     private static final String EVENTS_COLLECTION = "events";
     private static final String WAITING_LIST_FIELD = "waitingList";
+    private static final String INVITED_LIST_FIELD = "invitedList";
+    private static final String ACCEPTED_LIST_FIELD = "acceptedList";
+    private static final String CANCELLED_LIST_FIELD = "cancelledList";
     private static final String WAITING_LIST_JOIN_GEO = "waitingListJoinGeo";
     private static final double DEFAULT_RADIUS_METERS = 500.0;
 
@@ -62,19 +65,28 @@ public class WaitingListRepository {
                 throw new RuntimeException("Event does not exist.");
             }
 
-            @SuppressWarnings("unchecked")
-            List<String> currentList = (List<String>) snapshot.get(WAITING_LIST_FIELD);
-            if (currentList == null) {
-                currentList = new ArrayList<>();
-            }
+            List<String> waitingList = getStringList(snapshot, WAITING_LIST_FIELD);
+            List<String> invitedList = getStringList(snapshot, INVITED_LIST_FIELD);
+            List<String> acceptedList = getStringList(snapshot, ACCEPTED_LIST_FIELD);
+            List<String> cancelledList = getStringList(snapshot, CANCELLED_LIST_FIELD);
+            List<String> coOrganizers = getStringList(snapshot, "coOrganizers");
 
-            if (currentList.contains(userId)) {
-                throw new RuntimeException("User is already on the waiting list.");
+            String joinValidationError = validateJoinEligibility(
+                    userId,
+                    snapshot.getString("organizerId"),
+                    waitingList,
+                    invitedList,
+                    acceptedList,
+                    cancelledList,
+                    coOrganizers
+            );
+            if (joinValidationError != null) {
+                throw new RuntimeException(joinValidationError);
             }
 
             Long capacityLong = snapshot.getLong("waitingListCapacity");
             if (capacityLong != null && capacityLong > 0) {
-                if (currentList.size() >= capacityLong) {
+                if (waitingList.size() >= capacityLong) {
                     throw new RuntimeException("Waiting list is full.");
                 }
             }
@@ -127,6 +139,49 @@ public class WaitingListRepository {
             return ((Number) v).doubleValue();
         }
         return null;
+    }
+
+    static String validateJoinEligibility(
+            String userId,
+            String organizerId,
+            List<String> waitingList,
+            List<String> invitedList,
+            List<String> acceptedList,
+            List<String> cancelledList,
+            List<String> coOrganizers
+    ) {
+        if (userId == null || userId.trim().isEmpty()) {
+            return "A signed-in user is required to join the waiting list.";
+        }
+        if (userId.equals(organizerId) || (coOrganizers != null && coOrganizers.contains(userId))) {
+            return "Organizers cannot join their own event's waiting list.";
+        }
+        if (waitingList != null && waitingList.contains(userId)) {
+            return "User is already on the waiting list.";
+        }
+        if (invitedList != null && invitedList.contains(userId)) {
+            return "User has already been invited to this event.";
+        }
+        if (acceptedList != null && acceptedList.contains(userId)) {
+            return "User has already accepted an invitation to this event.";
+        }
+        if (cancelledList != null && cancelledList.contains(userId)) {
+            return "User has already responded to this event and cannot rejoin.";
+        }
+        return null;
+    }
+
+    private static List<String> getStringList(DocumentSnapshot snapshot, String key) {
+        Object value = snapshot.get(key);
+        List<String> result = new ArrayList<>();
+        if (value instanceof List<?>) {
+            for (Object item : (List<?>) value) {
+                if (item instanceof String) {
+                    result.add((String) item);
+                }
+            }
+        }
+        return result;
     }
 
     /**
