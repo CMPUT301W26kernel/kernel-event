@@ -197,17 +197,33 @@ public class HomePageFragment extends Fragment {
                     .addToBackStack(null)
                     .commit());
         }
-
+        
+        // Now allows admin to select either reporting or Notifications
         MaterialButton notificationsBtn = bottomBarView.findViewById(R.id.btn_notifications);
         if (notificationsBtn != null) {
             notificationsBtn.setOnClickListener(v -> {
-                Fragment destination = "admin".equalsIgnoreCase(role)
-                        ? new OrganizerReportCenterFragment()
-                        : new NotificationsFragment();
-                getParentFragmentManager().beginTransaction()
-                        .replace(R.id.fragment_container, destination)
-                        .addToBackStack(null)
-                        .commit();
+                if ("admin".equalsIgnoreCase(role)) {
+                    String[] options = {"Notifications", "Reporting"};
+
+                    new androidx.appcompat.app.AlertDialog.Builder(requireContext())
+                            .setTitle("SELECT")
+                            .setItems(options, (dialog, which) -> {
+                                Fragment destination = (which == 0)
+                                        ? new NotificationsFragment()
+                                        : new OrganizerReportCenterFragment();
+
+                                getParentFragmentManager().beginTransaction()
+                                        .replace(R.id.fragment_container, destination)
+                                        .addToBackStack(null)
+                                        .commit();
+                            })
+                            .show();
+                } else {
+                    getParentFragmentManager().beginTransaction()
+                            .replace(R.id.fragment_container, new NotificationsFragment())
+                            .addToBackStack(null)
+                            .commit();
+                }
             });
         }
 
