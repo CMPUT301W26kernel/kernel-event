@@ -206,7 +206,7 @@ public class HomePageFragment extends Fragment {
                     String[] options = {"Notifications", "Reporting"};
 
                     new androidx.appcompat.app.AlertDialog.Builder(requireContext())
-                            .setTitle("Open")
+                            .setTitle("SELECT")
                             .setItems(options, (dialog, which) -> {
                                 Fragment destination = (which == 0)
                                         ? new NotificationsFragment()
