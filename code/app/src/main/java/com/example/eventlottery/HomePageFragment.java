@@ -203,7 +203,7 @@ public class HomePageFragment extends Fragment {
         if (notificationsBtn != null) {
             notificationsBtn.setOnClickListener(v -> {
                 if ("admin".equalsIgnoreCase(role)) {
-                    String[] options = {"Invites", "Reporting"};
+                    String[] options = {"Notifications", "Reporting"};
 
                     new androidx.appcompat.app.AlertDialog.Builder(requireContext())
                             .setTitle("Open")
