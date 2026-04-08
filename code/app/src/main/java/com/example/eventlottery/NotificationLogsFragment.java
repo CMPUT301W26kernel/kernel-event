@@ -55,7 +55,12 @@ public class NotificationLogsFragment extends Fragment {
         recyclerView.setAdapter(adapter);
 
         db = FirebaseFirestore.getInstance();
+
         loadLogs();
+        View backBtn = view.findViewById(R.id.btn_back);
+        backBtn.setOnClickListener(v -> {
+            requireActivity().getSupportFragmentManager().popBackStack();
+        });
     }
 
     /**
@@ -109,3 +114,4 @@ public class NotificationLogsFragment extends Fragment {
         emptyText = null;
     }
 }
+
