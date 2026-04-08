@@ -17,8 +17,7 @@ public class EventInput {
     public final String registrationOpen;
     public final String registrationClose;
     public final String waitingListCapacity;
-    public final String venueLatitude;
-    public final String venueLongitude;
+    public final String venueAddress;
     public final String geolocationRadiusMeters;
     public final boolean requireGeolocationForWaitlist;
     public final String tagsRaw;
@@ -29,8 +28,7 @@ public class EventInput {
             String registrationOpen,
             String registrationClose,
             String waitingListCapacity,
-            String venueLatitude,
-            String venueLongitude,
+            String venueAddress,
             String geolocationRadiusMeters,
             boolean requireGeolocationForWaitlist,
             String tagsRaw
@@ -40,8 +38,7 @@ public class EventInput {
         this.registrationOpen = registrationOpen;
         this.registrationClose = registrationClose;
         this.waitingListCapacity = waitingListCapacity;
-        this.venueLatitude = venueLatitude;
-        this.venueLongitude = venueLongitude;
+        this.venueAddress = venueAddress;
         this.geolocationRadiusMeters = geolocationRadiusMeters;
         this.requireGeolocationForWaitlist = requireGeolocationForWaitlist;
         this.tagsRaw = tagsRaw;

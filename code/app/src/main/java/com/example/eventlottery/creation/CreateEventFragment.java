@@ -17,6 +17,10 @@
  *      - TODO: fix event period check to let existing events have registration open dates
  *              earlier than the current date. I may wish to hide/lock the registration Open
  *              field from editing users entirely if the registration period has already begun.
+ *      - TODO: Move geolocation stuff to their own dedicated buisness logic class in the
+ *              geolocation package
+ *      - TODO: Move validation stuff into it's own dedicated validation logic class.
+ *              (and potentially make a subpackage creaton.validation)
  *</p>
  *
  * @author Grace MacKenzie
@@ -27,8 +31,12 @@ package com.example.eventlottery.creation;
 import android.app.Activity;
 import android.content.Intent;
 import android.graphics.Bitmap;
+import android.location.Address;
+import android.location.Geocoder;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
@@ -50,6 +58,8 @@ import android.widget.Toast;
 import android.widget.ToggleButton;
 
 import com.example.eventlottery.Event;
+import com.example.eventlottery.geolocation.GeocodeCallback;
+import com.example.eventlottery.geolocation.GeocodeResult;
 import com.example.eventlottery.HomePageFragment;
 import com.example.eventlottery.R;
 import com.google.firebase.firestore.CollectionReference;
@@ -66,6 +76,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /**
  * A Fragment which allows users to create and edit events.
@@ -89,8 +101,7 @@ public class CreateEventFragment extends Fragment {
     private EditText editRegCloseMonth;
     private EditText editRegCloseDay;
     private EditText editCapacity;
-    private EditText editVenueLatitude;
-    private EditText editVenueLongitude;
+    private EditText editVenueAddress;
     private EditText editGeolocationRadius;
     private CheckBox checkboxRequireGeolocation;
     private EditText editEventTags;
@@ -179,8 +190,7 @@ public class CreateEventFragment extends Fragment {
         editRegCloseMonth = view.findViewById(R.id.edit_reg_close_month);
         editRegCloseDay = view.findViewById(R.id.edit_reg_close_day);
         editCapacity = view.findViewById(R.id.edit_capacity);
-        editVenueLatitude = view.findViewById(R.id.edit_venue_latitude);
-        editVenueLongitude = view.findViewById(R.id.edit_venue_longitude);
+        editVenueAddress = view.findViewById(R.id.edit_venue_address);
         editGeolocationRadius = view.findViewById(R.id.edit_geolocation_radius);
         checkboxRequireGeolocation = view.findViewById(R.id.checkbox_require_geolocation);
         editEventTags = view.findViewById(R.id.edit_event_tags);
@@ -219,16 +229,7 @@ public class CreateEventFragment extends Fragment {
                         if (currentEvent.getWaitingListCapacity() != null) {
                             editCapacity.setText(String.valueOf(currentEvent.getWaitingListCapacity()));
                         }
-                        if (currentEvent.getVenueLatitude() != null) {
-                            editVenueLatitude.setText(String.valueOf(currentEvent.getVenueLatitude()));
-                        } else {
-                            editVenueLatitude.setText("");
-                        }
-                        if (currentEvent.getVenueLongitude() != null) {
-                            editVenueLongitude.setText(String.valueOf(currentEvent.getVenueLongitude()));
-                        } else {
-                            editVenueLongitude.setText("");
-                        }
+                        editVenueAddress.setText(currentEvent.getVenueAddress() != null ? currentEvent.getVenueAddress() : "");
                         checkboxRequireGeolocation.setChecked(currentEvent.isRequireGeolocationForWaitlist());
                         if (currentEvent.getGeolocationRadiusMeters() != null) {
                             editGeolocationRadius.setText(String.valueOf(currentEvent.getGeolocationRadiusMeters()));
@@ -264,20 +265,7 @@ public class CreateEventFragment extends Fragment {
             ValidationResult validationResult = validateInput(ctx);
 
             if (validationResult.isValid) {
-                if ( mode == EventCreationMode.CREATE) {
-                    addEvent(Objects.requireNonNull(validationResult.event));
-                } else { // Event mode
-                    // validationResult.event just points to currentEvent
-                    updateEvent(Objects.requireNonNull(validationResult.event));
-                }
-
-                // Navigate back to EventOverviewFragment
-                Bundle result = new Bundle();
-                result.putBoolean("eventUpdated", true); // Tells the destination fragment that the event has been edited
-                getParentFragmentManager().setFragmentResult("editEventResult", result);
-                if (getParentFragmentManager().getBackStackEntryCount() > 0) {
-                    getParentFragmentManager().popBackStack();
-                }
+                saveEvent(Objects.requireNonNull(validationResult.event));
             } else {
                 Toast.makeText(requireContext(), validationResult.errorMessage, Toast.LENGTH_SHORT).show();
             }
@@ -451,8 +439,7 @@ public class CreateEventFragment extends Fragment {
                 regOpen,
                 regClose,
                 editCapacity.getText().toString(),
-                valueTrimmed(editVenueLatitude),
-                valueTrimmed(editVenueLongitude),
+                valueTrimmed(editVenueAddress),
                 valueTrimmed(editGeolocationRadius),
                 checkboxRequireGeolocation.isChecked(),
                 valueTrimmed(editEventTags)
@@ -557,28 +544,18 @@ public class CreateEventFragment extends Fragment {
 
         ArrayList<String> tagList = parseTags(ctx.input.tagsRaw);
 
-        String latRaw = ctx.input.venueLatitude;
-        String lonRaw = ctx.input.venueLongitude;
-        boolean hasLat = !latRaw.isEmpty();
-        boolean hasLon = !lonRaw.isEmpty();
-        if (hasLat != hasLon) {
-            return ValidationResult.invalid(getString(R.string.error_venue_coords_incomplete));
-        }
-        Double vLat = null;
-        Double vLng = null;
-        if (hasLat) {
-            try {
-                vLat = Double.parseDouble(latRaw);
-                vLng = Double.parseDouble(lonRaw);
-            } catch (NumberFormatException e) {
-                return ValidationResult.invalid(getString(R.string.error_venue_coords_invalid));
+        String venueAddress = ctx.input.venueAddress.trim();
+        boolean hasVenueAddress = !venueAddress.isEmpty();
+        if (hasVenueAddress) {
+            if (venueAddress.length() < 5) {
+                return ValidationResult.invalid(getString(R.string.error_venue_address_invalid));
             }
-            if (vLat < -90.0 || vLat > 90.0 || vLng < -180.0 || vLng > 180.0) {
-                return ValidationResult.invalid(getString(R.string.error_venue_coords_invalid));
+            if (looksLikeCoordinates(venueAddress)) {
+                return ValidationResult.invalid(getString(R.string.error_use_address_not_coordinates));
             }
         }
 
-        if (ctx.input.requireGeolocationForWaitlist && vLat == null) {
+        if (ctx.input.requireGeolocationForWaitlist && !hasVenueAddress) {
             return ValidationResult.invalid(getString(R.string.error_geo_requires_venue));
         }
 
@@ -624,14 +601,93 @@ public class CreateEventFragment extends Fragment {
         // Set poster image of returnEvent
         returnEvent.setPosterImage(selectedPosterImage);
 
-        // Set location support for returnEvent
+        // Set location support for returnEvent (lat/lng filled after geocoding when saving)
         returnEvent.setTags(tagList);
-        returnEvent.setVenueLatitude(vLat);
-        returnEvent.setVenueLongitude(vLng);
+        returnEvent.setVenueAddress(hasVenueAddress ? venueAddress : null);
+        returnEvent.setVenueLatitude(null);
+        returnEvent.setVenueLongitude(null);
         returnEvent.setRequireGeolocationForWaitlist(ctx.input.requireGeolocationForWaitlist);
         returnEvent.setGeolocationRadiusMeters(geoRadius);
 
         return ValidationResult.valid(returnEvent);
+    }
+
+    private static boolean looksLikeCoordinates(String raw) {
+        if (raw == null) {
+            return false;
+        }
+        String t = raw.trim();
+        return t.matches("^-?\\d+(\\.\\d+)?\\s*,\\s*-?\\d+(\\.\\d+)?$");
+    }
+
+    private void saveEvent(@NonNull Event event) {
+        String address = event.getVenueAddress();
+        if (address == null || address.trim().isEmpty()) {
+            persistAndClose(event);
+            return;
+        }
+
+        geocodeAddress(address, geocodeResult -> {
+            if (!isAdded()) {
+                return;
+            }
+            if (geocodeResult == null) {
+                Toast.makeText(requireContext(), getString(R.string.error_venue_address_geocode), Toast.LENGTH_SHORT).show();
+                return;
+            }
+            event.setVenueLatitude(geocodeResult.latitude);
+            event.setVenueLongitude(geocodeResult.longitude);
+            event.setVenueAddress(geocodeResult.formattedAddress);
+            persistAndClose(event);
+        });
+    }
+
+    private void persistAndClose(@NonNull Event event) {
+        if (mode == EventCreationMode.CREATE) {
+            addEvent(event);
+        } else {
+            updateEvent(event);
+        }
+
+        Bundle result = new Bundle();
+        result.putBoolean("eventUpdated", true);
+        getParentFragmentManager().setFragmentResult("editEventResult", result);
+        if (getParentFragmentManager().getBackStackEntryCount() > 0) {
+            getParentFragmentManager().popBackStack();
+        }
+    }
+
+    private void geocodeAddress(@NonNull String address, @NonNull GeocodeCallback callback) {
+        if (!Geocoder.isPresent()) {
+            callback.onResult(null);
+            return;
+        }
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        Handler mainHandler = new Handler(Looper.getMainLooper());
+        executor.execute(() -> {
+            GeocodeResult result = null;
+            try {
+                Geocoder geocoder = new Geocoder(requireContext(), Locale.getDefault());
+                List<Address> addresses = geocoder.getFromLocationName(address, 1);
+                if (addresses != null && !addresses.isEmpty()) {
+                    Address resolved = addresses.get(0);
+                    String resolvedAddress = resolved.getAddressLine(0);
+                    if (resolvedAddress == null || resolvedAddress.trim().isEmpty()) {
+                        resolvedAddress = address.trim();
+                    }
+                    result = new GeocodeResult(
+                            resolved.getLatitude(),
+                            resolved.getLongitude(),
+                            resolvedAddress
+                    );
+                }
+            } catch (Exception ignored) {
+            }
+
+            GeocodeResult finalResult = result;
+            mainHandler.post(() -> callback.onResult(finalResult));
+            executor.shutdown();
+        });
     }
 
 }

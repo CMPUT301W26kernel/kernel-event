@@ -9,6 +9,9 @@ import android.os.Looper;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.inputmethod.EditorInfo;
+import android.view.inputmethod.InputMethodManager;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
@@ -26,8 +29,10 @@ import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.location.Priority;
 import com.google.android.gms.tasks.CancellationTokenSource;
+import com.google.android.material.button.MaterialButton;
 import com.google.android.material.chip.Chip;
 import com.google.android.material.chip.ChipGroup;
+import com.google.android.material.textfield.TextInputEditText;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 
@@ -41,7 +46,6 @@ import org.osmdroid.views.MapView;
 import org.osmdroid.views.overlay.Marker;
 
 import java.io.File;
-import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -54,6 +58,9 @@ import java.util.Set;
  * Markers are grouped by zoom level; tags filter which events are shown.
  */
 public class NearbyEventsMapFragment extends Fragment {
+
+    /** Lowercase trimmed query; filters pins by tag match and event title. */
+    private String mapSearchKeyword = "";
 
     private MapView mapView;
     private final ArrayList<Event> allEvents = new ArrayList<>();
@@ -95,6 +102,40 @@ public class NearbyEventsMapFragment extends Fragment {
                 getParentFragmentManager().popBackStack();
             }
         });
+
+        TextInputEditText searchInput = view.findViewById(R.id.input_map_search);
+        MaterialButton searchBtn = view.findViewById(R.id.btn_map_search);
+        MaterialButton clearSearchBtn = view.findViewById(R.id.btn_map_search_clear);
+        if (searchBtn != null) {
+            searchBtn.setOnClickListener(v -> {
+                if (searchInput != null && searchInput.getText() != null) {
+                    mapSearchKeyword = searchInput.getText().toString().trim().toLowerCase(Locale.US);
+                } else {
+                    mapSearchKeyword = "";
+                }
+                hideKeyboard(v);
+                refreshMarkers();
+            });
+        }
+        if (clearSearchBtn != null) {
+            clearSearchBtn.setOnClickListener(v -> {
+                mapSearchKeyword = "";
+                if (searchInput != null) {
+                    searchInput.setText("");
+                }
+                hideKeyboard(v);
+                refreshMarkers();
+            });
+        }
+        if (searchInput != null) {
+            searchInput.setOnEditorActionListener((TextView tv, int actionId, android.view.KeyEvent event) -> {
+                if (actionId == EditorInfo.IME_ACTION_SEARCH && searchBtn != null) {
+                    searchBtn.performClick();
+                    return true;
+                }
+                return false;
+            });
+        }
 
         mapView.addMapListener(new MapListener() {
             @Override
@@ -166,17 +207,7 @@ public class NearbyEventsMapFragment extends Fragment {
         if (e.getVenueLatitude() == null || e.getVenueLongitude() == null) {
             return false;
         }
-        if (e.isPrivate()) {
-            return false;
-        }
-        ZonedDateTime now = ZonedDateTime.now();
-        try {
-            ZonedDateTime open = e.getRegistrationOpen();
-            ZonedDateTime close = e.getRegistrationClose();
-            return !now.isBefore(open) && !now.isAfter(close);
-        } catch (Exception ex) {
-            return false;
-        }
+        return !e.isPrivate();
     }
 
     private void buildTagChips(@NonNull View root) {
@@ -235,6 +266,35 @@ public class NearbyEventsMapFragment extends Fragment {
         return false;
     }
 
+    /**
+     * Text search: any tag contains the keyword (case-insensitive), or event title contains it.
+     */
+    private boolean passesMapSearchKeyword(Event e) {
+        if (mapSearchKeyword.isEmpty()) {
+            return true;
+        }
+        if (e.getTags() != null) {
+            for (String t : e.getTags()) {
+                if (t == null) {
+                    continue;
+                }
+                String nt = t.toLowerCase(Locale.US).trim();
+                if (!nt.isEmpty() && nt.contains(mapSearchKeyword)) {
+                    return true;
+                }
+            }
+        }
+        String title = e.getTitle();
+        return title != null && title.toLowerCase(Locale.US).contains(mapSearchKeyword);
+    }
+
+    private void hideKeyboard(View v) {
+        InputMethodManager imm = (InputMethodManager) requireContext().getSystemService(Context.INPUT_METHOD_SERVICE);
+        if (imm != null && v.getWindowToken() != null) {
+            imm.hideSoftInputFromWindow(v.getWindowToken(), 0);
+        }
+    }
+
     private void refreshMarkers() {
         if (mapView == null) {
             return;
@@ -243,9 +303,13 @@ public class NearbyEventsMapFragment extends Fragment {
         Set<String> selected = getSelectedTags();
         List<Event> filtered = new ArrayList<>();
         for (Event e : allEvents) {
-            if (passesTagFilter(e, selected)) {
-                filtered.add(e);
+            if (!passesTagFilter(e, selected)) {
+                continue;
             }
+            if (!passesMapSearchKeyword(e)) {
+                continue;
+            }
+            filtered.add(e);
         }
         double zoom = mapView.getZoomLevelDouble();
         List<MapMarkerGrouper.Group> groups = MapMarkerGrouper.groupEvents(filtered, zoom);
@@ -254,9 +318,16 @@ public class NearbyEventsMapFragment extends Fragment {
             m.setPosition(new GeoPoint(g.centroidLat, g.centroidLon));
             m.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM);
             m.setTitle(MapMarkerGrouper.titleForGroup(g));
+            boolean singleEventMarker = g.events.size() == 1;
             if (g.events.size() == 1) {
-                String d = g.events.get(0).getDescription();
-                m.setSnippet(d != null && d.length() > 80 ? d.substring(0, 77) + "…" : d);
+                Event one = g.events.get(0);
+                String addr = one.getVenueAddress();
+                if (addr != null && !addr.trim().isEmpty()) {
+                    m.setSnippet(addr.trim());
+                } else {
+                    String d = one.getDescription();
+                    m.setSnippet(d != null && d.length() > 80 ? d.substring(0, 77) + "…" : d);
+                }
             } else {
                 m.setSnippet(getString(R.string.pick_event_from_cluster));
             }
@@ -265,6 +336,10 @@ public class NearbyEventsMapFragment extends Fragment {
                 return true;
             });
             mapView.getOverlays().add(m);
+            if (singleEventMarker) {
+                // Keep the event name visible above individual pins.
+                m.showInfoWindow();
+            }
         }
         mapView.invalidate();
     }

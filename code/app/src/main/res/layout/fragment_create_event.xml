@@ -273,7 +273,7 @@
 
             </LinearLayout>
 
-            <!-- Venue & geolocation (optional) -->
+            <!-- Venue: street address only (coordinates are derived automatically) -->
 
             <TextView
                 android:layout_width="wrap_content"
@@ -284,37 +284,26 @@
                 android:textColor="@color/primary_deep"
                 android:textSize="20sp" />
 
-            <LinearLayout
+            <EditText
+                android:id="@+id/edit_venue_address"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginHorizontal="30dp"
-                android:orientation="horizontal">
+                android:background="@color/white"
+                android:hint="@string/venue_address_hint"
+                android:importantForAutofill="no"
+                android:inputType="textPostalAddress"
+                android:padding="10dp"
+                android:textSize="18sp" />
 
-                <EditText
-                    android:id="@+id/edit_venue_latitude"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:background="@color/white"
-                    android:hint="@string/venue_latitude_hint"
-                    android:importantForAutofill="no"
-                    android:inputType="numberDecimal|numberSigned"
-                    android:padding="10dp"
-                    android:textSize="18sp" />
-
-                <EditText
-                    android:id="@+id/edit_venue_longitude"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="8dp"
-                    android:layout_weight="1"
-                    android:background="@color/white"
-                    android:hint="@string/venue_longitude_hint"
-                    android:importantForAutofill="no"
-                    android:inputType="numberDecimal|numberSigned"
-                    android:padding="10dp"
-                    android:textSize="18sp" />
-            </LinearLayout>
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginHorizontal="30dp"
+                android:layout_marginTop="4dp"
+                android:text="@string/venue_address_no_coordinates_note"
+                android:textColor="@color/grey_light"
+                android:textSize="12sp" />
 
             <CheckBox
                 android:id="@+id/checkbox_require_geolocation"

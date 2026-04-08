@@ -20,7 +20,9 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ArrayAdapter;
 import android.widget.CheckBox;
+import android.widget.EditText;
 import android.widget.FrameLayout;
 import android.widget.ListView;
 import android.widget.TextView;
@@ -32,6 +34,7 @@ import com.example.eventlottery.profiles.ProfileListFragment;
 import com.example.eventlottery.profiles.User;
 import com.example.eventlottery.profiles.UserProfileFragment;
 import com.google.android.material.button.MaterialButton;
+import com.google.android.material.textfield.MaterialAutoCompleteTextView;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
 import com.google.firebase.auth.FirebaseAuth;
@@ -42,7 +45,11 @@ import com.google.firebase.firestore.QueryDocumentSnapshot;
 import java.time.LocalDate;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 
 /**
  * Home page fragment that displays a list of events fetched from Firestore.
@@ -53,10 +60,12 @@ public class HomePageFragment extends Fragment {
     private EventAdapter adapter;
 
     private TextInputLayout keywordLayout;
+    private TextInputLayout tagLayout;
     private TextInputLayout availableDateLayout;
     private TextInputLayout minCapacityLayout;
 
     private TextInputEditText keywordInput;
+    private MaterialAutoCompleteTextView tagInput;
     private TextInputEditText availableDateInput;
     private TextInputEditText minCapacityInput;
     private CheckBox openNowOnlyCheckbox;
@@ -79,9 +88,11 @@ public class HomePageFragment extends Fragment {
 
         ListView listView = view.findViewById(R.id.list_view);
         keywordLayout = view.findViewById(R.id.input_search_keyword_layout);
+        tagLayout = view.findViewById(R.id.input_search_tag_layout);
         availableDateLayout = view.findViewById(R.id.input_available_date_layout);
         minCapacityLayout = view.findViewById(R.id.input_min_capacity_layout);
         keywordInput = view.findViewById(R.id.input_search_keyword);
+        tagInput = view.findViewById(R.id.input_search_tag);
         availableDateInput = view.findViewById(R.id.input_available_date);
         minCapacityInput = view.findViewById(R.id.input_min_capacity);
         openNowOnlyCheckbox = view.findViewById(R.id.checkbox_open_now_only);
@@ -95,6 +106,7 @@ public class HomePageFragment extends Fragment {
         applyFiltersButton.setOnClickListener(v -> applyFilters());
         clearFiltersButton.setOnClickListener(v -> {
             if (keywordInput != null) keywordInput.setText("");
+            if (tagInput != null) tagInput.setText("");
             if (availableDateInput != null) availableDateInput.setText("");
             if (minCapacityInput != null) minCapacityInput.setText("");
             if (openNowOnlyCheckbox != null) openNowOnlyCheckbox.setChecked(false);
@@ -158,6 +170,7 @@ public class HomePageFragment extends Fragment {
                             Log.e("HomePageFragment", "Error parsing event: " + document.getId(), e);
                         }
                     }
+                    refreshTagAutocompleteSuggestions();
                     applyFilters();
                 })
                 .addOnFailureListener(e -> {
@@ -277,14 +290,43 @@ public class HomePageFragment extends Fragment {
 
     private void clearFilterErrors() {
         if (keywordLayout != null) keywordLayout.setError(null);
+        if (tagLayout != null) tagLayout.setError(null);
         if (availableDateLayout != null) availableDateLayout.setError(null);
         if (minCapacityLayout != null) minCapacityLayout.setError(null);
+    }
+
+    /**
+     * Fills the tag field dropdown with distinct tags from loaded events (lowercase, sorted).
+     */
+    private void refreshTagAutocompleteSuggestions() {
+        if (tagInput == null) {
+            return;
+        }
+        Set<String> tags = new HashSet<>();
+        for (Event e : allEvents) {
+            if (e.getTags() == null) {
+                continue;
+            }
+            for (String t : e.getTags()) {
+                if (t != null && !t.trim().isEmpty()) {
+                    tags.add(t.trim().toLowerCase(Locale.US));
+                }
+            }
+        }
+        List<String> sorted = new ArrayList<>(tags);
+        Collections.sort(sorted);
+        ArrayAdapter<String> tagAdapter = new ArrayAdapter<>(
+                requireContext(),
+                android.R.layout.simple_dropdown_item_1line,
+                sorted);
+        tagInput.setAdapter(tagAdapter);
     }
 
     private void applyFilters() {
         clearFilterErrors();
 
         String keyword = valueOf(keywordInput).toLowerCase(Locale.US).trim();
+        String tagQuery = valueOf(tagInput).toLowerCase(Locale.US).trim();
         String availableDateRaw = valueOf(availableDateInput).trim();
         String minCapacityRaw = valueOf(minCapacityInput).trim();
         boolean openNowOnly = openNowOnlyCheckbox != null && openNowOnlyCheckbox.isChecked();
@@ -317,6 +359,7 @@ public class HomePageFragment extends Fragment {
         filteredEvents.clear();
         for (Event event : allEvents) {
             if (!matchesKeyword(event, keyword)) continue;
+            if (!matchesTagFilter(event, tagQuery)) continue;
             if (!matchesAvailability(event, availableDate, openNowOnly, now)) continue;
             if (!matchesCapacity(event, minCapacity)) continue;
             filteredEvents.add(event);
@@ -336,6 +379,31 @@ public class HomePageFragment extends Fragment {
                 if (tag != null && tag.toLowerCase(Locale.US).contains(keyword)) {
                     return true;
                 }
+            }
+        }
+        return false;
+    }
+
+    /**
+     * When non-empty, only events that have at least one tag matching the query (exact or substring, case-insensitive).
+     */
+    private boolean matchesTagFilter(Event event, String tagQuery) {
+        if (tagQuery.isEmpty()) {
+            return true;
+        }
+        if (event.getTags() == null || event.getTags().isEmpty()) {
+            return false;
+        }
+        for (String tag : event.getTags()) {
+            if (tag == null) {
+                continue;
+            }
+            String normalized = tag.toLowerCase(Locale.US).trim();
+            if (normalized.isEmpty()) {
+                continue;
+            }
+            if (normalized.equals(tagQuery) || normalized.contains(tagQuery)) {
+                return true;
             }
         }
         return false;
@@ -366,8 +434,10 @@ public class HomePageFragment extends Fragment {
         return capacity != null && capacity >= minCapacity;
     }
 
-    private String valueOf(TextInputEditText editText) {
-        if (editText == null || editText.getText() == null) return "";
-        return editText.getText().toString();
+    private String valueOf(EditText field) {
+        if (field == null || field.getText() == null) {
+            return "";
+        }
+        return field.getText().toString();
     }
 }
