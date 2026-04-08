@@ -94,6 +94,10 @@ public class UserProfileFragmentTest {
         
         onView(withText("Review Profile")).check(matches(isDisplayed()));
         onView(withId(R.id.history_button)).check(matches(not(isDisplayed())));
+        
+        // Verifies the "See Entrant List" button (for US 03.09.01) does not show up
+        // when an Admin is viewing SOMEONE ELSE'S profile in Admin Mode.
+        onView(withId(R.id.entrant_list_button)).check(matches(not(isDisplayed())));
     }
 
     /**

@@ -33,6 +33,7 @@ import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentTransaction;
 
 import com.example.eventlottery.EventHistoryFragment;
+
 import com.example.eventlottery.R;
 import com.example.eventlottery.coorganizers.EntrantListFragment;
 import com.example.eventlottery.coorganizers.PendingInvitesFragment;
@@ -191,9 +192,14 @@ public class UserProfileFragment extends Fragment {
                         .commit();
             }
         });
-        notificationLogsButton.setOnClickListener(v ->
-                Toast.makeText(getContext(), "Opening Notification Logs...", Toast.LENGTH_SHORT).show()
-        );
+        notificationLogsButton.setOnClickListener(v -> {
+            if (getActivity() != null) {
+                getParentFragmentManager().beginTransaction()
+                        .replace(R.id.fragment_container, new AdminNotificationLogsFragment())
+                        .addToBackStack(null)
+                        .commit();
+            }
+        });
         entrantListButton.setOnClickListener(v -> {
             if (getActivity() != null) {
                 getParentFragmentManager().beginTransaction()

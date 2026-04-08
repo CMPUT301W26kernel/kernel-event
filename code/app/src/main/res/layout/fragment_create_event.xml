@@ -41,8 +41,10 @@
             <ImageView
                 android:id="@+id/poster_image"
                 android:layout_width="280dp"
-                android:layout_height="280dp"
-                android:background="@drawable/default_image"
+                android:layout_height="wrap_content"
+                android:adjustViewBounds="true"
+                android:scaleType="centerCrop"
+                android:src="@drawable/default_image"
                 android:contentDescription="@string/poster_image_content_description" />
 
             <com.google.android.material.button.MaterialButton
@@ -270,6 +272,101 @@
                     android:background="@color/white" />
 
             </LinearLayout>
+
+            <!-- Venue & geolocation (optional) -->
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="24dp"
+                android:layout_marginBottom="5dp"
+                android:text="@string/venue_location"
+                android:textColor="@color/primary_deep"
+                android:textSize="20sp" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginHorizontal="30dp"
+                android:orientation="horizontal">
+
+                <EditText
+                    android:id="@+id/edit_venue_latitude"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:background="@color/white"
+                    android:hint="@string/venue_latitude_hint"
+                    android:importantForAutofill="no"
+                    android:inputType="numberDecimal|numberSigned"
+                    android:padding="10dp"
+                    android:textSize="18sp" />
+
+                <EditText
+                    android:id="@+id/edit_venue_longitude"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:layout_weight="1"
+                    android:background="@color/white"
+                    android:hint="@string/venue_longitude_hint"
+                    android:importantForAutofill="no"
+                    android:inputType="numberDecimal|numberSigned"
+                    android:padding="10dp"
+                    android:textSize="18sp" />
+            </LinearLayout>
+
+            <CheckBox
+                android:id="@+id/checkbox_require_geolocation"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginHorizontal="26dp"
+                android:layout_marginTop="12dp"
+                android:text="@string/require_geolocation_waitlist"
+                android:textColor="@color/primary_deep"
+                android:textSize="16sp" />
+
+            <EditText
+                android:id="@+id/edit_geolocation_radius"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginHorizontal="30dp"
+                android:layout_marginTop="8dp"
+                android:background="@color/white"
+                android:hint="@string/geolocation_radius_hint"
+                android:importantForAutofill="no"
+                android:inputType="numberDecimal"
+                android:padding="10dp"
+                android:textSize="18sp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginHorizontal="30dp"
+                android:layout_marginTop="4dp"
+                android:text="@string/geo_verification_radius_note"
+                android:textColor="@color/grey_light"
+                android:textSize="12sp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="20dp"
+                android:layout_marginBottom="5dp"
+                android:text="@string/event_tags_hint"
+                android:textColor="@color/primary_deep"
+                android:textSize="20sp" />
+
+            <EditText
+                android:id="@+id/edit_event_tags"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginHorizontal="30dp"
+                android:background="@color/white"
+                android:importantForAutofill="no"
+                android:inputType="text"
+                android:padding="10dp"
+                android:textSize="18sp" />
 
             <!-- Edit Waiting List Capacity -->
 

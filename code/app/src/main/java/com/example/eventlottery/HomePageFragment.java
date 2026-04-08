@@ -198,7 +198,7 @@ public class HomePageFragment extends Fragment {
                     .commit());
         }
         
-        // Now allows admin to select either reporting or invites
+        // Now allows admin to select either reporting or Notifications
         MaterialButton notificationsBtn = bottomBarView.findViewById(R.id.btn_notifications);
         if (notificationsBtn != null) {
             notificationsBtn.setOnClickListener(v -> {

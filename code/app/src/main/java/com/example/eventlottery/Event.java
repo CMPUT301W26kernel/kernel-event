@@ -26,6 +26,7 @@ import android.util.Base64;
 import androidx.annotation.Nullable;
 
 import com.google.firebase.firestore.Exclude;
+import com.google.firebase.firestore.PropertyName;
 
 import java.io.ByteArrayOutputStream;
 import java.time.ZonedDateTime;
@@ -39,6 +40,9 @@ public class Event {
     private String description;
     private String organizerId; // Read only
     private Integer waitingListCapacity;
+
+    // firebase automatically sets 'isX' fields to 'x', but 'private' is a reserved keyword.
+    @PropertyName("private")
     private boolean isPrivate = false;
 
     @Exclude
@@ -55,6 +59,17 @@ public class Event {
 
     private java.util.List<String> coOrganizers = new java.util.ArrayList<>();
     private java.util.List<String> pendingCoOrganizers = new java.util.ArrayList<>();
+
+    /** Venue latitude (WGS84), optional; used for maps and optional waitlist geo verification. */
+    private Double venueLatitude;
+    /** Venue longitude (WGS84), optional. */
+    private Double venueLongitude;
+    /** When true, entrants must be within {@link #geolocationRadiusMeters} of the venue to join the waitlist. */
+    private boolean requireGeolocationForWaitlist;
+    /** Max distance from venue in meters; defaults in app logic when null. */
+    private Double geolocationRadiusMeters;
+    /** Optional labels for browsing and map filters (e.g. music, sports). */
+    private java.util.List<String> tags = new java.util.ArrayList<>();
 
     /**
      * An empty public constructor required for Firebase deserialization.
@@ -230,6 +245,7 @@ public class Event {
      * Events are public by default.
      * @return true if event is private, false otherwise.
      */
+    @PropertyName("private")
     public boolean isPrivate() {
         return this.isPrivate;
     }
@@ -246,5 +262,56 @@ public class Event {
      */
     public void setToPublic() {
         this.isPrivate = false;
+    }
+
+    public Double getVenueLatitude() {
+        return venueLatitude;
+    }
+
+    public void setVenueLatitude(Double venueLatitude) {
+        this.venueLatitude = venueLatitude;
+    }
+
+    public Double getVenueLongitude() {
+        return venueLongitude;
+    }
+
+    public void setVenueLongitude(Double venueLongitude) {
+        this.venueLongitude = venueLongitude;
+    }
+
+    public boolean isRequireGeolocationForWaitlist() {
+        return requireGeolocationForWaitlist;
+    }
+
+    public void setRequireGeolocationForWaitlist(boolean requireGeolocationForWaitlist) {
+        this.requireGeolocationForWaitlist = requireGeolocationForWaitlist;
+    }
+
+    public Double getGeolocationRadiusMeters() {
+        return geolocationRadiusMeters;
+    }
+
+    public void setGeolocationRadiusMeters(Double geolocationRadiusMeters) {
+        this.geolocationRadiusMeters = geolocationRadiusMeters;
+    }
+
+    public java.util.List<String> getTags() {
+        return tags;
+    }
+
+    public void setTags(java.util.List<String> tags) {
+        this.tags = tags != null ? tags : new java.util.ArrayList<>();
+    }
+
+    // METHODS
+
+    /**
+     * Checks if a user is an organizer or coorganizer of this event.
+     * @param userId the id of the user to check membership of.
+     * @return true if user is an organizer or coorganizer of this event, false otherwise.
+     */
+    public boolean isOrganizer(String userId) {
+        return (userId.equals(this.organizerId) || this.coOrganizers.contains(userId));
     }
 }

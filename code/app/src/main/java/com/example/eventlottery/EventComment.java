@@ -95,6 +95,10 @@ public class EventComment {
         this.status = status;
     }
 
+    public String getStatus() {
+        return status;
+    }
+
     public boolean isPinned() {
         return isPinned;
     }

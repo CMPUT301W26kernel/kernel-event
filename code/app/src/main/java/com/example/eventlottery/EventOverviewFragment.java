@@ -1,27 +1,45 @@
 /**
  * Event Overview Fragment
  * Displays the details of an event.
- * Last Modified: 2026-03-25
+ * Last Modified: 2026-04-04 by Grace MacKenzie
  */
 package com.example.eventlottery;
 
+import android.Manifest;
+import android.app.AlertDialog;
+import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.text.TextUtils;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentTransaction;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.google.android.gms.location.FusedLocationProviderClient;
+import com.google.android.gms.location.LocationServices;
+import com.google.android.gms.location.Priority;
+import com.google.android.gms.tasks.Task;
+import com.google.android.gms.tasks.Tasks;
+import com.google.android.gms.tasks.CancellationTokenSource;
+import com.example.eventlottery.creation.CreateEventFragment;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.Timestamp;
 import com.google.firebase.firestore.DocumentSnapshot;
@@ -33,19 +51,49 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 /**
- * Displays event details, waitlist actions, and the event comment thread.
- *
- * <p>The fragment normally loads its event, role, and comments from Firebase. Tests may inject
- * a {@link TestState} and a fake {@link EventCommentRepository} to test the UI without
- * depending on Firebase state.</p>
+ * A fragment which displays the details of a particular event and allows users to
+ * interact with events.
+ * <p>
+ *     Allows Entrants to join/leave a waitlist and comment on events.
+ * </p>
+ * <p>
+ *     Allows Organizers of the event to manage their waitlist, post comments,
+ *     moderate comments, edit their event, and generate an event QR code.
+ *     Organizers who are not contributors of an event are treated as Entrants.
+ * </p>
+ * <p>
+ *     Allows Admin to act as both an Entrant and an Organizer of the Event.
+ * </p>
+ * <p>
+ *     The fragment normally loads its event, role, and comments from Firebase.
+ *     Tests may inject a {@link TestState} and a fake {@link EventCommentRepository}
+ *     to test the UI without depending on Firebase state.
+ * </p>
  */
 public class EventOverviewFragment extends Fragment implements
         WaitingListDialogFragment.WaitingListDialogListener,
         EventCommentAdapter.OnDeleteCommentListener {
+
+    private static final String TAG = "EventOverviewFragment";
+
+    /**
+     * Organizer target available for reporting from the current event.
+     */
+    static final class ReportTarget {
+        final String userId;
+        String displayName;
+
+        ReportTarget(String userId, String displayName) {
+            this.userId = userId;
+            this.displayName = displayName;
+        }
+    }
 
     /**
      * State used by instrumentation tests to bypass Firebase reads.
@@ -92,6 +140,7 @@ public class EventOverviewFragment extends Fragment implements
 
     private WaitingListRepository waitlistRepo;
     private EventCommentRepository commentRepository;
+    private OrganizerReportRepository reportRepository;
     private ListenerRegistration commentListenerRegistration;
 
     private String eventId;
@@ -101,8 +150,27 @@ public class EventOverviewFragment extends Fragment implements
     private String currentUserId;
     private String currentUserRole;
     private String currentUsername;
+    private Event currentEvent;
     private int waitlistCount;
     private boolean inWaitingList;
+    private boolean eventRequiresGeolocationForWaitlist;
+    private String pendingJoinEventId;
+
+    private final ActivityResultLauncher<String[]> locationPermissionLauncher =
+            registerForActivityResult(new ActivityResultContracts.RequestMultiplePermissions(), result -> {
+                boolean ok = Boolean.TRUE.equals(result.get(Manifest.permission.ACCESS_FINE_LOCATION))
+                        || Boolean.TRUE.equals(result.get(Manifest.permission.ACCESS_COARSE_LOCATION));
+                if (ok && pendingJoinEventId != null) {
+                    String id = pendingJoinEventId;
+                    pendingJoinEventId = null;
+                    joinWaitlistWithDeviceLocation(id);
+                } else {
+                    pendingJoinEventId = null;
+                    if (getContext() != null) {
+                        Toast.makeText(getContext(), R.string.location_permission_required, Toast.LENGTH_SHORT).show();
+                    }
+                }
+            });
 
     private TextView eventTitleView;
     private TextView eventOrganizerView;
@@ -111,15 +179,22 @@ public class EventOverviewFragment extends Fragment implements
     private TextView eventDescriptionView;
     private TextView commentPermissionView;
     private TextView emptyCommentsView;
+    private TextView reportStatusView;
+    private ImageView posterImageView;
     private Button backButton;
     private Button qrGenerateButton;
+    private Button editButton;
     private EditText commentInput;
     private Button postCommentButton;
     private Button joinWaitlistButton;
     private Button manageWaitlistButton;
+    private Button reportOrganizerButton;
     private LinearLayout commentComposerContainer;
     private EventCommentAdapter commentAdapter;
+    private RecyclerView commentsRecyclerView;
     private TestState testState;
+    private final List<ReportTarget> reportTargets = new ArrayList<>();
+    private final Map<String, OrganizerReport> activeReportsByOrganizerId = new HashMap<>();
 
     public EventOverviewFragment() {
         // Required empty public constructor
@@ -132,6 +207,15 @@ public class EventOverviewFragment extends Fragment implements
      */
     void setCommentRepositoryForTesting(@NonNull EventCommentRepository commentRepository) {
         this.commentRepository = commentRepository;
+    }
+
+    /**
+     * Injects an organizer report repository for tests before the fragment is attached.
+     *
+     * @param reportRepository Repository implementation to use for report actions and lookups.
+     */
+    void setReportRepositoryForTesting(@NonNull OrganizerReportRepository reportRepository) {
+        this.reportRepository = reportRepository;
     }
 
     /**
@@ -149,6 +233,9 @@ public class EventOverviewFragment extends Fragment implements
         waitlistRepo = new WaitingListRepository();
         if (commentRepository == null) {
             commentRepository = new EventCommentRepository();
+        }
+        if (reportRepository == null) {
+            reportRepository = new OrganizerReportRepository();
         }
         currentUserId = getCurrentUserId();
 
@@ -171,6 +258,8 @@ public class EventOverviewFragment extends Fragment implements
         manageWaitlistButton.setOnClickListener(v -> openWaitlistManagementDialog());
         postCommentButton.setOnClickListener(v -> submitComment());
         qrGenerateButton.setOnClickListener(v -> navigateToQrGeneration());
+        reportOrganizerButton.setOnClickListener(v -> showReportDialog());
+        editButton.setOnClickListener(v -> navigateToEditFragment());
 
         if (eventId == null) {
             if (getContext() != null) {
@@ -186,6 +275,26 @@ public class EventOverviewFragment extends Fragment implements
         }
 
         loadEventData();
+    }
+
+    /**
+     * A custom implementation of the onResume() method which reloads the event data in the
+     * EventOverviewFragment if returning from a fragment which updates the event data
+     * (e.g. the CreateEventFragment in edit mode).
+     */
+    @Override
+    public void onResume() {
+        super.onResume();
+
+        getParentFragmentManager().setFragmentResultListener(
+                "editEventResult",
+                this,
+                (requestKey, bundle) -> {
+                    if (bundle.getBoolean("eventUpdated", false)) {
+                        loadEventData(); // reload updated event from Firestore
+                    }
+                }
+        );
     }
 
     @Override
@@ -205,13 +314,17 @@ public class EventOverviewFragment extends Fragment implements
         eventDescriptionView = view.findViewById(R.id.text_event_description);
         commentPermissionView = view.findViewById(R.id.text_comment_permissions);
         emptyCommentsView = view.findViewById(R.id.text_comments_empty);
+        reportStatusView = view.findViewById(R.id.text_report_status);
+        posterImageView = view.findViewById(R.id.image_event_poster);
         backButton = view.findViewById(R.id.btn_back_to_events);
         commentInput = view.findViewById(R.id.edit_comment_input);
         postCommentButton = view.findViewById(R.id.btn_post_comment);
         joinWaitlistButton = view.findViewById(R.id.btn_join_waitlist);
         manageWaitlistButton = view.findViewById(R.id.btn_manage_waitlist);
+        reportOrganizerButton = view.findViewById(R.id.btn_report_organizer);
         commentComposerContainer = view.findViewById(R.id.comment_composer_container);
         qrGenerateButton = view.findViewById(R.id.btn_qr_generate);
+        editButton = view.findViewById(R.id.btn_edit);
     }
 
     /**
@@ -220,10 +333,11 @@ public class EventOverviewFragment extends Fragment implements
      * @param view Fragment root view.
      */
     private void setupCommentsList(@NonNull View view) {
-        RecyclerView commentsRecyclerView = view.findViewById(R.id.rv_event_comments);
+        commentsRecyclerView = view.findViewById(R.id.rv_event_comments);
         commentsRecyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
         commentAdapter = new EventCommentAdapter(this);
         commentsRecyclerView.setAdapter(commentAdapter);
+        commentsRecyclerView.setNestedScrollingEnabled(false);
     }
 
     /**
@@ -231,15 +345,21 @@ public class EventOverviewFragment extends Fragment implements
      * actions should be available on the screen.
      */
     private void loadEventData() {
-        FirebaseFirestore.getInstance().collection("events").document(eventId).get()
+        FirebaseFirestore.getInstance().collection("events")
+                .document(eventId)
+                .get()
                 .addOnSuccessListener(documentSnapshot -> {
-                    if (!documentSnapshot.exists()) {
+                    // Deserialize event. Load error if it doesn't exist.
+                    currentEvent = documentSnapshot.toObject(Event.class);
+                    if (currentEvent == null) {
                         showLoadError();
                         return;
                     }
 
-                    bindEvent(documentSnapshot);
+                    bindEvent(currentEvent);
+                    bindReportTargets(documentSnapshot);
                     updateWaitlistState(documentSnapshot);
+                    loadOrganizerNamesForTargets();
                     listenForComments();
 
                     if (currentUserId == null) {
@@ -274,14 +394,22 @@ public class EventOverviewFragment extends Fragment implements
         ));
         eventDateView.setText(getString(
                 R.string.event_registration_window_format,
-                formatEventDate(state.registrationOpen),
-                formatEventDate(state.registrationClose)
+                state.registrationOpen.format(EVENT_DATE_FORMATTER),
+                state.registrationClose.format(EVENT_DATE_FORMATTER)
         ));
         eventDescriptionView.setText(fallbackText(
                 state.eventDescription,
                 getString(R.string.default_event_description)
         ));
         eventWaitlistView.setText(getString(R.string.event_waitlist_count_format, waitlistCount));
+        eventRequiresGeolocationForWaitlist = false;
+        reportTargets.clear();
+        if (state.eventOrganizerId != null) {
+            reportTargets.add(new ReportTarget(
+                    state.eventOrganizerId,
+                    fallbackText(state.eventOrganizerId, getString(R.string.event_unknown_organizer))
+            ));
+        }
 
         listenForComments();
         refreshActionState();
@@ -290,15 +418,13 @@ public class EventOverviewFragment extends Fragment implements
     /**
      * Copies event-level display data from Firestore into the UI.
      *
-     * @param documentSnapshot The Firestore event document.
+     * @param event The current event being overviewed
      */
-    private void bindEvent(DocumentSnapshot documentSnapshot) {
-        String eventNameRaw = documentSnapshot.getString("title");
-        eventTitle = eventNameRaw == null ? getString(R.string.default_event_title) : eventNameRaw;
-        String description = documentSnapshot.getString("description");
-        eventOrganizerId = documentSnapshot.getString("organizerId");
-        
-        List<String> rawCoOrganizers = (List<String>) documentSnapshot.get("coOrganizers");
+    private void bindEvent(Event event) {
+        eventTitle = fallbackText(event.getTitle(), getString(R.string.default_event_title));
+        eventOrganizerId = event.getOrganizerId();
+
+        List<String> rawCoOrganizers = (List<String>) event.getCoOrganizers();
         if (rawCoOrganizers != null) {
             eventCoOrganizers = new ArrayList<>(rawCoOrganizers);
         } else {
@@ -312,10 +438,12 @@ public class EventOverviewFragment extends Fragment implements
         ));
         eventDateView.setText(getString(
                 R.string.event_registration_window_format,
-                formatEventDate(readEventDate(documentSnapshot, "registrationOpen")),
-                formatEventDate(readEventDate(documentSnapshot, "registrationClose"))
+                event.getRegistrationOpen().format(EVENT_DATE_FORMATTER),
+                event.getRegistrationClose().format(EVENT_DATE_FORMATTER)
         ));
-        eventDescriptionView.setText(fallbackText(description, getString(R.string.default_event_description)));
+        eventDescriptionView.setText(fallbackText(event.getDescription(), getString(R.string.default_event_description)));
+        posterImageView.setImageBitmap(event.getPosterImage());
+        eventRequiresGeolocationForWaitlist = event.isRequireGeolocationForWaitlist();
     }
 
     /**
@@ -343,8 +471,12 @@ public class EventOverviewFragment extends Fragment implements
                     currentUserRole = userDoc.exists() ? userDoc.getString("role") : null;
                     currentUsername = userDoc.exists() ? userDoc.getString("username") : null;
                     refreshActionState();
+                    loadEntrantReports();
                 })
-                .addOnFailureListener(error -> refreshActionState());
+                .addOnFailureListener(error -> {
+                    refreshActionState();
+                    loadEntrantReports();
+                });
     }
 
     /**
@@ -365,6 +497,7 @@ public class EventOverviewFragment extends Fragment implements
                         }
 
                         commentAdapter.setComments(comments);
+                        resizeCommentsListToContent();
                         emptyCommentsView.setVisibility(comments.isEmpty() ? View.VISIBLE : View.GONE);
                     }
 
@@ -385,18 +518,17 @@ public class EventOverviewFragment extends Fragment implements
     private void refreshActionState() {
         commentAdapter.setViewerContext(currentUserId, currentUserRole, eventOrganizerId, eventCoOrganizers);
 
-        boolean isOrganizer = currentUserId != null && (currentUserId.equals(eventOrganizerId) || eventCoOrganizers.contains(currentUserId));
+        boolean isOrganizer = currentEvent != null
+                && currentUserId != null
+                && currentEvent.isOrganizer(currentUserId);
         boolean isAdmin = "admin".equalsIgnoreCase(currentUserRole);
 
         if (isOrganizer) {
             // Allow organizer/admin of event to manage waitlist; cannot join waitlist.
             showOrganizerActions();
         } else if (isAdmin) {
-            //Allow admin to both join and manage waitlists of events they're not organizing.
-            joinWaitlistButton.setVisibility(View.VISIBLE);
-            manageWaitlistButton.setVisibility(View.VISIBLE);
-            // Allow admin to generate a QR Code for any event
-            qrGenerateButton.setVisibility(View.VISIBLE);
+            //Allow admin to both join and manage events they're not organizing.
+            showAdminActions();
         } else {
             showEntrantActions();
         }
@@ -411,6 +543,67 @@ public class EventOverviewFragment extends Fragment implements
             commentPermissionView.setVisibility(View.VISIBLE);
             commentPermissionView.setText(resolveCommentPermissionMessage());
         }
+
+        refreshReportUi();
+    }
+
+    /**
+     * Expands the embedded RecyclerView so every comment row is visible inside the parent
+     * ScrollView. Without this, Android may only measure the first row.
+     */
+    private void resizeCommentsListToContent() {
+        if (commentsRecyclerView == null || commentAdapter == null) {
+            return;
+        }
+
+        commentsRecyclerView.post(() -> {
+            if (!isAdded() || commentsRecyclerView == null || commentAdapter == null) {
+                return;
+            }
+
+            int adapterWidth = commentsRecyclerView.getWidth();
+            if (adapterWidth <= 0) {
+                adapterWidth = requireView().getWidth() - commentsRecyclerView.getPaddingLeft() - commentsRecyclerView.getPaddingRight();
+            }
+            if (adapterWidth <= 0) {
+                return;
+            }
+
+            int widthSpec = View.MeasureSpec.makeMeasureSpec(adapterWidth, View.MeasureSpec.EXACTLY);
+            int totalHeight = commentsRecyclerView.getPaddingTop() + commentsRecyclerView.getPaddingBottom();
+
+            for (int position = 0; position < commentAdapter.getItemCount(); position++) {
+                RecyclerView.ViewHolder viewHolder = commentAdapter.createViewHolder(
+                        commentsRecyclerView,
+                        commentAdapter.getItemViewType(position)
+                );
+                commentAdapter.bindViewHolder((EventCommentAdapter.ViewHolder) viewHolder, position);
+                viewHolder.itemView.measure(
+                        widthSpec,
+                        View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
+                );
+                totalHeight += viewHolder.itemView.getMeasuredHeight();
+            }
+
+            RecyclerView.LayoutParams itemLayoutParams = null;
+            if (commentAdapter.getItemCount() > 0) {
+                RecyclerView.ViewHolder probeHolder = commentAdapter.createViewHolder(
+                        commentsRecyclerView,
+                        commentAdapter.getItemViewType(0)
+                );
+                itemLayoutParams = (RecyclerView.LayoutParams) probeHolder.itemView.getLayoutParams();
+            }
+            if (itemLayoutParams != null) {
+                totalHeight += itemLayoutParams.topMargin * commentAdapter.getItemCount();
+                totalHeight += itemLayoutParams.bottomMargin * commentAdapter.getItemCount();
+            }
+
+            ViewGroup.LayoutParams params = commentsRecyclerView.getLayoutParams();
+            if (params.height != totalHeight) {
+                params.height = totalHeight;
+                commentsRecyclerView.setLayoutParams(params);
+            }
+        });
     }
 
     /**
@@ -478,7 +671,12 @@ public class EventOverviewFragment extends Fragment implements
      */
     private void openWaitlistDialog() {
         WaitingListDialogFragment dialog =
-                WaitingListDialogFragment.newInstance(eventId, eventTitle, waitlistCount, inWaitingList);
+                WaitingListDialogFragment.newInstance(
+                        eventId,
+                        eventTitle,
+                        waitlistCount,
+                        inWaitingList,
+                        eventRequiresGeolocationForWaitlist);
         dialog.show(getChildFragmentManager(), "WaitingListDialog");
     }
 
@@ -488,6 +686,144 @@ public class EventOverviewFragment extends Fragment implements
     private void openWaitlistManagementDialog() {
         WaitlistManagementFragment dialog = WaitlistManagementFragment.newInstance(eventId);
         dialog.show(getChildFragmentManager(), "WaitlistManagementDialog");
+    }
+
+    /**
+     * Opens the entrant organizer report editor for the current event.
+     */
+    private void showReportDialog() {
+        if (getContext() == null
+                || !OrganizerReportPolicy.canCreateReport(currentUserId, currentUserRole)
+                || reportTargets.isEmpty()) {
+            return;
+        }
+
+        View dialogView = LayoutInflater.from(getContext()).inflate(R.layout.dialog_organizer_report, null);
+        TextView targetLabel = dialogView.findViewById(R.id.text_report_target_label);
+        Spinner targetSpinner = dialogView.findViewById(R.id.spinner_report_target);
+        Spinner reasonSpinner = dialogView.findViewById(R.id.spinner_report_reason);
+        EditText noteInput = dialogView.findViewById(R.id.edit_report_note);
+
+        List<String> targetLabels = new ArrayList<>();
+        for (ReportTarget target : reportTargets) {
+            targetLabels.add(target.displayName);
+        }
+
+        ArrayAdapter<String> targetAdapter = new ArrayAdapter<>(
+                requireContext(),
+                android.R.layout.simple_spinner_item,
+                targetLabels
+        );
+        targetAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        targetSpinner.setAdapter(targetAdapter);
+
+        List<String> reasonLabels = OrganizerReportPolicy.getReasonLabels();
+        List<String> reasonCodes = OrganizerReportPolicy.getReasonCodes();
+        ArrayAdapter<String> reasonAdapter = new ArrayAdapter<>(
+                requireContext(),
+                android.R.layout.simple_spinner_item,
+                reasonLabels
+        );
+        reasonAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        reasonSpinner.setAdapter(reasonAdapter);
+
+        if (reportTargets.size() == 1) {
+            targetSpinner.setVisibility(View.GONE);
+            targetLabel.setText(getString(R.string.event_organizer_format, reportTargets.get(0).displayName));
+        }
+
+        final ReportTarget[] selectedTarget = {reportTargets.get(0)};
+        final OrganizerReport[] selectedReport = {findActiveReport(selectedTarget[0].userId)};
+
+        AlertDialog dialog = new AlertDialog.Builder(requireContext())
+                .setTitle(selectedReport[0] == null ? R.string.report_dialog_title : R.string.report_dialog_update_title)
+                .setView(dialogView)
+                .setNegativeButton(R.string.cancel, null)
+                .setPositiveButton(
+                        selectedReport[0] == null ? R.string.report_dialog_submit : R.string.report_dialog_update,
+                        null
+                )
+                .setNeutralButton(R.string.report_dialog_delete, null)
+                .create();
+
+        Runnable refreshDialogState = () -> {
+            selectedReport[0] = findActiveReport(selectedTarget[0].userId);
+            OrganizerReport report = selectedReport[0];
+            boolean canEdit = report == null
+                    || OrganizerReportPolicy.canEditOrDeleteReport(report, currentUserId, currentUserRole);
+
+            dialog.setTitle(report == null
+                    ? getString(R.string.report_dialog_title)
+                    : getString(R.string.report_dialog_update_title));
+            reasonSpinner.setEnabled(canEdit);
+            noteInput.setEnabled(canEdit);
+            if (report != null) {
+                int reasonIndex = Math.max(0, reasonCodes.indexOf(report.getReason()));
+                reasonSpinner.setSelection(reasonIndex);
+                noteInput.setText(report.getNote() == null ? "" : report.getNote());
+            } else {
+                reasonSpinner.setSelection(0);
+                noteInput.setText("");
+            }
+
+            Button positiveButton = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
+            Button neutralButton = dialog.getButton(AlertDialog.BUTTON_NEUTRAL);
+            if (positiveButton != null) {
+                positiveButton.setText(report == null
+                        ? getString(R.string.report_dialog_submit)
+                        : getString(R.string.report_dialog_update));
+                positiveButton.setVisibility(canEdit ? View.VISIBLE : View.GONE);
+            }
+            if (neutralButton != null) {
+                neutralButton.setVisibility(report != null && canEdit ? View.VISIBLE : View.GONE);
+            }
+        };
+
+        targetSpinner.setOnItemSelectedListener(new android.widget.AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(android.widget.AdapterView<?> parent, View view, int position, long id) {
+                selectedTarget[0] = reportTargets.get(position);
+                if (dialog.isShowing()) {
+                    refreshDialogState.run();
+                }
+            }
+
+            @Override
+            public void onNothingSelected(android.widget.AdapterView<?> parent) {
+                // Keep the current selection.
+            }
+        });
+
+        dialog.setOnShowListener(unused -> {
+            refreshDialogState.run();
+
+            Button positiveButton = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
+            Button neutralButton = dialog.getButton(AlertDialog.BUTTON_NEUTRAL);
+            if (positiveButton != null) {
+                positiveButton.setOnClickListener(v -> {
+                    String selectedReasonCode = reasonCodes.get(reasonSpinner.getSelectedItemPosition());
+                    String note = noteInput.getText().toString();
+                    String validationError = OrganizerReportPolicy.validateReasonAndNote(selectedReasonCode, note);
+                    if (validationError != null) {
+                        noteInput.setError(validationError);
+                        return;
+                    }
+                    noteInput.setError(null);
+                    saveReport(selectedTarget[0], selectedReasonCode, note, dialog);
+                });
+            }
+
+            if (neutralButton != null) {
+                neutralButton.setOnClickListener(v -> {
+                    OrganizerReport report = selectedReport[0];
+                    if (report != null) {
+                        deleteReport(report, dialog);
+                    }
+                });
+            }
+        });
+
+        dialog.show();
     }
 
     /**
@@ -528,28 +864,55 @@ public class EventOverviewFragment extends Fragment implements
      * Navigates to a Qr Code Generation fragment
      */
     private void navigateToQrGeneration() {
-        getParentFragmentManager()
-                .beginTransaction()
-                .replace(R.id.fragment_container, QrGeneratorFragment.newInstance(eventId))
-                .commit();
+        FragmentTransaction transaction = getParentFragmentManager().beginTransaction();
+        transaction.add(R.id.fragment_container, QrGeneratorFragment.newInstance(eventId));
+        transaction.addToBackStack("qr_generation");
+        transaction.commit();
+    }
+
+    private void navigateToEditFragment() {
+        FragmentTransaction transaction = getParentFragmentManager().beginTransaction();
+        transaction.add(R.id.fragment_container, CreateEventFragment.newInstanceEditMode(eventId));
+        transaction.addToBackStack("edit_event");
+        transaction.commit();
     }
 
     /**
      * Shows the join/leave waitlist action and hides event organizer management.
      */
     private void showEntrantActions() {
-        manageWaitlistButton.setVisibility(View.GONE);
         joinWaitlistButton.setVisibility(View.VISIBLE);
+        manageWaitlistButton.setVisibility(View.GONE);
+        qrGenerateButton.setVisibility(View.GONE);
+        editButton.setVisibility(View.GONE);
     }
 
     /**
-     * Shows event organizer/admin waitlist management and qr generation button and
-     * hides the entrant action.
+     * Shows event management buttons and hides the button to join/leave the waitlist.
      */
     private void showOrganizerActions() {
         joinWaitlistButton.setVisibility(View.GONE);
         manageWaitlistButton.setVisibility(View.VISIBLE);
-        qrGenerateButton.setVisibility(View.VISIBLE);
+        if (currentEvent != null && !currentEvent.isPrivate()) {
+            qrGenerateButton.setVisibility(View.VISIBLE);
+        } else {
+            qrGenerateButton.setVisibility(View.GONE);
+        }
+        editButton.setVisibility(View.VISIBLE);
+    }
+
+    /**
+     * Shows join/leave waitlist, waitlist management, qr generation, and edit buttons to admin.
+     */
+    private void showAdminActions() {
+        joinWaitlistButton.setVisibility(View.VISIBLE);
+        manageWaitlistButton.setVisibility(View.VISIBLE);
+        if (currentEvent != null && !currentEvent.isPrivate()) {
+            qrGenerateButton.setVisibility(View.VISIBLE);
+        } else {
+            qrGenerateButton.setVisibility(View.GONE);
+        }
+        editButton.setVisibility(View.VISIBLE);
     }
 
     /**
@@ -571,7 +934,56 @@ public class EventOverviewFragment extends Fragment implements
             return;
         }
 
-        waitlistRepo.joinWaitingList(eventId, userId).addOnSuccessListener(aVoid -> {
+        if (eventRequiresGeolocationForWaitlist) {
+            if (!hasLocationPermission()) {
+                pendingJoinEventId = eventId;
+                locationPermissionLauncher.launch(new String[]{
+                        Manifest.permission.ACCESS_FINE_LOCATION,
+                        Manifest.permission.ACCESS_COARSE_LOCATION
+                });
+                return;
+            }
+            joinWaitlistWithDeviceLocation(eventId);
+            return;
+        }
+
+        performJoinWaitlist(eventId, null, null);
+    }
+
+    private boolean hasLocationPermission() {
+        return ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
+                || ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED;
+    }
+
+    private void joinWaitlistWithDeviceLocation(String joinEventId) {
+        String userId = getCurrentUserId();
+        if (userId == null) {
+            Toast.makeText(getContext(), getString(R.string.error_must_be_signed_in), Toast.LENGTH_SHORT).show();
+            return;
+        }
+        FusedLocationProviderClient client = LocationServices.getFusedLocationProviderClient(requireActivity());
+        CancellationTokenSource cts = new CancellationTokenSource();
+        client.getCurrentLocation(Priority.PRIORITY_BALANCED_POWER_ACCURACY, cts.getToken())
+                .addOnSuccessListener(loc -> {
+                    if (!isAdded()) {
+                        return;
+                    }
+                    if (loc == null) {
+                        Toast.makeText(getContext(), R.string.location_unavailable, Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+                    performJoinWaitlist(joinEventId, loc.getLatitude(), loc.getLongitude());
+                });
+    }
+
+    private void performJoinWaitlist(String joinEventId, Double lat, Double lng) {
+        String userId = getCurrentUserId();
+        if (userId == null) {
+            Toast.makeText(getContext(), getString(R.string.error_must_be_signed_in), Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        waitlistRepo.joinWaitingList(joinEventId, userId, lat, lng).addOnSuccessListener(aVoid -> {
             inWaitingList = true;
             waitlistCount += 1;
             eventWaitlistView.setText(getString(R.string.event_waitlist_count_format, waitlistCount));
@@ -582,9 +994,21 @@ public class EventOverviewFragment extends Fragment implements
             }
         }).addOnFailureListener(e -> {
             if (getContext() != null) {
-                Toast.makeText(getContext(), getString(R.string.action_failed), Toast.LENGTH_SHORT).show();
+                Toast.makeText(getContext(), resolveJoinFailureMessage(e), Toast.LENGTH_SHORT).show();
             }
         });
+    }
+
+    private String resolveJoinFailureMessage(Exception e) {
+        Throwable t = e;
+        while (t.getCause() != null) {
+            t = t.getCause();
+        }
+        String m = t.getMessage();
+        if (m != null && !m.trim().isEmpty()) {
+            return m;
+        }
+        return getString(R.string.action_failed);
     }
 
     /**
@@ -709,16 +1133,6 @@ public class EventOverviewFragment extends Fragment implements
     }
 
     /**
-     * Formats a zoned date for concise event display.
-     *
-     * @param date Date to format.
-     * @return Localized short date string.
-     */
-    private String formatEventDate(ZonedDateTime date) {
-        return EVENT_DATE_FORMATTER.format(date);
-    }
-
-    /**
      * Returns the input string unless it is blank, in which case the fallback is returned.
      *
      * @param value Candidate value.
@@ -727,5 +1141,225 @@ public class EventOverviewFragment extends Fragment implements
      */
     private String fallbackText(String value, String fallback) {
         return value == null || value.trim().isEmpty() ? fallback : value;
+    }
+
+    private void bindReportTargets(DocumentSnapshot documentSnapshot) {
+        reportTargets.clear();
+        String primaryOrganizerId = documentSnapshot.getString("organizerId");
+        if (primaryOrganizerId != null && !primaryOrganizerId.trim().isEmpty()) {
+            reportTargets.add(new ReportTarget(primaryOrganizerId, primaryOrganizerId));
+        }
+
+        List<String> coOrganizerIds = extractStringList(documentSnapshot.get("coOrganizers"));
+        for (String coOrganizerId : coOrganizerIds) {
+            if (!containsReportTarget(coOrganizerId)) {
+                reportTargets.add(new ReportTarget(coOrganizerId, coOrganizerId));
+            }
+        }
+    }
+
+    private boolean containsReportTarget(String organizerId) {
+        for (ReportTarget target : reportTargets) {
+            if (target.userId.equals(organizerId)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private String resolvePrimaryOrganizerName() {
+        return reportTargets.isEmpty() ? eventOrganizerId : reportTargets.get(0).displayName;
+    }
+
+    private void loadOrganizerNamesForTargets() {
+        if (reportTargets.isEmpty()) {
+            refreshReportUi();
+            return;
+        }
+
+        List<Task<DocumentSnapshot>> tasks = new ArrayList<>();
+        for (ReportTarget target : reportTargets) {
+            tasks.add(FirebaseFirestore.getInstance()
+                    .collection("users")
+                    .document(target.userId)
+                    .get());
+        }
+
+        Tasks.whenAllSuccess(tasks).addOnSuccessListener(results -> {
+            for (int index = 0; index < results.size() && index < reportTargets.size(); index++) {
+                Object result = results.get(index);
+                if (result instanceof DocumentSnapshot) {
+                    DocumentSnapshot userDoc = (DocumentSnapshot) result;
+                    String username = userDoc.getString("username");
+                    if (username != null && !username.trim().isEmpty()) {
+                        reportTargets.get(index).displayName = username;
+                    }
+                }
+            }
+
+            if (eventOrganizerView != null) {
+                eventOrganizerView.setText(getString(
+                        R.string.event_organizer_format,
+                        fallbackText(resolvePrimaryOrganizerName(), getString(R.string.event_unknown_organizer))
+                ));
+            }
+            refreshReportUi();
+        }).addOnFailureListener(error -> refreshReportUi());
+    }
+
+    private void loadEntrantReports() {
+        if (!OrganizerReportPolicy.canCreateReport(currentUserId, currentUserRole) || eventId == null) {
+            activeReportsByOrganizerId.clear();
+            refreshReportUi();
+            return;
+        }
+
+        reportRepository.getActiveReportsForReporterAndEvent(currentUserId, eventId)
+                .addOnSuccessListener(reports -> {
+                    activeReportsByOrganizerId.clear();
+                    for (OrganizerReport report : reports) {
+                        if (report.getOrganizerId() != null) {
+                            activeReportsByOrganizerId.put(report.getOrganizerId(), report);
+                        }
+                    }
+                    refreshReportUi();
+                })
+                .addOnFailureListener(error -> refreshReportUi());
+    }
+
+    private OrganizerReport findActiveReport(String organizerId) {
+        return organizerId == null ? null : activeReportsByOrganizerId.get(organizerId);
+    }
+
+    private void refreshReportUi() {
+        if (reportOrganizerButton == null || reportStatusView == null) {
+            return;
+        }
+
+        boolean canCreate = OrganizerReportPolicy.canCreateReport(currentUserId, currentUserRole) && !reportTargets.isEmpty();
+        if (!canCreate) {
+            reportOrganizerButton.setVisibility(View.GONE);
+            reportStatusView.setVisibility(View.GONE);
+            return;
+        }
+
+        reportOrganizerButton.setVisibility(View.VISIBLE);
+        int activeReportCount = activeReportsByOrganizerId.size();
+        if (activeReportCount == 0) {
+            reportOrganizerButton.setEnabled(true);
+            reportOrganizerButton.setText(R.string.report_button_label);
+            reportStatusView.setVisibility(View.GONE);
+            return;
+        }
+
+        boolean anyEditable = false;
+        OrganizerReport primaryReport = findActiveReport(eventOrganizerId);
+        for (OrganizerReport report : activeReportsByOrganizerId.values()) {
+            if (OrganizerReportPolicy.canEditOrDeleteReport(report, currentUserId, currentUserRole)) {
+                anyEditable = true;
+                break;
+            }
+        }
+
+        reportOrganizerButton.setEnabled(anyEditable);
+        reportOrganizerButton.setText(R.string.report_button_edit_label);
+        reportStatusView.setVisibility(View.VISIBLE);
+        if (activeReportCount > 1) {
+            reportStatusView.setText(getString(R.string.report_status_multiple_format, activeReportCount));
+            return;
+        }
+
+        OrganizerReport currentReport = primaryReport != null
+                ? primaryReport
+                : activeReportsByOrganizerId.values().iterator().next();
+        if (OrganizerReport.STATUS_DISMISSED.equals(currentReport.getStatus())) {
+            reportStatusView.setText(R.string.report_status_dismissed);
+        } else if (OrganizerReport.STATUS_ACTION_TAKEN.equals(currentReport.getStatus())) {
+            reportStatusView.setText(R.string.report_status_action_taken);
+        } else {
+            reportStatusView.setText(R.string.report_status_pending);
+        }
+    }
+
+    private void saveReport(
+            ReportTarget target,
+            String reasonCode,
+            String note,
+            AlertDialog dialog
+    ) {
+        if (target == null || TextUtils.isEmpty(target.userId)) {
+            if (getContext() != null) {
+                Toast.makeText(getContext(), R.string.report_missing_target, Toast.LENGTH_SHORT).show();
+            }
+            return;
+        }
+
+        OrganizerReport draft = new OrganizerReport();
+        draft.setReason(reasonCode);
+        draft.setNote(note);
+        draft.setReporterUserId(currentUserId);
+        draft.setReporterUsernameSnapshot(fallbackText(currentUsername, currentUserId));
+        draft.setOrganizerId(target.userId);
+        draft.setOrganizerNameSnapshot(fallbackText(target.displayName, target.userId));
+        draft.setEventId(eventId);
+        draft.setEventTitleSnapshot(eventTitle);
+
+        reportRepository.savePendingReport(draft)
+                .addOnSuccessListener(unused -> {
+                    if (getContext() != null) {
+                        Toast.makeText(getContext(), R.string.report_saved_success, Toast.LENGTH_SHORT).show();
+                    }
+                    dialog.dismiss();
+                    loadEntrantReports();
+                })
+                .addOnFailureListener(error -> {
+                    if (getContext() != null) {
+                        Log.e(TAG, "Failed to save organizer report", error);
+                        Toast.makeText(getContext(), resolveReportSaveFailureMessage(error), Toast.LENGTH_LONG).show();
+                    }
+                });
+    }
+
+    private void deleteReport(OrganizerReport report, AlertDialog dialog) {
+        reportRepository.anonymizePendingReport(report, currentUserId)
+                .addOnSuccessListener(unused -> {
+                    if (getContext() != null) {
+                        Toast.makeText(getContext(), R.string.report_deleted_success, Toast.LENGTH_SHORT).show();
+                    }
+                    dialog.dismiss();
+                    loadEntrantReports();
+                })
+                .addOnFailureListener(error -> {
+                    if (getContext() != null) {
+                        Toast.makeText(getContext(), R.string.report_delete_failed, Toast.LENGTH_SHORT).show();
+                    }
+                });
+    }
+
+    private String resolveReportSaveFailureMessage(Exception error) {
+        if (error == null) {
+            return getString(R.string.report_submit_failed);
+        }
+
+        String message = error.getMessage();
+        if (message == null || message.trim().isEmpty()) {
+            return getString(R.string.report_submit_failed);
+        }
+
+        if (message.contains("event no longer exists")) {
+            return getString(R.string.report_no_longer_exists);
+        }
+        if (message.contains("Only signed-in entrants can submit reports.")) {
+            return message;
+        }
+        if (message.contains("Resolved reports cannot be edited by entrants.")) {
+            return message;
+        }
+        if (message.contains("Select a valid report reason.")
+                || message.contains("Add a short note when reporting another policy violation.")) {
+            return message;
+        }
+
+        return getString(R.string.report_submit_failed) + ": " + message;
     }
 }

@@ -137,6 +137,9 @@ public class NotificationsFragment extends Fragment {
 
                     if (value != null) {
                         for (DocumentSnapshot doc : value.getDocuments()) {
+                            if (OrganizerReport.ENTRY_TYPE_REPORT.equals(doc.getString("entryType"))) {
+                                continue;
+                            }
                             Notification notification = doc.toObject(Notification.class);
 
                             if (notification != null) {

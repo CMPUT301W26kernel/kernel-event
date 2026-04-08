@@ -12,6 +12,7 @@ import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.FirebaseFirestore;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 import static org.junit.Assert.assertNotNull;
@@ -41,13 +42,6 @@ public class WaitingListRepositoryTest {
         when(mockDb.collection(anyString())).thenReturn(mockCollection);
         when(mockCollection.document(anyString())).thenReturn(mockDocRef);
 
-        when(mockDb.runTransaction(any())).thenReturn(mockTask);
-
-        when(mockDocRef.update(anyString(), any())).thenReturn(mockTask);
-        when(mockTask.addOnSuccessListener(any())).thenReturn(mockTask);
-        when(mockTask.addOnFailureListener(any())).thenReturn(mockTask);
-        when(mockTask.continueWith(any())).thenReturn(mockTask);
-
         repository = new WaitingListRepository(mockDb);
     }
 
@@ -56,6 +50,10 @@ public class WaitingListRepositoryTest {
      */
     @Test
     public void testJoinWaitingListCallsTransaction() {
+        when(mockDb.runTransaction(any())).thenReturn(mockTask);
+        when(mockTask.addOnSuccessListener(any())).thenReturn(mockTask);
+        when(mockTask.addOnFailureListener(any())).thenReturn(mockTask);
+
         Task<Void> result = repository.joinWaitingList("testEvent", "testUser");
         assertNotNull(result);
         verify(mockDb).runTransaction(any());
@@ -66,9 +64,13 @@ public class WaitingListRepositoryTest {
      */
     @Test
     public void testLeaveWaitingListCallsUpdate() {
+        when(mockDocRef.update(anyMap())).thenReturn(mockTask);
+        when(mockTask.addOnSuccessListener(any())).thenReturn(mockTask);
+        when(mockTask.addOnFailureListener(any())).thenReturn(mockTask);
+
         Task<Void> result = repository.leaveWaitingList("testEvent", "testUser");
         assertNotNull(result);
-        verify(mockDocRef).update(anyString(), any());
+        verify(mockDocRef).update(anyMap());
     }
 
     /**
@@ -78,6 +80,7 @@ public class WaitingListRepositoryTest {
     public void testGetWaitingListCallsGet() {
         // Mock the get method to return a Task
         when(mockDocRef.get()).thenReturn(mockTask);
+        when(mockTask.continueWith(any())).thenReturn(mockTask);
         
         Task<?> result = repository.getWaitingList("testEvent");
         assertNotNull(result);

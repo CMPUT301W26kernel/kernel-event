@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="20dp">
+
+    <TextView
+        android:id="@+id/text_report_target_label"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/report_target_label"
+        android:textColor="@color/primary_deep"
+        android:textStyle="bold" />
+
+    <Spinner
+        android:id="@+id/spinner_report_target"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp" />
+
+    <TextView
+        android:id="@+id/text_report_reason_label"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:text="@string/report_reason_label"
+        android:textColor="@color/primary_deep"
+        android:textStyle="bold" />
+
+    <Spinner
+        android:id="@+id/spinner_report_reason"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp" />
+
+    <TextView
+        android:id="@+id/text_report_note_label"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:text="@string/report_note_label"
+        android:textColor="@color/primary_deep"
+        android:textStyle="bold" />
+
+    <EditText
+        android:id="@+id/edit_report_note"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:gravity="top|start"
+        android:hint="@string/report_note_hint"
+        android:inputType="textCapSentences|textMultiLine"
+        android:maxLines="5"
+        android:minHeight="96dp"
+        android:padding="12dp" />
+</LinearLayout>

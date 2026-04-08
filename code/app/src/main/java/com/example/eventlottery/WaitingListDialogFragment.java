@@ -44,6 +44,7 @@ public class WaitingListDialogFragment extends DialogFragment {
     private static final String ARG_EVENT_NAME = "eventName";
     private static final String ARG_ENTRANT_COUNT = "entrantCount";
     private static final String ARG_IN_WAITING_LIST = "inWaitingList";
+    private static final String ARG_REQUIRE_GEO = "requireGeo";
 
     @Override
     public void onAttach(@NonNull Context context) {
@@ -81,12 +82,14 @@ public class WaitingListDialogFragment extends DialogFragment {
         String eventName = "Event";
         int entrantCount = 0;
         boolean inWaitingList = false;
+        boolean requireGeo = false;
 
         if (args != null) {
             eventId = args.getString(ARG_EVENT_ID, "");
             eventName = args.getString(ARG_EVENT_NAME, "this event");
             entrantCount = args.getInt(ARG_ENTRANT_COUNT, 0);
             inWaitingList = args.getBoolean(ARG_IN_WAITING_LIST, false);
+            requireGeo = args.getBoolean(ARG_REQUIRE_GEO, false);
         }
 
         final String finalEventId = eventId;
@@ -106,7 +109,11 @@ public class WaitingListDialogFragment extends DialogFragment {
             actionButton.setText(R.string.waiting_list_dialog_action_leave);
         } else {
             titleText.setText(R.string.waiting_list_dialog_title_join);
-            descText.setText(getString(R.string.waiting_list_dialog_desc_join, entrantCount, eventName));
+            String base = getString(R.string.waiting_list_dialog_desc_join, entrantCount, eventName);
+            if (requireGeo) {
+                base = base + "\n\n" + getString(R.string.waiting_list_geo_notice);
+            }
+            descText.setText(base);
             actionButton.setText(R.string.waiting_list_dialog_action_join);
         }
         
@@ -151,11 +158,25 @@ public class WaitingListDialogFragment extends DialogFragment {
      * @return A new instance of WaitingListDialogFragment
      */
     public static WaitingListDialogFragment newInstance(String eventId, String eventName, int entrantCount, boolean inWaitingList) {
+        return newInstance(eventId, eventName, entrantCount, inWaitingList, false);
+    }
+
+    /**
+     * @param requireGeolocationForWaitlist when true, joining may use device location for verification
+     */
+    public static WaitingListDialogFragment newInstance(
+            String eventId,
+            String eventName,
+            int entrantCount,
+            boolean inWaitingList,
+            boolean requireGeolocationForWaitlist
+    ) {
         Bundle args = new Bundle();
         args.putString(ARG_EVENT_ID, eventId);
         args.putString(ARG_EVENT_NAME, eventName);
         args.putInt(ARG_ENTRANT_COUNT, entrantCount);
         args.putBoolean(ARG_IN_WAITING_LIST, inWaitingList);
+        args.putBoolean(ARG_REQUIRE_GEO, requireGeolocationForWaitlist);
 
         WaitingListDialogFragment fragment = new WaitingListDialogFragment();
         fragment.setArguments(args);
