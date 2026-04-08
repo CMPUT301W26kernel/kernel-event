@@ -50,6 +50,11 @@
     <string name="draw_btn">Draw</string>
     <string name="success_draw_toast">Drew %1$d entrants successfully!</string>
     <string name="fail_draw_toast">Failed to run lottery</string>
+    <string name="waitlist_management_loading">Loading waitlist entrants...</string>
+    <string name="waitlist_management_empty">No entrants are currently on the waiting list.</string>
+    <string name="waitlist_management_missing_profiles">Waitlist entries were found, but the related user profiles could not be loaded.</string>
+    <string name="waitlist_management_load_failed">Failed to load the waiting list.</string>
+    <string name="waitlist_view_restricted">Only organizers and admins can manage this waiting list.</string>
 
     <string name="btn_join_leave_waitlist">Join / Leave Waitlist</string>
     <string name="btn_manage_waitlist">Manage Waitlist</string>

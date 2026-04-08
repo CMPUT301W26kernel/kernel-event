@@ -21,8 +21,8 @@ public class EventCommentPolicyTest {
     }
 
     @Test
-    public void adminCannotPostComments() {
-        assertFalse(EventCommentPolicy.canPostComment("admin-1", "admin", "organizer-1", null));
+    public void adminCanPostComments() {
+        assertTrue(EventCommentPolicy.canPostComment("admin-1", "admin", "organizer-1", null));
     }
 
     @Test

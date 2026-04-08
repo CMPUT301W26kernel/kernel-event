@@ -106,7 +106,7 @@ public class OrganizerReportRepository {
         }
         if (draft.getReporterUserId() == null || draft.getReporterUserId().trim().isEmpty()) {
             TaskCompletionSource<Void> failed = new TaskCompletionSource<>();
-            failed.setException(new IllegalArgumentException("Only signed-in entrants can submit reports."));
+            failed.setException(new IllegalArgumentException("Only signed-in users can submit reports."));
             return failed.getTask();
         }
         if (draft.getOrganizerId() == null || draft.getOrganizerId().trim().isEmpty()) {
@@ -172,7 +172,7 @@ public class OrganizerReportRepository {
 
                     if (existingReport != null) {
                         if (!OrganizerReport.STATUS_PENDING.equals(existingReport.getStatus())) {
-                            throw new IllegalStateException("Resolved reports cannot be edited by entrants.");
+                            throw new IllegalStateException("Resolved reports cannot be edited.");
                         }
                         draft.setCreatedAt(existingReport.getCreatedAt());
                         draft.setResolvedAt(existingReport.getResolvedAt());

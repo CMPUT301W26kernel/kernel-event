@@ -38,30 +38,30 @@ public class EventHistoryStatusTest {
     }
 
     @Test
-    public void testStatusNotSelected() {
-        // Draw happened (invited list not empty), but user still in waiting list
+    public void testStatusStillOnWaitingListAfterDraw() {
+        // A draw happened, but users who were not selected remain eligible for future draws.
         List<String> waiting = Arrays.asList(userId);
         List<String> invited = Arrays.asList("winner1");
         String status = EventHistoryStatusUtils.determineStatus(userId, waiting, invited, null, null);
-        assertEquals("Lottery results:\nNot selected", status);
+        assertEquals("Lottery results:\nStill on waiting list", status);
     }
 
     @Test
-    public void testStatusNotSelectedAfterDraw() {
-        // Draw happened (someone else accepted), user in waiting list
+    public void testStatusStillOnWaitingListAfterAcceptance() {
+        // Accepted entrants also indicate that the draw happened, but the remaining pool stays active.
         List<String> waiting = Arrays.asList(userId);
         List<String> accepted = Arrays.asList("winner1");
         String status = EventHistoryStatusUtils.determineStatus(userId, waiting, null, accepted, null);
-        assertEquals("Lottery results:\nNot selected", status);
+        assertEquals("Lottery results:\nStill on waiting list", status);
     }
 
     @Test
     public void testStatusPending() {
-        // No draw happened yet (invited list empty), user in waiting list
+        // Before any draw happens, the user is still on the waiting list.
         List<String> waiting = Arrays.asList(userId);
         List<String> invited = new ArrayList<>();
         String status = EventHistoryStatusUtils.determineStatus(userId, waiting, invited, null, null);
-        assertEquals("Lottery results:\nPending...", status);
+        assertEquals("Lottery results:\nStill on waiting list", status);
     }
 
     @Test

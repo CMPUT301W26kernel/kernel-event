@@ -45,6 +45,7 @@ public class WaitingListDialogFragment extends DialogFragment {
     private static final String ARG_ENTRANT_COUNT = "entrantCount";
     private static final String ARG_IN_WAITING_LIST = "inWaitingList";
     private static final String ARG_REQUIRE_GEO = "requireGeo";
+    private static final String ARG_CAN_VIEW_LIST = "canViewList";
 
     @Override
     public void onAttach(@NonNull Context context) {
@@ -83,6 +84,7 @@ public class WaitingListDialogFragment extends DialogFragment {
         int entrantCount = 0;
         boolean inWaitingList = false;
         boolean requireGeo = false;
+        boolean canViewList = false;
 
         if (args != null) {
             eventId = args.getString(ARG_EVENT_ID, "");
@@ -90,6 +92,7 @@ public class WaitingListDialogFragment extends DialogFragment {
             entrantCount = args.getInt(ARG_ENTRANT_COUNT, 0);
             inWaitingList = args.getBoolean(ARG_IN_WAITING_LIST, false);
             requireGeo = args.getBoolean(ARG_REQUIRE_GEO, false);
+            canViewList = args.getBoolean(ARG_CAN_VIEW_LIST, false);
         }
 
         final String finalEventId = eventId;
@@ -127,6 +130,8 @@ public class WaitingListDialogFragment extends DialogFragment {
             }
             dismiss();
         });
+
+        viewListButton.setVisibility(canViewList ? View.VISIBLE : View.GONE);
 
         viewListButton.setOnClickListener(v -> {
             if (listener != null) {
@@ -171,12 +176,35 @@ public class WaitingListDialogFragment extends DialogFragment {
             boolean inWaitingList,
             boolean requireGeolocationForWaitlist
     ) {
+        return newInstance(
+                eventId,
+                eventName,
+                entrantCount,
+                inWaitingList,
+                requireGeolocationForWaitlist,
+                false
+        );
+    }
+
+    /**
+     * @param requireGeolocationForWaitlist when true, joining may use device location for verification
+     * @param canViewList when true, the user can open the organizer/admin waitlist management view
+     */
+    public static WaitingListDialogFragment newInstance(
+            String eventId,
+            String eventName,
+            int entrantCount,
+            boolean inWaitingList,
+            boolean requireGeolocationForWaitlist,
+            boolean canViewList
+    ) {
         Bundle args = new Bundle();
         args.putString(ARG_EVENT_ID, eventId);
         args.putString(ARG_EVENT_NAME, eventName);
         args.putInt(ARG_ENTRANT_COUNT, entrantCount);
         args.putBoolean(ARG_IN_WAITING_LIST, inWaitingList);
         args.putBoolean(ARG_REQUIRE_GEO, requireGeolocationForWaitlist);
+        args.putBoolean(ARG_CAN_VIEW_LIST, canViewList);
 
         WaitingListDialogFragment fragment = new WaitingListDialogFragment();
         fragment.setArguments(args);

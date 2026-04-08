@@ -615,9 +615,6 @@ public class EventOverviewFragment extends Fragment implements
         if (currentUserId == null) {
             return getString(R.string.comment_sign_in_required);
         }
-        if ("admin".equalsIgnoreCase(currentUserRole)) {
-            return getString(R.string.comment_admin_read_only);
-        }
         if ("organizer".equalsIgnoreCase(currentUserRole)) {
             return getString(R.string.comment_only_event_organizer);
         }
@@ -676,7 +673,8 @@ public class EventOverviewFragment extends Fragment implements
                         eventTitle,
                         waitlistCount,
                         inWaitingList,
-                        eventRequiresGeolocationForWaitlist);
+                        eventRequiresGeolocationForWaitlist,
+                        canManageWaitlist());
         dialog.show(getChildFragmentManager(), "WaitingListDialog");
     }
 
@@ -684,8 +682,19 @@ public class EventOverviewFragment extends Fragment implements
      * Opens the organizer/admin waitlist management dialog.
      */
     private void openWaitlistManagementDialog() {
-        WaitlistManagementFragment dialog = WaitlistManagementFragment.newInstance(eventId);
+        if (!canManageWaitlist()) {
+            if (getContext() != null) {
+                Toast.makeText(getContext(), R.string.waitlist_view_restricted, Toast.LENGTH_SHORT).show();
+            }
+            return;
+        }
+
+        WaitlistManagementFragment dialog = WaitlistManagementFragment.newInstance(eventId, true);
         dialog.show(getChildFragmentManager(), "WaitlistManagementDialog");
+    }
+
+    private boolean canManageWaitlist() {
+        return WaitlistAccessPolicy.canManageWaitlist(currentUserId, currentUserRole, currentEvent);
     }
 
     /**
@@ -1047,8 +1056,7 @@ public class EventOverviewFragment extends Fragment implements
      */
     @Override
     public void onViewWaitingList(String eventId) {
-        WaitlistManagementFragment dialog = WaitlistManagementFragment.newInstance(eventId);
-        dialog.show(getChildFragmentManager(), "WaitlistManagementDialog");
+        openWaitlistManagementDialog();
     }
 
     /**
@@ -1323,10 +1331,10 @@ public class EventOverviewFragment extends Fragment implements
         if (message.contains("event no longer exists")) {
             return getString(R.string.report_no_longer_exists);
         }
-        if (message.contains("Only signed-in entrants can submit reports.")) {
+        if (message.contains("Only signed-in users can submit reports.")) {
             return message;
         }
-        if (message.contains("Resolved reports cannot be edited by entrants.")) {
+        if (message.contains("Resolved reports cannot be edited.")) {
             return message;
         }
         if (message.contains("Select a valid report reason.")
