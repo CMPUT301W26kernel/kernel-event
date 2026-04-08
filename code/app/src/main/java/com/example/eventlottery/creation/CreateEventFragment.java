@@ -17,6 +17,10 @@
  *      - TODO: fix event period check to let existing events have registration open dates
  *              earlier than the current date. I may wish to hide/lock the registration Open
  *              field from editing users entirely if the registration period has already begun.
+ *      - TODO: Move geolocation stuff to their own dedicated buisness logic class in the
+ *              geolocation package
+ *      - TODO: Move validation stuff into it's own dedicated validation logic class.
+ *              (and potentially make a subpackage creaton.validation)
  *</p>
  *
  * @author Grace MacKenzie
@@ -54,6 +58,8 @@ import android.widget.Toast;
 import android.widget.ToggleButton;
 
 import com.example.eventlottery.Event;
+import com.example.eventlottery.geolocation.GeocodeCallback;
+import com.example.eventlottery.geolocation.GeocodeResult;
 import com.example.eventlottery.HomePageFragment;
 import com.example.eventlottery.R;
 import com.google.firebase.firestore.CollectionReference;
@@ -648,22 +654,6 @@ public class CreateEventFragment extends Fragment {
         getParentFragmentManager().setFragmentResult("editEventResult", result);
         if (getParentFragmentManager().getBackStackEntryCount() > 0) {
             getParentFragmentManager().popBackStack();
-        }
-    }
-
-    private interface GeocodeCallback {
-        void onResult(@Nullable GeocodeResult result);
-    }
-
-    private static final class GeocodeResult {
-        final double latitude;
-        final double longitude;
-        final String formattedAddress;
-
-        GeocodeResult(double latitude, double longitude, String formattedAddress) {
-            this.latitude = latitude;
-            this.longitude = longitude;
-            this.formattedAddress = formattedAddress;
         }
     }
 

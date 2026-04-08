@@ -1107,32 +1107,6 @@ public class EventOverviewFragment extends Fragment implements
     }
 
     /**
-     * Parses an event timestamp field from Firestore into the local time zone.
-     *
-     * @param documentSnapshot Firestore event document.
-     * @param fieldName Name of the date field to parse.
-     * @return Parsed date, or the current time as a fallback.
-     */
-    private ZonedDateTime readEventDate(DocumentSnapshot documentSnapshot, String fieldName) {
-        Object rawValue = documentSnapshot.get(fieldName);
-        if (rawValue instanceof Timestamp) {
-            Timestamp timestamp = (Timestamp) rawValue;
-            return ZonedDateTime.ofInstant(
-                    Instant.ofEpochSecond(timestamp.getSeconds(), timestamp.getNanoseconds()),
-                    ZoneId.systemDefault()
-            );
-        }
-        if (rawValue instanceof String) {
-            try {
-                return ZonedDateTime.parse((String) rawValue);
-            } catch (Exception ignored) {
-                // Fall through to the default below.
-            }
-        }
-        return ZonedDateTime.now();
-    }
-
-    /**
      * Returns the input string unless it is blank, in which case the fallback is returned.
      *
      * @param value Candidate value.
