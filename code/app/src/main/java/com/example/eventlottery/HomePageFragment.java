@@ -1,8 +1,8 @@
 /**
  * Home page fragment that displays a list of events fetched from Firestore.
  * This fragment acts as the main entry point for entrants to browse and select events.
+ * Last Modified: 2026-04-04 by Grace MacKenzie
  *
- * Last Modified: 2026-03-31 by Radwa Sheikhdon
  * @author Pierce
  * @author Rebecca OluwaBiyi
  * @author Grace MacKenzie
@@ -27,7 +27,9 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.example.eventlottery.creation.CreateEventFragment;
+import com.example.eventlottery.map.NearbyEventsMapFragment;
 import com.example.eventlottery.profiles.ProfileListFragment;
+import com.example.eventlottery.profiles.User;
 import com.example.eventlottery.profiles.UserProfileFragment;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.textfield.TextInputEditText;
@@ -59,7 +61,7 @@ public class HomePageFragment extends Fragment {
     private TextInputEditText minCapacityInput;
     private CheckBox openNowOnlyCheckbox;
 
-    private FirebaseUser currentUser;
+    private User currentUser;
 
     public HomePageFragment() {
         // Required empty public constructor
@@ -106,31 +108,31 @@ public class HomePageFragment extends Fragment {
             navigateToEventOverview(selectedEvent.getEventId());
         });
 
-        // Fetch all events from Firestore
-        fetchEventsFromFirestore();
-
         // Setup role-based bottom bar and status
         FrameLayout bottomBar = view.findViewById(R.id.bottom_bar);
         TextView statusText = view.findViewById(R.id.logged_in_status);
 
-        currentUser = FirebaseAuth.getInstance().getCurrentUser();
-        if (currentUser != null) {
+        FirebaseUser firebaseUser = FirebaseAuth.getInstance().getCurrentUser();
+        if (firebaseUser != null) {
             FirebaseFirestore.getInstance().collection("users")
-                    .document(currentUser.getUid())
+                    .document(firebaseUser.getUid())
                     .get()
                     .addOnSuccessListener(documentSnapshot -> {
-                        if (documentSnapshot.exists()) {
-                            String username = documentSnapshot.getString("username");
-                            String role = documentSnapshot.getString("role");
+                        currentUser = documentSnapshot.toObject(User.class);
+                        if (currentUser != null) {
 
                             // Update the status bar
                             if (statusText != null) {
-                                String userLabel = (username != null ? username : "User");
-                                String roleLabel = (role != null ? role : "Unknown");
+                                String userLabel = (currentUser.getUsername() != null ? currentUser.getUsername() : "User");
+                                String roleLabel = (currentUser.getRole() != null ? currentUser.getRole() : "Unknown");
                                 statusText.setText(String.format("Logged in as: %s (%s)", userLabel, roleLabel));
                             }
 
-                            loadBottomBar(bottomBar, role);
+                            loadBottomBar(bottomBar, currentUser.getRole());
+
+                            // Fetch all events from Firestore after setting up user
+                            // TODO: implement callback pattern to avoid firebase nesting
+                            fetchEventsFromFirestore();
                         }
                     });
         }
@@ -144,8 +146,14 @@ public class HomePageFragment extends Fragment {
                     for (QueryDocumentSnapshot document : queryDocumentSnapshots) {
                         try {
                             Event event = document.toObject(Event.class);
-                            event.setEventId(document.getId());
-                            allEvents.add(event);
+                            boolean isPublic = !event.isPrivate();
+                            boolean isOrganizer = event.isOrganizer(currentUser.getUserId());
+                            boolean isAdmin = "admin".equalsIgnoreCase(currentUser.getRole());
+                            Log.d("HomePageFragment", String.format("Event: %s, public: %b, admin: %b, is organizer: %b",
+                                    event.getTitle(), isPublic, isAdmin, isOrganizer));
+                            if (isPublic || isOrganizer || isAdmin) {
+                                allEvents.add(event);
+                            }
                         } catch (Exception e) {
                             Log.e("HomePageFragment", "Error parsing event: " + document.getId(), e);
                         }
@@ -182,6 +190,43 @@ public class HomePageFragment extends Fragment {
                     .commit());
         }
 
+        MaterialButton nearbyMapBtn = bottomBarView.findViewById(R.id.btn_nearby_map);
+        if (nearbyMapBtn != null) {
+            nearbyMapBtn.setOnClickListener(v -> getParentFragmentManager().beginTransaction()
+                    .replace(R.id.fragment_container, new NearbyEventsMapFragment())
+                    .addToBackStack(null)
+                    .commit());
+        }
+        
+        // Now allows admin to select either reporting or invites
+        MaterialButton notificationsBtn = bottomBarView.findViewById(R.id.btn_notifications);
+        if (notificationsBtn != null) {
+            notificationsBtn.setOnClickListener(v -> {
+                if ("admin".equalsIgnoreCase(role)) {
+                    String[] options = {"Invites", "Reporting"};
+
+                    new androidx.appcompat.app.AlertDialog.Builder(requireContext())
+                            .setTitle("Open")
+                            .setItems(options, (dialog, which) -> {
+                                Fragment destination = (which == 0)
+                                        ? new NotificationsFragment()
+                                        : new OrganizerReportCenterFragment();
+
+                                getParentFragmentManager().beginTransaction()
+                                        .replace(R.id.fragment_container, destination)
+                                        .addToBackStack(null)
+                                        .commit();
+                            })
+                            .show();
+                } else {
+                    getParentFragmentManager().beginTransaction()
+                            .replace(R.id.fragment_container, new NotificationsFragment())
+                            .addToBackStack(null)
+                            .commit();
+                }
+            });
+        }
+
         // Admin Profiles button (Profiles icon)
         MaterialButton profilesBtn = bottomBarView.findViewById(R.id.btn_profiles);
         if (profilesBtn != null) {
@@ -195,7 +240,7 @@ public class HomePageFragment extends Fragment {
         MaterialButton createEventBtn = bottomBarView.findViewById(R.id.btn_plus);
         if (createEventBtn != null) {
             createEventBtn.setOnClickListener(v -> getParentFragmentManager().beginTransaction()
-                    .replace(R.id.fragment_container, CreateEventFragment.newInstanceCreateMode(currentUser.getUid()))
+                    .replace(R.id.fragment_container, CreateEventFragment.newInstanceCreateMode(currentUser.getUserId()))
                     .addToBackStack(null)
                     .commit());
         }
@@ -283,7 +328,17 @@ public class HomePageFragment extends Fragment {
         if (keyword.isEmpty()) return true;
         String title = event.getTitle() == null ? "" : event.getTitle().toLowerCase(Locale.US);
         String description = event.getDescription() == null ? "" : event.getDescription().toLowerCase(Locale.US);
-        return title.contains(keyword) || description.contains(keyword);
+        if (title.contains(keyword) || description.contains(keyword)) {
+            return true;
+        }
+        if (event.getTags() != null) {
+            for (String tag : event.getTags()) {
+                if (tag != null && tag.toLowerCase(Locale.US).contains(keyword)) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     private boolean matchesAvailability(Event event, LocalDate availableDate, boolean openNowOnly, ZonedDateTime now) {
