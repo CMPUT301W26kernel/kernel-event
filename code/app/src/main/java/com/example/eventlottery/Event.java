@@ -64,6 +64,8 @@ public class Event {
     private Double venueLatitude;
     /** Venue longitude (WGS84), optional. */
     private Double venueLongitude;
+    /** Human-readable venue address; users enter this (not raw coordinates). */
+    private String venueAddress;
     /** When true, entrants must be within {@link #geolocationRadiusMeters} of the venue to join the waitlist. */
     private boolean requireGeolocationForWaitlist;
     /** Max distance from venue in meters; defaults in app logic when null. */
@@ -278,6 +280,14 @@ public class Event {
 
     public void setVenueLongitude(Double venueLongitude) {
         this.venueLongitude = venueLongitude;
+    }
+
+    public String getVenueAddress() {
+        return venueAddress;
+    }
+
+    public void setVenueAddress(String venueAddress) {
+        this.venueAddress = venueAddress;
     }
 
     public boolean isRequireGeolocationForWaitlist() {
